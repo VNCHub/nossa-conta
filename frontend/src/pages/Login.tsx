@@ -69,7 +69,7 @@ export default function Login() {
   return (
     <Center mih="100vh" p="lg">
       <Stack w="100%" maw={420} gap={0}>
-        <Title order={1}>Grana a Dois</Title>
+        <Title order={1}>Nossa Conta</Title>
         <Text c="dimmed" size="md" mt={6} mb="xl">
           Cada um lança o que gastou. No fim do mês, o app diz quem paga quanto pra quem.
         </Text>

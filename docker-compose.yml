@@ -3,16 +3,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-grana}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-grana_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-grana_a_dois}
+      POSTGRES_USER: ${POSTGRES_USER:-nossa_conta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nossa_conta_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-nossa_conta}
     ports:
       # Porta do host configurável: a 5432 costuma estar ocupada por outro projeto.
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - dados_postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-grana} -d ${POSTGRES_DB:-grana_a_dois}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nossa_conta} -d ${POSTGRES_DB:-nossa_conta}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-grana}:${POSTGRES_PASSWORD:-grana_dev}@db:5432/${POSTGRES_DB:-grana_a_dois}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nossa_conta}:${POSTGRES_PASSWORD:-nossa_conta_dev}@db:5432/${POSTGRES_DB:-nossa_conta}?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?defina JWT_ACCESS_SECRET no .env}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET no .env}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}

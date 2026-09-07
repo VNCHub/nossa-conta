@@ -1,4 +1,4 @@
-# Grana a Dois
+# Nossa Conta
 
 Controle financeiro para quem divide as contas. Cada pessoa lança o que ganhou e o que
 gastou; no fim do mês o sistema calcula a cota de cada um conforme a regra de rateio

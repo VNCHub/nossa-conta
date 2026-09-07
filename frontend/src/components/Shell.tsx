@@ -30,7 +30,7 @@ export default function Shell() {
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
             <Burger opened={aberto} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
-            <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Grana a Dois</Text>
+            <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
           </Group>
           <MesNav mes={mes} setMes={setMes} />
         </Group>
@@ -39,7 +39,7 @@ export default function Shell() {
       <AppShell.Navbar bg="var(--gf-ink)" p="md" style={{ border: 'none' }}>
         <AppShell.Section>
           <Text ff="'Newsreader', Georgia, serif" fz={20} c="#fff" lh={1.2}>
-            Grana a Dois
+            Nossa Conta
           </Text>
           <Text fz="xs" c="#8FAFA4" mt={4} style={{ letterSpacing: '0.04em' }}>
             {familia?.nome ?? '—'}

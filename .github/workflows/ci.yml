@@ -12,15 +12,15 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: grana
-          POSTGRES_PASSWORD: grana_dev
-          POSTGRES_DB: grana_a_dois
+          POSTGRES_USER: nossa_conta
+          POSTGRES_PASSWORD: nossa_conta_dev
+          POSTGRES_DB: nossa_conta
         ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready --health-interval 5s
           --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://grana:grana_dev@localhost:5432/grana_a_dois?schema=public
+      DATABASE_URL: postgresql://nossa_conta:nossa_conta_dev@localhost:5432/nossa_conta?schema=public
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
     steps:
