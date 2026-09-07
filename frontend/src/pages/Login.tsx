@@ -1,50 +1,62 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Center,
+  Grid,
+  PasswordInput,
+  SegmentedControl,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { useAuth } from '../auth/AuthContext';
-import { Erro } from '../components/ui';
 
 type Modo = 'entrar' | 'criar';
 
 export default function Login() {
   const { entrar, cadastrar } = useAuth();
   const [modo, setModo] = useState<Modo>('entrar');
-  const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
-  const [nome, setNome] = useState('');
-  const [codigo, setCodigo] = useState('');
-  const [novaFam, setNovaFam] = useState('');
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: { nome: '', email: '', senha: '', codigoConvite: '', nomeFamilia: '' },
+    validate: {
+      nome: (v) => (modo === 'criar' && !v.trim() ? 'Informe seu nome.' : null),
+      email: (v) => (/^\S+@\S+\.\S+$/.test(v) ? null : 'Informe um e-mail válido.'),
+      senha: (v) =>
+        modo === 'criar' && v.length < 6 ? 'A senha precisa ter 6 caracteres ou mais.' : null,
+      nomeFamilia: (v, valores) =>
+        modo === 'criar' && !v.trim() && !valores.codigoConvite.trim()
+          ? 'Crie uma família ou entre com um código de convite.'
+          : null,
+    },
+  });
 
   const trocarModo = (m: Modo) => {
     setModo(m);
     setErro('');
+    form.clearErrors();
   };
 
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault();
+  const enviar = form.onSubmit(async (v) => {
     setErro('');
-
-    if (modo === 'criar') {
-      if (!nome.trim() || !email.trim() || senha.length < 6) {
-        return setErro('Preencha nome, e-mail e uma senha de 6 caracteres ou mais.');
-      }
-      if (!codigo.trim() && !novaFam.trim()) {
-        return setErro('Crie uma família ou entre com um código de convite.');
-      }
-    }
-
     setEnviando(true);
     try {
       if (modo === 'entrar') {
-        await entrar(email, senha);
+        await entrar(v.email, v.senha);
       } else {
         await cadastrar({
-          nome,
-          email,
-          senha,
-          codigoConvite: codigo.trim() || undefined,
-          nomeFamilia: codigo.trim() ? undefined : novaFam.trim(),
+          nome: v.nome,
+          email: v.email,
+          senha: v.senha,
+          codigoConvite: v.codigoConvite.trim() || undefined,
+          nomeFamilia: v.codigoConvite.trim() ? undefined : v.nomeFamilia.trim(),
         });
       }
     } catch (e) {
@@ -52,78 +64,69 @@ export default function Login() {
     } finally {
       setEnviando(false);
     }
-  };
+  });
 
   return (
-    <div className="gf login">
-      <div className="loginbox">
-        <h1 style={{ marginBottom: 6 }}>Grana a Dois</h1>
-        <p className="sub" style={{ marginBottom: 24 }}>
+    <Center mih="100vh" p="lg">
+      <Stack w="100%" maw={420} gap={0}>
+        <Title order={1}>Grana a Dois</Title>
+        <Text c="dimmed" size="md" mt={6} mb="xl">
           Cada um lança o que gastou. No fim do mês, o app diz quem paga quanto pra quem.
-        </p>
+        </Text>
 
-        <form className="card" onSubmit={enviar}>
-          <div className="pillbar" style={{ marginBottom: 18 }}>
-            <button type="button" className={modo === 'entrar' ? 'on' : ''} onClick={() => trocarModo('entrar')}>
-              Entrar
-            </button>
-            <button type="button" className={modo === 'criar' ? 'on' : ''} onClick={() => trocarModo('criar')}>
-              Criar conta
-            </button>
-          </div>
+        <Card>
+          <SegmentedControl
+            fullWidth
+            value={modo}
+            onChange={(v) => trocarModo(v as Modo)}
+            data={[
+              { value: 'entrar', label: 'Entrar' },
+              { value: 'criar', label: 'Criar conta' },
+            ]}
+            mb="lg"
+          />
 
-          <div className="stack">
-            {modo === 'criar' && (
-              <div>
-                <label className="f" htmlFor="nome">Nome</label>
-                <input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" />
-              </div>
-            )}
+          <form onSubmit={enviar}>
+            <Stack gap="md">
+              {modo === 'criar' && (
+                <TextInput label="Nome" autoComplete="name" key={form.key('nome')} {...form.getInputProps('nome')} />
+              )}
 
-            <div>
-              <label className="f" htmlFor="email">E-mail</label>
-              <input
-                id="email" type="email" value={email} autoComplete="email"
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+              <TextInput label="E-mail" type="email" autoComplete="email" key={form.key('email')} {...form.getInputProps('email')} />
 
-            <div>
-              <label className="f" htmlFor="senha">Senha</label>
-              <input
-                id="senha" type="password" value={senha}
+              <PasswordInput
+                label="Senha"
                 autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
-                onChange={(e) => setSenha(e.target.value)}
+                key={form.key('senha')}
+                {...form.getInputProps('senha')}
               />
-            </div>
 
-            {modo === 'criar' && (
-              <div className="grid2" style={{ gap: 12 }}>
-                <div>
-                  <label className="f" htmlFor="codigo">Código de convite</label>
-                  <input
-                    id="codigo" placeholder="VILA-7K2M" value={codigo}
-                    onChange={(e) => setCodigo(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="f" htmlFor="fam">ou crie uma família</label>
-                  <input
-                    id="fam" placeholder="Nome da família" value={novaFam}
-                    disabled={!!codigo.trim()}
-                    onChange={(e) => setNovaFam(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
+              {modo === 'criar' && (
+                <Grid gap="sm">
+                  <Grid.Col span={{ base: 12, xs: 6 }}>
+                    <TextInput
+                      label="Código de convite" placeholder="VILA-7K2M"
+                      key={form.key('codigoConvite')} {...form.getInputProps('codigoConvite')}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, xs: 6 }}>
+                    <TextInput
+                      label="ou crie uma família" placeholder="Nome da família"
+                      key={form.key('nomeFamilia')} {...form.getInputProps('nomeFamilia')}
+                    />
+                  </Grid.Col>
+                </Grid>
+              )}
 
-            <button className="btn" type="submit" disabled={enviando}>
-              {enviando ? 'Aguarde…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
-            </button>
-            <Erro>{erro}</Erro>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Button type="submit" loading={enviando} fullWidth>
+                {modo === 'entrar' ? 'Entrar' : 'Criar conta'}
+              </Button>
+
+              {erro && <Alert color="tijolo" variant="light">{erro}</Alert>}
+            </Stack>
+          </form>
+        </Card>
+      </Stack>
+    </Center>
   );
 }

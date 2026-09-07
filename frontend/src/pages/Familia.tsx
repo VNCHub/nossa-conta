@@ -1,11 +1,28 @@
-import { useState, type FormEvent } from 'react';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CopyButton,
+  Grid,
+  Group,
+  NumberInput,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import type { RegraDTO } from '@shared/contratos';
 import { TIPOS_REGRA, type TipoRegra } from '@shared/dominio';
 import { mesLabel, pct } from '@shared/formato';
 import { api } from '../api/client';
 import { chaves, useFamilia, useMembros, useMutacao, useRegras } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, Cabecalho, Carregando, Erro } from '../components/ui';
+import { Avatar, Cabecalho, Carregando, Vazio } from '../components/ui';
+import { avisarErro, avisarSucesso, confirmarExclusao } from '../feedback';
 import { useMes } from '../useMes';
 
 const ROTULO_TIPO: Record<TipoRegra, string> = {
@@ -23,71 +40,80 @@ export default function Familia() {
   const { data: membros } = useMembros();
   const regras = useRegras();
 
-  const [nome, setNome] = useState('');
-  const [tipo, setTipo] = useState<TipoRegra>('igual');
-  const [unidade, setUnidade] = useState('km');
-  const [erro, setErro] = useState('');
-  const [copiado, setCopiado] = useState(false);
-
   const invalidar = [chaves.regras, chaves.consolidado(mes)];
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: { nome: '', tipo: 'igual' as TipoRegra, unidade: 'km' },
+    validate: {
+      nome: (v) => (v.trim() ? null : 'Dê um nome à regra.'),
+      unidade: (v, vals) =>
+        vals.tipo === 'medidor' && !v.trim() ? 'Informe a unidade medida.' : null,
+    },
+  });
+
   const criar = useMutacao(
     (corpo: Record<string, unknown>) => api.post<RegraDTO>('/regras', corpo),
     invalidar,
-    { onSuccess: () => setNome('') },
+    {
+      onSuccess: () => {
+        form.setFieldValue('nome', '');
+        avisarSucesso('Regra criada.');
+      },
+      onError: (e) => avisarErro(e.message),
+    },
   );
-  const excluir = useMutacao((id: string) => api.delete(`/regras/${id}`), invalidar);
+
+  const excluir = useMutacao((id: string) => api.delete(`/regras/${id}`), invalidar, {
+    onSuccess: () => avisarSucesso('Regra excluída.'),
+    onError: (e) => avisarErro(e.message),
+  });
+
   const salvarPesos = useMutacao(
     (v: { id: string; pesos: { userId: string; percentual: number }[] }) =>
       api.put<RegraDTO>(`/regras/${v.id}/pesos`, { pesos: v.pesos }),
     invalidar,
+    { onError: (e) => avisarErro(e.message) },
   );
+
   const salvarMedicoes = useMutacao(
     (v: { id: string; medicoes: { userId: string; valor: number }[] }) =>
       api.put<RegraDTO>(`/regras/${v.id}/medicoes?mes=${mes}`, { medicoes: v.medicoes }),
     invalidar,
+    { onError: (e) => avisarErro(e.message) },
   );
 
-  if (regras.isPending || !membros || !familia || !usuario) return <Carregando />;
-  if (regras.error) return <div className="empty">{regras.error.message}</div>;
+  if (!regras.data || !membros || !familia || !usuario) {
+    return regras.error ? <Vazio>{regras.error.message}</Vazio> : <Carregando />;
+  }
 
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(familia.codigoConvite);
-    } catch {
-      /* sem permissão de área de transferência: o código segue visível na tela */
-    }
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 1800);
-  };
-
-  const enviarRegra = (e: FormEvent) => {
-    e.preventDefault();
-    setErro('');
-    if (!nome.trim()) return setErro('Dê um nome à regra.');
-    criar.mutate(
-      { nome: nome.trim(), tipo, ...(tipo === 'medidor' ? { unidade: unidade.trim() } : {}) },
-      { onError: (e) => setErro(e.message) },
-    );
-  };
-
-  const alterarPeso = (r: RegraDTO, userId: string, valor: string) => {
-    const pesos = membros.map((m) => ({
-      userId: m.id,
-      percentual: m.id === userId ? Number(valor) || 0 : (r.pesos?.[m.id] ?? 0),
-    }));
-    salvarPesos.mutate({ id: r.id, pesos });
-  };
-
-  const alterarMedicao = (r: RegraDTO, userId: string, valor: string) => {
-    const doMes = r.medicoes?.[mes] ?? {};
-    const medicoes = membros
-      .map((m) => ({
+  const alterarPeso = (r: RegraDTO, userId: string, valor: number) =>
+    salvarPesos.mutate({
+      id: r.id,
+      pesos: membros.map((m) => ({
         userId: m.id,
-        valor: m.id === userId ? Number(valor) || 0 : (doMes[m.id] ?? 0),
-      }))
-      .filter((m) => m.valor > 0);
-    salvarMedicoes.mutate({ id: r.id, medicoes });
+        percentual: m.id === userId ? valor : (r.pesos?.[m.id] ?? 0),
+      })),
+    });
+
+  const alterarMedicao = (r: RegraDTO, userId: string, valor: number) => {
+    const doMes = r.medicoes?.[mes] ?? {};
+    salvarMedicoes.mutate({
+      id: r.id,
+      medicoes: membros
+        .map((m) => ({ userId: m.id, valor: m.id === userId ? valor : (doMes[m.id] ?? 0) }))
+        .filter((m) => m.valor > 0),
+    });
   };
+
+  const pedirExclusao = (r: RegraDTO) =>
+    confirmarExclusao({
+      titulo: 'Excluir regra de rateio',
+      descricao: `A regra "${r.nome}" deixará de aparecer no formulário de gasto.`,
+      aoConfirmar: () => excluir.mutate(r.id),
+    });
+
+  const tipo = form.getValues().tipo;
 
   return (
     <>
@@ -96,166 +122,175 @@ export default function Familia() {
         descricao="Membros, convite e as regras de rateio que aparecem no formulário de gasto."
       />
 
-      <div className="grid2">
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 12 }}>Membros</h3>
-          {membros.map((m) => (
-            <div className="memberrow" key={m.id}>
-              <Avatar user={m} lg />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <strong style={{ fontWeight: 600 }}>
-                  {m.nome}
-                  {m.id === usuario.id ? ' (você)' : ''}
-                </strong>
-                <span className="faint" style={{ display: 'block' }}>{m.email}</span>
-              </span>
-              {familia.criadaPorId === m.id && <span className="chip">Criou a família</span>}
-            </div>
-          ))}
-        </div>
-
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 6 }}>Convidar alguém</h3>
-          <p className="sub" style={{ marginBottom: 14 }}>
-            Quem tiver esse código entra na família ao criar a conta e passa a ver estes lançamentos.
-          </p>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span
-              className="num"
-              style={{
-                fontSize: 22, fontWeight: 600, letterSpacing: '0.06em',
-                background: '#EDF0EB', padding: '10px 16px', borderRadius: 10,
-              }}
-            >
-              {familia.codigoConvite}
-            </span>
-            <button className="btn ghost" onClick={() => void copiar()}>
-              {copiado ? 'Código copiado' : 'Copiar código'}
-            </button>
-          </div>
-          <div className="note" style={{ marginTop: 16 }}>
-            Nenhum dado desta família aparece para quem está fora dela: toda consulta da API é
-            filtrada pela família de quem está logado.
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="rowhead" style={{ marginBottom: 8 }}>
-          <div>
-            <h3>Regras de rateio</h3>
-            <p className="sub">São essas opções que aparecem no campo “Rateio” de cada gasto dividido.</p>
-          </div>
-        </div>
-
-        <div className="stack" style={{ marginTop: 14 }}>
-          {regras.data.map((r) => (
-            <div key={r.id} style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
-              <div className="rowhead" style={{ marginBottom: 10 }}>
-                <div>
-                  <strong style={{ fontWeight: 600, fontSize: 14.5 }}>{r.nome}</strong>
-                  <p className="faint">{r.descricao}</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span className="chip">{r.emUso ?? 0} gasto(s) usando</span>
-                  {(r.emUso ?? 0) === 0 && regras.data.length > 1 && (
-                    <button className="btn danger sm" onClick={() => excluir.mutate(r.id)}>
-                      Excluir
-                    </button>
+      <Grid gap="lg" mb="lg">
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card h="100%">
+            <Title order={3} mb="sm">Membros</Title>
+            <Stack gap={0}>
+              {membros.map((m, i) => (
+                <Group
+                  key={m.id} wrap="nowrap" py="sm"
+                  style={i < membros.length - 1 ? { borderBottom: '1px solid #EEF1EC' } : undefined}
+                >
+                  <Avatar user={m} lg />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600}>{m.nome}{m.id === usuario.id ? ' (você)' : ''}</Text>
+                    <Text size="sm" c="dimmed" truncate>{m.email}</Text>
+                  </div>
+                  {familia.criadaPorId === m.id && (
+                    <Badge variant="light" color="gray" tt="none" fw={500}>Criou a família</Badge>
                   )}
+                </Group>
+              ))}
+            </Stack>
+          </Card>
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card h="100%">
+            <Title order={3} mb={6}>Convidar alguém</Title>
+            <Text c="dimmed" size="md" mb="md">
+              Quem tiver esse código entra na família ao criar a conta e passa a ver estes lançamentos.
+            </Text>
+            <Group gap="sm" wrap="wrap">
+              <Paper bg="#EDF0EB" px="lg" py="sm" radius="lg">
+                <Text className="num" fz={22} fw={600} style={{ letterSpacing: '0.06em' }}>
+                  {familia.codigoConvite}
+                </Text>
+              </Paper>
+              <CopyButton value={familia.codigoConvite} timeout={1800}>
+                {({ copied, copy }) => (
+                  <Button variant="default" onClick={copy}>
+                    {copied ? 'Código copiado' : 'Copiar código'}
+                  </Button>
+                )}
+              </CopyButton>
+            </Group>
+            <Alert color="petrol" variant="light" mt="lg">
+              Nenhum dado desta família aparece para quem está fora dela: toda consulta da API é
+              filtrada pela família de quem está logado.
+            </Alert>
+          </Card>
+        </Grid.Col>
+      </Grid>
+
+      <Card mb="lg">
+        <Title order={3}>Regras de rateio</Title>
+        <Text c="dimmed" size="md" mb="lg">
+          São essas opções que aparecem no campo “Rateio” de cada gasto dividido.
+        </Text>
+
+        <Stack gap="md">
+          {regras.data.map((r) => (
+            <Paper key={r.id} withBorder radius="lg" p="md">
+              <Group justify="space-between" align="flex-start" wrap="wrap" mb="sm">
+                <div>
+                  <Text fw={600} fz="lg">{r.nome}</Text>
+                  <Text size="sm" c="dimmed">{r.descricao}</Text>
                 </div>
-              </div>
+                <Group gap="xs">
+                  <Badge variant="light" color="gray" tt="none" fw={500}>
+                    {r.emUso ?? 0} gasto(s) usando
+                  </Badge>
+                  {(r.emUso ?? 0) === 0 && regras.data.length > 1 && (
+                    <Button size="xs" variant="light" color="tijolo" onClick={() => pedirExclusao(r)}>
+                      Excluir
+                    </Button>
+                  )}
+                </Group>
+              </Group>
 
               {r.tipo === 'fixo' && (
-                <div className="formgrid">
-                  {membros.map((m) => (
-                    <div key={m.id}>
-                      <label className="f">{m.nome} (%)</label>
-                      <input
-                        type="number" min="0" max="100" defaultValue={r.pesos?.[m.id] ?? 0}
-                        onBlur={(e) => alterarPeso(r, m.id, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                  <div className="span4 faint">
+                <>
+                  <Grid gap="sm">
+                    {membros.map((m) => (
+                      <Grid.Col key={m.id} span={{ base: 6, md: 3 }}>
+                        <NumberInput
+                          label={`${m.nome} (%)`} min={0} max={100} suffix="%"
+                          defaultValue={r.pesos?.[m.id] ?? 0}
+                          onBlur={(e) => alterarPeso(r, m.id, Number(e.currentTarget.value.replace('%', '')) || 0)}
+                        />
+                      </Grid.Col>
+                    ))}
+                  </Grid>
+                  <Text size="sm" c="dimmed" mt="sm">
                     Soma atual: {Object.values(r.pesos ?? {}).reduce((s, v) => s + v, 0)}%. Se não fechar
                     100, o app normaliza proporcionalmente entre quem participa do gasto.
-                  </div>
-                </div>
+                  </Text>
+                </>
               )}
 
               {r.tipo === 'medidor' && (
-                <div>
-                  <p className="faint" style={{ marginBottom: 10 }}>
+                <>
+                  <Text size="sm" c="dimmed" mb="sm">
                     Medição de {mesLabel(mes)} — unidade: {r.unidade}
-                  </p>
-                  <div className="formgrid">
+                  </Text>
+                  <Grid gap="sm">
                     {membros.map((m) => {
                       const doMes = r.medicoes?.[mes] ?? {};
                       const soma = Object.values(doMes).reduce((s, v) => s + v, 0);
                       return (
-                        <div key={m.id}>
-                          <label className="f">{m.nome} ({r.unidade})</label>
-                          <input
-                            type="number" min="0" placeholder="0" defaultValue={doMes[m.id] ?? ''}
+                        <Grid.Col key={m.id} span={{ base: 6, md: 3 }}>
+                          <NumberInput
+                            label={`${m.nome} (${r.unidade})`} min={0} placeholder="0"
                             key={`${r.id}-${m.id}-${mes}-${doMes[m.id] ?? ''}`}
-                            onBlur={(e) => alterarMedicao(r, m.id, e.target.value)}
+                            defaultValue={doMes[m.id] ?? ''}
+                            description={soma ? pct((doMes[m.id] ?? 0) / soma) : 'sem medição'}
+                            inputWrapperOrder={['label', 'input', 'description']}
+                            onBlur={(e) => alterarMedicao(r, m.id, Number(e.currentTarget.value) || 0)}
                           />
-                          <div className="faint num" style={{ marginTop: 4 }}>
-                            {soma ? pct((doMes[m.id] ?? 0) / soma) : 'sem medição'}
-                          </div>
-                        </div>
+                        </Grid.Col>
                       );
                     })}
-                  </div>
-                </div>
+                  </Grid>
+                </>
               )}
 
               {['igual', 'renda', 'sobra'].includes(r.tipo) && (
-                <p className="faint">
+                <Text size="sm" c="dimmed">
                   Calculada automaticamente a partir dos lançamentos do mês — não precisa configurar.
-                </p>
+                </Text>
               )}
-            </div>
+            </Paper>
           ))}
-        </div>
+        </Stack>
+      </Card>
 
-        <form style={{ borderTop: '1px solid var(--line)', marginTop: 18, paddingTop: 18 }} onSubmit={enviarRegra}>
-          <h3 style={{ marginBottom: 12 }}>Criar regra</h3>
-          <div className="formgrid">
-            <div className="span2">
-              <label className="f" htmlFor="rnome">Nome</label>
-              <input
-                id="rnome" value={nome} placeholder="Ex.: Mercado por pessoa em casa"
-                onChange={(e) => setNome(e.target.value)}
+      <Card component="form" onSubmit={form.onSubmit((v) =>
+        criar.mutate({
+          nome: v.nome.trim(),
+          tipo: v.tipo,
+          ...(v.tipo === 'medidor' ? { unidade: v.unidade.trim() } : {}),
+        }),
+      )}>
+        <Title order={3} mb="md">Criar regra</Title>
+        <Grid gap="md" align="flex-end">
+          <Grid.Col span={{ base: 12, md: 5 }}>
+            <TextInput
+              label="Nome" placeholder="Ex.: Mercado por pessoa em casa"
+              key={form.key('nome')} {...form.getInputProps('nome')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Select
+              label="Base do cálculo" allowDeselect={false}
+              data={TIPOS_REGRA.map((t) => ({ value: t, label: ROTULO_TIPO[t] }))}
+              key={form.key('tipo')} {...form.getInputProps('tipo')}
+            />
+          </Grid.Col>
+          {tipo === 'medidor' && (
+            <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
+              <TextInput
+                label="Unidade medida" placeholder="km, dias, litros…"
+                key={form.key('unidade')} {...form.getInputProps('unidade')}
               />
-            </div>
-            <div>
-              <label className="f" htmlFor="rtipo">Base do cálculo</label>
-              <select id="rtipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoRegra)}>
-                {TIPOS_REGRA.map((t) => <option key={t} value={t}>{ROTULO_TIPO[t]}</option>)}
-              </select>
-            </div>
-            {tipo === 'medidor' ? (
-              <div>
-                <label className="f" htmlFor="runi">Unidade medida</label>
-                <input
-                  id="runi" value={unidade} placeholder="km, dias, litros…"
-                  onChange={(e) => setUnidade(e.target.value)}
-                />
-              </div>
-            ) : (
-              <div />
-            )}
-            <div className="span4">
-              <button className="btn" type="submit" disabled={criar.isPending}>
-                {criar.isPending ? 'Criando…' : 'Criar regra'}
-              </button>
-              <Erro>{erro}</Erro>
-            </div>
-          </div>
-        </form>
-      </div>
+            </Grid.Col>
+          )}
+          <Grid.Col span={{ base: 12, md: 2 }}>
+            <Button type="submit" loading={criar.isPending} fullWidth>Criar regra</Button>
+          </Grid.Col>
+        </Grid>
+      </Card>
     </>
   );
 }

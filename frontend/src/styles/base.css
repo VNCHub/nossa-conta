@@ -1,0 +1,55 @@
+/*
+ * Só o que o Mantine não cobre: as fontes do protótipo, os tokens como CSS
+ * variables e dois tratamentos tipográficos próprios do produto.
+ * Todo o resto (botão, input, card, tabela, modal) vem da biblioteca.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
+
+:root {
+  --gf-paper: #f1f3ef;
+  --gf-card: #ffffff;
+  --gf-ink: #12332c;
+  --gf-ink-soft: #4e605a;
+  --gf-ink-faint: #8b978f;
+  --gf-line: #dfe4dc;
+  --gf-credito: #2e7d63;
+  --gf-debito: #a8332a;
+  --gf-mostarda: #d9a21b;
+}
+
+body {
+  background: var(--gf-paper);
+  color: var(--gf-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Valores monetários alinham na vertical em tabelas e listas. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A frase do acerto do mês é o desfecho da tela: ganha peso editorial. */
+.acerto {
+  font-family: 'Newsreader', Georgia, serif;
+  font-size: 30px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+@media (max-width: 48em) {
+  .acerto {
+    font-size: 23px;
+  }
+}
+
+/* Trilha de navegação: o react-router marca o link ativo com .active. */
+.rail-link:hover {
+  background: #1b4239 !important;
+  color: #fff !important;
+}
+.rail-link.active {
+  background: #2a5b4f !important;
+  color: #fff !important;
+  font-weight: 600;
+}

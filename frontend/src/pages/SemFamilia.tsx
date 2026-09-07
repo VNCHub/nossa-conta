@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { Alert, Button, Card, Center, Stack, Text, TextInput, Title } from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { Erro } from '../components/ui';
 
 /**
  * Estado possível para uma conta que ficou sem família (o criador saiu, por
@@ -9,55 +10,52 @@ import { Erro } from '../components/ui';
  */
 export default function SemFamilia() {
   const { usuario, recarregarUsuario, sair } = useAuth();
-  const [codigo, setCodigo] = useState('');
-  const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault();
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: { codigo: '', nome: '' },
+    validate: {
+      nome: (v, vals) =>
+        !v.trim() && !vals.codigo.trim()
+          ? 'Informe um código de convite ou o nome da nova família.'
+          : null,
+    },
+  });
+
+  const enviar = form.onSubmit(async (v) => {
     setErro('');
     setEnviando(true);
     try {
-      if (codigo.trim()) await api.post('/familias/entrar', { codigo: codigo.trim() });
-      else if (nome.trim()) await api.post('/familias', { nome: nome.trim() });
-      else return setErro('Informe um código de convite ou o nome da nova família.');
+      if (v.codigo.trim()) await api.post('/familias/entrar', { codigo: v.codigo.trim() });
+      else await api.post('/familias', { nome: v.nome.trim() });
       await recarregarUsuario();
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível concluir.');
     } finally {
       setEnviando(false);
     }
-  };
+  });
 
   return (
-    <div className="gf login">
-      <div className="loginbox">
-        <h1 style={{ marginBottom: 6 }}>Olá, {usuario?.nome}</h1>
-        <p className="sub" style={{ marginBottom: 24 }}>
+    <Center mih="100vh" p="lg">
+      <Stack w="100%" maw={420} gap={0}>
+        <Title order={1}>Olá, {usuario?.nome}</Title>
+        <Text c="dimmed" size="md" mt={6} mb="xl">
           Você ainda não faz parte de uma família. Entre em uma ou crie a sua.
-        </p>
-        <form className="card stack" onSubmit={enviar}>
-          <div>
-            <label className="f" htmlFor="cod">Código de convite</label>
-            <input id="cod" placeholder="VILA-7K2M" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
-          </div>
-          <div>
-            <label className="f" htmlFor="nova">ou crie uma família</label>
-            <input
-              id="nova" placeholder="Nome da família" value={nome}
-              disabled={!!codigo.trim()} onChange={(e) => setNome(e.target.value)}
-            />
-          </div>
-          <button className="btn" type="submit" disabled={enviando}>
-            {enviando ? 'Aguarde…' : 'Continuar'}
-          </button>
-          <Erro>{erro}</Erro>
-          <button type="button" className="btn ghost sm" onClick={() => void sair()}>
-            Sair da conta
-          </button>
-        </form>
-      </div>
-    </div>
+        </Text>
+
+        <Card component="form" onSubmit={enviar}>
+          <Stack gap="md">
+            <TextInput label="Código de convite" placeholder="VILA-7K2M" key={form.key('codigo')} {...form.getInputProps('codigo')} />
+            <TextInput label="ou crie uma família" placeholder="Nome da família" key={form.key('nome')} {...form.getInputProps('nome')} />
+            <Button type="submit" loading={enviando} fullWidth>Continuar</Button>
+            {erro && <Alert color="tijolo" variant="light">{erro}</Alert>}
+            <Button variant="subtle" color="gray" onClick={() => void sair()}>Sair da conta</Button>
+          </Stack>
+        </Card>
+      </Stack>
+    </Center>
   );
 }

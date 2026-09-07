@@ -1,26 +1,37 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { CATEGORIAS, PAGAMENTOS, type CategoriaId, type Pagamento, type TipoGasto } from '@shared/dominio';
-import { brl, mesLabel, pct } from '@shared/formato';
+import { useState } from 'react';
+import {
+  ActionIcon,
+  Button,
+  Card,
+  Checkbox,
+  Chip,
+  Grid,
+  Group,
+  NumberInput,
+  SegmentedControl,
+  Select,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
+import { useForm } from '@mantine/form';
 import type { GastoDTO } from '@shared/contratos';
+import { CATEGORIAS, PAGAMENTOS } from '@shared/dominio';
+import { brl, mesLabel, pct } from '@shared/formato';
 import { api } from '../api/client';
 import { chaves, useConsolidado, useGastos, useMembros, useMutacao, useRegras } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
-import { Avatar, Cabecalho, Carregando, ChipCategoria, Erro } from '../components/ui';
+import { Avatar, Cabecalho, Carregando, ChipCategoria, ChipTipoGasto, Metrica, Vazio } from '../components/ui';
+import { avisarErro, avisarSucesso, confirmarExclusao } from '../feedback';
 import { useMes } from '../useMes';
 
 type Filtro = 'todos' | 'meus' | 'divididos';
 
-interface Formulario {
-  data: string;
-  pagamento: Pagamento;
-  categoria: CategoriaId;
-  tipoGasto: TipoGasto;
-  descricao: string;
-  valor: string;
-  dividir: boolean;
-  participantes: string[];
-  regraId: string;
-}
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function Gastos() {
   const [mes] = useMes();
@@ -29,41 +40,61 @@ export default function Gastos() {
   const { data: regras } = useRegras();
   const gastos = useGastos(mes);
   const consolidado = useConsolidado(mes);
-
   const [filtro, setFiltro] = useState<Filtro>('todos');
-  const [erro, setErro] = useState('');
 
-  const vazio = useMemo<Formulario>(
-    () => ({
-      data: `${mes}-${String(new Date().getDate()).padStart(2, '0')}`,
+  const invalidar = [chaves.gastos(mes), chaves.consolidado(mes)];
+
+  const form = useForm({
+    mode: 'uncontrolled',
+    initialValues: {
+      data: new Date(`${mes}-15T12:00:00`),
       pagamento: 'Crédito',
       categoria: 'comida',
       tipoGasto: 'fixo',
       descricao: '',
-      valor: '',
+      valor: '' as string | number,
       dividir: false,
       participantes: usuario ? [usuario.id] : [],
-      regraId: regras?.[0]?.id ?? '',
-    }),
-    [mes, usuario, regras],
-  );
-  const [f, setF] = useState<Formulario>(vazio);
-  const set = <K extends keyof Formulario>(k: K, v: Formulario[K]) =>
-    setF((p) => ({ ...p, [k]: v }));
+      regraId: '',
+    },
+    validate: {
+      descricao: (v) => (v.trim() ? null : 'Descreva o gasto.'),
+      valor: (v) => (Number(v) > 0 ? null : 'Informe um valor maior que zero.'),
+      participantes: (v, vals) =>
+        vals.dividir && v.length === 0 ? 'Escolha com quem o gasto será dividido.' : null,
+      regraId: (v, vals) => (vals.dividir && !v ? 'Escolha a regra de rateio.' : null),
+    },
+  });
 
-  const invalidar = [chaves.gastos(mes), chaves.consolidado(mes)];
   const criar = useMutacao(
-    (corpo: Omit<GastoDTO, 'id' | 'userId'>) => api.post<GastoDTO>('/gastos', corpo),
+    (corpo: Record<string, unknown>) => api.post<GastoDTO>('/gastos', corpo),
     invalidar,
-    { onSuccess: () => setF(vazio) },
+    {
+      onSuccess: () => {
+        form.setFieldValue('descricao', '');
+        form.setFieldValue('valor', '');
+        avisarSucesso('Gasto lançado.');
+      },
+      onError: (e) => avisarErro(e.message),
+    },
   );
-  const remover = useMutacao((id: string) => api.delete(`/gastos/${id}`), invalidar);
 
-  if (!gastos.data || !membros || !regras) return <Carregando />;
+  const remover = useMutacao((id: string) => api.delete(`/gastos/${id}`), invalidar, {
+    onSuccess: () => avisarSucesso('Gasto removido.'),
+    onError: (e) => avisarErro(e.message),
+  });
+
+  if (!gastos.data || !membros || !regras) {
+    return gastos.error ? <Vazio>{gastos.error.message}</Vazio> : <Carregando />;
+  }
+
+  // A regra padrão só existe depois que /regras responde.
+  if (!form.getValues().regraId && regras.length) {
+    form.setFieldValue('regraId', regras[0].id);
+  }
 
   const membroDe = (id: string) => membros.find((m) => m.id === id);
-  const cotasDe = (id: string) =>
-    consolidado.data?.linhas.find((l) => l.id === id)?.cotas ?? {};
+  const cotasDe = (id: string) => consolidado.data?.linhas.find((l) => l.id === id)?.cotas ?? {};
 
   const lista = gastos.data.filter((g) => {
     if (filtro === 'meus') return g.userId === usuario?.id;
@@ -72,222 +103,204 @@ export default function Gastos() {
   });
   const total = lista.reduce((s, g) => s + g.valor, 0);
 
-  const toggleParte = (id: string) =>
-    set(
-      'participantes',
-      f.participantes.includes(id)
-        ? f.participantes.filter((x) => x !== id)
-        : [...f.participantes, id],
-    );
+  const enviar = form.onSubmit((v) =>
+    criar.mutate({
+      data: iso(v.data),
+      pagamento: v.pagamento,
+      categoria: v.categoria,
+      tipoGasto: v.tipoGasto,
+      descricao: v.descricao.trim(),
+      valor: Number(v.valor),
+      dividir: v.dividir,
+      participantes: v.dividir ? v.participantes : [],
+      regraId: v.dividir ? v.regraId : null,
+    }),
+  );
 
-  const enviar = (e: FormEvent) => {
-    e.preventDefault();
-    setErro('');
-    const valor = Number(f.valor.replace(',', '.'));
-    if (!f.descricao.trim() || !valor || valor <= 0) {
-      return setErro('Preencha a descrição e um valor maior que zero.');
-    }
-    if (f.dividir && f.participantes.length === 0) {
-      return setErro('Escolha com quem o gasto será dividido.');
-    }
+  const pedirExclusao = (g: GastoDTO) =>
+    confirmarExclusao({
+      titulo: 'Excluir gasto',
+      descricao: `"${g.descricao}" de ${brl(g.valor)}${g.dividir ? ', dividido com outras pessoas,' : ''} será apagado e o acerto do mês vai mudar.`,
+      aoConfirmar: () => remover.mutate(g.id),
+    });
 
-    criar.mutate(
-      {
-        data: f.data,
-        pagamento: f.pagamento,
-        categoria: f.categoria,
-        tipoGasto: f.tipoGasto,
-        descricao: f.descricao.trim(),
-        valor: Math.round(valor * 100) / 100,
-        dividir: f.dividir,
-        participantes: f.dividir ? f.participantes : [],
-        regraId: f.dividir ? f.regraId : null,
-      },
-      { onError: (e) => setErro(e.message) },
-    );
-  };
+  const dividir = form.getValues().dividir;
+  const regraEscolhida = regras.find((r) => r.id === form.getValues().regraId);
 
   return (
     <>
       <Cabecalho
         titulo="Gastos"
         descricao={`Lançamentos da família em ${mesLabel(mes)}.`}
-        acao={
-          <div style={{ textAlign: 'right' }}>
-            <div className="faint">Total listado</div>
-            <div className="num" style={{ fontSize: 24, fontWeight: 600 }}>{brl(total)}</div>
-          </div>
-        }
+        acao={<Metrica rotulo="Total listado" valor={brl(total)} />}
       />
 
-      <form className="card" onSubmit={enviar}>
-        <h3 style={{ marginBottom: 14 }}>Lançar gasto</h3>
-        <div className="formgrid">
-          <div>
-            <label className="f" htmlFor="data">Data</label>
-            <input id="data" type="date" value={f.data} onChange={(e) => set('data', e.target.value)} />
-          </div>
-          <div>
-            <label className="f" htmlFor="pag">Pagamento</label>
-            <select id="pag" value={f.pagamento} onChange={(e) => set('pagamento', e.target.value as Pagamento)}>
-              {PAGAMENTOS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="f" htmlFor="cat">Categoria</label>
-            <select id="cat" value={f.categoria} onChange={(e) => set('categoria', e.target.value as CategoriaId)}>
-              {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="f" htmlFor="tipo">Tipo</label>
-            <select id="tipo" value={f.tipoGasto} onChange={(e) => set('tipoGasto', e.target.value as TipoGasto)}>
-              <option value="fixo">Gasto fixo</option>
-              <option value="opcional">Gasto opcional</option>
-            </select>
-          </div>
-
-          <div className="span2">
-            <label className="f" htmlFor="desc">Descrição</label>
-            <input
-              id="desc" value={f.descricao} placeholder="Aluguel, mercado, cinema…"
-              onChange={(e) => set('descricao', e.target.value)}
+      <Card component="form" onSubmit={enviar} mb="lg">
+        <Title order={3} mb="md">Lançar gasto</Title>
+        <Grid gap="md">
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <DatePickerInput label="Data" valueFormat="DD/MM/YYYY" key={form.key('data')} {...form.getInputProps('data')} />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Select
+              label="Pagamento" allowDeselect={false} data={[...PAGAMENTOS]}
+              key={form.key('pagamento')} {...form.getInputProps('pagamento')}
             />
-          </div>
-          <div>
-            <label className="f" htmlFor="valor">Valor</label>
-            <input
-              id="valor" type="number" step="0.01" min="0" placeholder="0,00"
-              value={f.valor} onChange={(e) => set('valor', e.target.value)}
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Select
+              label="Categoria" allowDeselect={false}
+              data={CATEGORIAS.map((c) => ({ value: c.id, label: c.nome }))}
+              key={form.key('categoria')} {...form.getInputProps('categoria')}
             />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}>
-              <input
-                type="checkbox" style={{ width: 'auto' }} checked={f.dividir}
-                onChange={(e) => set('dividir', e.target.checked)}
-              />
-              Dividir?
-            </label>
-          </div>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <Select
+              label="Tipo" allowDeselect={false}
+              data={[
+                { value: 'fixo', label: 'Gasto fixo' },
+                { value: 'opcional', label: 'Gasto opcional' },
+              ]}
+              key={form.key('tipoGasto')} {...form.getInputProps('tipoGasto')}
+            />
+          </Grid.Col>
 
-          {f.dividir && (
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <TextInput
+              label="Descrição" placeholder="Aluguel, mercado, cinema…"
+              key={form.key('descricao')} {...form.getInputProps('descricao')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+            <NumberInput
+              label="Valor" prefix="R$ " decimalScale={2} decimalSeparator="," thousandSeparator="."
+              min={0} placeholder="0,00" key={form.key('valor')} {...form.getInputProps('valor')}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6, md: 3 }} style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Checkbox
+              label="Dividir com outras pessoas" pb={8}
+              key={form.key('dividir')} {...form.getInputProps('dividir', { type: 'checkbox' })}
+            />
+          </Grid.Col>
+
+          {dividir && (
             <>
-              <div className="span2">
-                <label className="f">Com quem</label>
-                <div className="pillbar">
-                  {membros.map((m) => (
-                    <button
-                      type="button" key={m.id}
-                      className={f.participantes.includes(m.id) ? 'on' : ''}
-                      onClick={() => toggleParte(m.id)}
-                    >
-                      {m.nome}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="span2">
-                <label className="f" htmlFor="regra">Rateio</label>
-                <select id="regra" value={f.regraId} onChange={(e) => set('regraId', e.target.value)}>
-                  {regras.map((r) => <option key={r.id} value={r.id}>{r.nome}</option>)}
-                </select>
-                <p className="faint" style={{ marginTop: 4 }}>
-                  {regras.find((r) => r.id === f.regraId)?.descricao}
-                </p>
-              </div>
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <Text size="sm" fw={500} c="dimmed" mb={5}>Com quem</Text>
+                <Chip.Group
+                  multiple
+                  key={form.key('participantes')}
+                  {...form.getInputProps('participantes')}
+                >
+                  <Group gap="xs">
+                    {membros.map((m) => (
+                      <Chip key={m.id} value={m.id} color="petrol" variant="outline">{m.nome}</Chip>
+                    ))}
+                  </Group>
+                </Chip.Group>
+                {form.errors.participantes && (
+                  <Text size="sm" c="tijolo" mt={5}>{form.errors.participantes}</Text>
+                )}
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <Select
+                  label="Rateio" allowDeselect={false}
+                  description={regraEscolhida?.descricao}
+                  data={regras.map((r) => ({ value: r.id, label: r.nome }))}
+                  key={form.key('regraId')} {...form.getInputProps('regraId')}
+                />
+              </Grid.Col>
             </>
           )}
 
-          <div className="span4">
-            <button className="btn" type="submit" disabled={criar.isPending}>
-              {criar.isPending ? 'Salvando…' : 'Adicionar gasto'}
-            </button>
-            <Erro>{erro}</Erro>
-          </div>
-        </div>
-      </form>
+          <Grid.Col span={12}>
+            <Button type="submit" loading={criar.isPending}>Adicionar gasto</Button>
+          </Grid.Col>
+        </Grid>
+      </Card>
 
-      <div className="card">
-        <div className="rowhead">
-          <h3>Lançamentos</h3>
-          <div className="pillbar">
-            {(['todos', 'meus', 'divididos'] as Filtro[]).map((k) => (
-              <button key={k} className={filtro === k ? 'on' : ''} onClick={() => setFiltro(k)}>
-                {k === 'todos' ? 'Todos' : k === 'meus' ? 'Meus' : 'Divididos'}
-              </button>
-            ))}
-          </div>
-        </div>
+      <Card>
+        <Group justify="space-between" mb="md" wrap="wrap">
+          <Title order={3}>Lançamentos</Title>
+          <SegmentedControl
+            value={filtro}
+            onChange={(v) => setFiltro(v as Filtro)}
+            data={[
+              { value: 'todos', label: 'Todos' },
+              { value: 'meus', label: 'Meus' },
+              { value: 'divididos', label: 'Divididos' },
+            ]}
+          />
+        </Group>
 
         {lista.length === 0 ? (
-          <div className="empty">Nenhum gasto neste filtro.</div>
+          <Vazio>Nenhum gasto neste filtro.</Vazio>
         ) : (
-          <div className="tblwrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Quem pagou</th>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Tipo</th>
-                  <th>Pagamento</th>
-                  <th>Divisão</th>
-                  <th className="r">Valor</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+          <Table.ScrollContainer minWidth={900}>
+            <Table highlightOnHover verticalSpacing="sm">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Data</Table.Th>
+                  <Table.Th>Quem pagou</Table.Th>
+                  <Table.Th>Descrição</Table.Th>
+                  <Table.Th>Categoria</Table.Th>
+                  <Table.Th>Tipo</Table.Th>
+                  <Table.Th>Pagamento</Table.Th>
+                  <Table.Th>Divisão</Table.Th>
+                  <Table.Th ta="right">Valor</Table.Th>
+                  <Table.Th />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
                 {lista.map((g) => {
                   const dono = membroDe(g.userId);
                   const cotas = cotasDe(g.id);
                   return (
-                    <tr key={g.id}>
-                      <td className="num">{g.data.split('-').reverse().join('/')}</td>
-                      <td>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Table.Tr key={g.id}>
+                      <Table.Td className="num">{g.data.split('-').reverse().join('/')}</Table.Td>
+                      <Table.Td>
+                        <Group gap={7} wrap="nowrap">
                           {dono && <Avatar user={dono} />}
-                          {dono?.nome ?? '—'}
-                        </span>
-                      </td>
-                      <td>{g.descricao}</td>
-                      <td><ChipCategoria id={g.categoria} /></td>
-                      <td><span className={'chip ' + g.tipoGasto}>{g.tipoGasto === 'fixo' ? 'Fixo' : 'Opcional'}</span></td>
-                      <td className="faint">{g.pagamento}</td>
-                      <td>
+                          <Text size="md">{dono?.nome ?? '—'}</Text>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>{g.descricao}</Table.Td>
+                      <Table.Td><ChipCategoria id={g.categoria} /></Table.Td>
+                      <Table.Td><ChipTipoGasto tipo={g.tipoGasto} /></Table.Td>
+                      <Table.Td><Text size="sm" c="dimmed">{g.pagamento}</Text></Table.Td>
+                      <Table.Td>
                         {!g.dividir ? (
-                          <span className="faint">só de quem pagou</span>
+                          <Text size="sm" c="dimmed">só de quem pagou</Text>
                         ) : (
-                          <div className="faint" style={{ lineHeight: 1.6 }}>
+                          <Stack gap={2}>
                             {g.participantes.map((p) => (
-                              <div key={p}>
+                              <Text key={p} size="sm" c="dimmed">
                                 {membroDe(p)?.nome ?? '—'} · {cotas[p] !== undefined ? pct(cotas[p]) : '—'}
-                              </div>
+                              </Text>
                             ))}
-                          </div>
+                          </Stack>
                         )}
-                      </td>
-                      <td className="r num" style={{ fontWeight: 600 }}>{brl(g.valor)}</td>
-                      <td className="r">
+                      </Table.Td>
+                      <Table.Td className="num" ta="right" fw={600}>{brl(g.valor)}</Table.Td>
+                      <Table.Td>
                         {g.userId === usuario?.id && (
-                          <button
-                            className="btn danger sm"
-                            disabled={remover.isPending}
-                            onClick={() => remover.mutate(g.id)}
+                          <ActionIcon
+                            variant="subtle" color="tijolo" aria-label={`Excluir ${g.descricao}`}
+                            onClick={() => pedirExclusao(g)}
                           >
-                            Excluir
-                          </button>
+                            ✕
+                          </ActionIcon>
                         )}
-                      </td>
-                    </tr>
+                      </Table.Td>
+                    </Table.Tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
         )}
-      </div>
+      </Card>
     </>
   );
 }

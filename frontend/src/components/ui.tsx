@@ -1,7 +1,16 @@
-/**
- * Peças de UI do protótipo (docs/prototipo.jsx:371-442), sem mudança visual.
- */
 import type { ReactNode } from 'react';
+import {
+  ActionIcon,
+  Avatar as MAvatar,
+  Badge,
+  Center,
+  Group,
+  Loader,
+  Progress,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { CATEGORIAS, catOf } from '@shared/dominio';
 import { brl, mesLabel, pct, shiftMes } from '@shared/formato';
 
@@ -13,63 +22,25 @@ export interface Membro {
 
 export function Avatar({ user, lg }: { user: Membro; lg?: boolean }) {
   return (
-    <span className={'avatar' + (lg ? ' lg' : '')} style={{ background: user.cor }}>
+    <MAvatar size={lg ? 40 : 30} radius="xl" styles={{ placeholder: { background: user.cor, color: '#fff' } }}>
       {user.nome[0]}
-    </span>
+    </MAvatar>
   );
 }
 
-export function MesNav({
-  mes,
-  setMes,
-}: {
-  mes: string;
-  setMes: (m: string) => void;
-}) {
+export function MesNav({ mes, setMes }: { mes: string; setMes: (m: string) => void }) {
   return (
-    <div className="mesnav">
-      <button className="btn ghost sm" onClick={() => setMes(shiftMes(mes, -1))} aria-label="Mês anterior">
+    <Group gap="xs">
+      <ActionIcon variant="default" size="lg" aria-label="Mês anterior" onClick={() => setMes(shiftMes(mes, -1))}>
         ←
-      </button>
-      <span className="lbl num">{mesLabel(mes)}</span>
-      <button className="btn ghost sm" onClick={() => setMes(shiftMes(mes, 1))} aria-label="Próximo mês">
+      </ActionIcon>
+      <Text className="num" fw={600} ta="center" tt="capitalize" w={140}>
+        {mesLabel(mes)}
+      </Text>
+      <ActionIcon variant="default" size="lg" aria-label="Próximo mês" onClick={() => setMes(shiftMes(mes, 1))}>
         →
-      </button>
-    </div>
-  );
-}
-
-export function Donut({ fixo, opcional }: { fixo: number; opcional: number }) {
-  const total = fixo + opcional || 1;
-  const r = 52;
-  const c = 2 * Math.PI * r;
-  const f = (fixo / total) * c;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
-      <svg width="132" height="132" viewBox="0 0 132 132" role="img" aria-label={`${pct(fixo / total)} fixo`}>
-        <circle cx="66" cy="66" r={r} fill="none" stroke="#D9A21B" strokeWidth="17" />
-        <circle
-          cx="66" cy="66" r={r} fill="none" stroke="#1F5F52" strokeWidth="17"
-          strokeDasharray={`${f} ${c - f}`} transform="rotate(-90 66 66)"
-        />
-        <text x="66" y="62" textAnchor="middle" fontSize="21" fontFamily="Archivo" fontWeight="600" fill="#12332C">
-          {pct(fixo / total)}
-        </text>
-        <text x="66" y="79" textAnchor="middle" fontSize="11" fontFamily="Archivo" fill="#8B978F">
-          fixo
-        </text>
-      </svg>
-      <div className="stack" style={{ gap: 10 }}>
-        <div>
-          <span className="chip fixo">Gasto fixo</span>
-          <div className="num" style={{ fontSize: 17, fontWeight: 600, marginTop: 5 }}>{brl(fixo)}</div>
-        </div>
-        <div>
-          <span className="chip opcional">Gasto opcional</span>
-          <div className="num" style={{ fontSize: 17, fontWeight: 600, marginTop: 5 }}>{brl(opcional)}</div>
-        </div>
-      </div>
-    </div>
+      </ActionIcon>
+    </Group>
   );
 }
 
@@ -79,34 +50,44 @@ export function Categorias({ mapa }: { mapa: Record<string, number> }) {
     .filter((c) => c.v > 0)
     .sort((a, b) => b.v - a.v);
 
-  if (!itens.length) return <div className="empty">Sem gastos lançados neste mês.</div>;
+  if (!itens.length) return <Vazio>Sem gastos lançados neste mês.</Vazio>;
+
   return (
-    <div>
+    <Stack gap="xs">
       {itens.map((c) => (
-        <div className="catrow" key={c.id}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: c.cor, flex: '0 0 8px' }} />
-            {c.nome}
-          </span>
-          <span className="bar">
-            <span style={{ width: pct(c.v / total), background: c.cor }} />
-          </span>
-          <span className="num r" style={{ textAlign: 'right', fontSize: 12.5 }}>
-            {pct(c.v / total)} <span className="faint">· {brl(c.v)}</span>
-          </span>
-        </div>
+        <Group key={c.id} gap="sm" wrap="nowrap">
+          <Group gap={7} w={110} wrap="nowrap" style={{ flexShrink: 0 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: c.cor, flexShrink: 0 }} />
+            <Text size="md">{c.nome}</Text>
+          </Group>
+          <Progress value={(c.v / total) * 100} color={c.cor} size="sm" radius="sm" style={{ flex: 1 }} />
+          <Text className="num" size="sm" ta="right" w={110} style={{ flexShrink: 0 }}>
+            {pct(c.v / total)} <Text span c="dimmed" size="sm">· {brl(c.v)}</Text>
+          </Text>
+        </Group>
       ))}
-    </div>
+    </Stack>
   );
 }
 
 export function ChipCategoria({ id }: { id: string }) {
   const c = catOf(id);
   return (
-    <span className="chip">
-      <span className="sw" style={{ background: c.cor }} />
+    <Badge
+      variant="light" radius="sm" tt="none" fw={500}
+      leftSection={<div style={{ width: 7, height: 7, borderRadius: 2, background: c.cor }} />}
+      styles={{ root: { background: '#EDF0EB', color: 'var(--gf-ink-soft)' } }}
+    >
       {c.nome}
-    </span>
+    </Badge>
+  );
+}
+
+export function ChipTipoGasto({ tipo }: { tipo: 'fixo' | 'opcional' }) {
+  return (
+    <Badge color={tipo === 'fixo' ? 'petrol' : 'mostarda'} variant="light" radius="sm" tt="none" fw={500}>
+      {tipo === 'fixo' ? 'Fixo' : 'Opcional'}
+    </Badge>
   );
 }
 
@@ -120,25 +101,51 @@ export function Cabecalho({
   acao?: ReactNode;
 }) {
   return (
-    <div className="rowhead">
+    <Group justify="space-between" align="flex-start" wrap="wrap" mb="lg">
       <div>
-        <h1>{titulo}</h1>
-        {descricao && <p className="sub">{descricao}</p>}
+        <Title order={1}>{titulo}</Title>
+        {descricao && <Text c="dimmed" size="md" mt={4}>{descricao}</Text>}
       </div>
       {acao}
-    </div>
+    </Group>
   );
 }
 
-export function Erro({ children }: { children: ReactNode }) {
-  if (!children) return null;
+export function Metrica({
+  rotulo,
+  valor,
+  detalhe,
+  cor,
+}: {
+  rotulo: string;
+  valor: string;
+  detalhe?: ReactNode;
+  cor?: string;
+}) {
   return (
-    <p role="alert" style={{ color: 'var(--debit)', fontSize: 13, marginTop: 4 }}>
-      {children}
-    </p>
+    <>
+      <Text size="sm" c="dimmed">{rotulo}</Text>
+      <Text className="num" fz={26} fw={600} mt={4} c={cor}>{valor}</Text>
+      {detalhe && <Text size="sm" c="dimmed" mt={4}>{detalhe}</Text>}
+    </>
   );
 }
 
-export function Carregando({ children = 'Carregando…' }: { children?: ReactNode }) {
-  return <div className="empty">{children}</div>;
+export function Vazio({ children }: { children: ReactNode }) {
+  return (
+    <Center
+      p="xl"
+      style={{ border: '1px dashed var(--gf-line)', borderRadius: 12, color: 'var(--gf-ink-faint)' }}
+    >
+      <Text size="md" c="dimmed">{children}</Text>
+    </Center>
+  );
+}
+
+export function Carregando() {
+  return (
+    <Center py="xl">
+      <Loader color="petrol" />
+    </Center>
+  );
 }

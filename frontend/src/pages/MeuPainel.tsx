@@ -1,7 +1,9 @@
+import { Card, Grid, SimpleGrid, Text, Title } from '@mantine/core';
 import { brl, mesLabel, pct } from '@shared/formato';
 import { useAuth } from '../auth/AuthContext';
 import { useConsolidado } from '../api/hooks';
-import { Cabecalho, Carregando, Categorias, Donut } from '../components/ui';
+import { Donut } from '../components/Donut';
+import { Cabecalho, Carregando, Categorias, Metrica, Vazio } from '../components/ui';
 import { useMes } from '../useMes';
 
 export default function MeuPainel() {
@@ -9,12 +11,13 @@ export default function MeuPainel() {
   const { usuario } = useAuth();
   const consolidado = useConsolidado(mes);
 
-  if (consolidado.isPending || !usuario) return <Carregando />;
-  if (consolidado.error) return <div className="empty">{consolidado.error.message}</div>;
+  if (!consolidado.data || !usuario) {
+    return consolidado.error ? <Vazio>{consolidado.error.message}</Vazio> : <Carregando />;
+  }
 
   const calc = consolidado.data;
   const d = calc.porUsuario[usuario.id];
-  if (!d) return <div className="empty">Sem dados seus neste mês.</div>;
+  if (!d) return <Vazio>Sem dados seus neste mês.</Vazio>;
 
   const sobrou = d.entrada - d.cota;
   const meuSaldo = calc.saldo[usuario.id] ?? 0;
@@ -27,66 +30,58 @@ export default function MeuPainel() {
         descricao="Sua cota real: gastos individuais mais a sua parte do que foi dividido."
       />
 
-      <div className="grid3">
-        <div className="card" style={{ marginTop: 0 }}>
-          <div className="faint">Entrou</div>
-          <div className="num" style={{ fontSize: 26, fontWeight: 600, marginTop: 4 }}>{brl(d.entrada)}</div>
-        </div>
-        <div className="card" style={{ marginTop: 0 }}>
-          <div className="faint">Sua cota de gastos</div>
-          <div className="num" style={{ fontSize: 26, fontWeight: 600, marginTop: 4 }}>{brl(d.cota)}</div>
-          <div className="faint" style={{ marginTop: 4 }}>saiu do seu bolso: {brl(d.pago)}</div>
-        </div>
-        <div className="card" style={{ marginTop: 0 }}>
-          <div className="faint">Sobrou</div>
-          <div
-            className="num"
-            style={{
-              fontSize: 26, fontWeight: 600, marginTop: 4,
-              color: sobrou >= 0 ? 'var(--credit)' : 'var(--debit)',
-            }}
-          >
-            {brl(sobrou)}
-          </div>
-          <div className="faint" style={{ marginTop: 4 }}>
-            {d.entrada ? pct(sobrou / d.entrada) : '0%'} da sua entrada
-          </div>
-        </div>
-      </div>
+      <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
+        <Card><Metrica rotulo="Entrou" valor={brl(d.entrada)} /></Card>
+        <Card>
+          <Metrica rotulo="Sua cota de gastos" valor={brl(d.cota)} detalhe={`saiu do seu bolso: ${brl(d.pago)}`} />
+        </Card>
+        <Card>
+          <Metrica
+            rotulo="Sobrou"
+            valor={brl(sobrou)}
+            cor={sobrou >= 0 ? 'var(--gf-credito)' : 'var(--gf-debito)'}
+            detalhe={`${d.entrada ? pct(sobrou / d.entrada) : '0%'} da sua entrada`}
+          />
+        </Card>
+      </SimpleGrid>
 
-      <div className="grid2" style={{ marginTop: 16 }}>
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 16 }}>Fixo contra opcional</h3>
-          <Donut fixo={d.fixo} opcional={d.opcional} />
-          <p className="faint" style={{ marginTop: 16 }}>
-            {parcelaOpcional > 0.35
-              ? 'Mais de um terço da sua cota é gasto opcional — é aí que dá pra mexer sem mudar de vida.'
-              : 'Sua base fixa domina o mês. Cortar aqui exige renegociar contrato, não só hábito.'}
-          </p>
-        </div>
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 12 }}>Onde o dinheiro foi</h3>
-          <Categorias mapa={d.categorias} />
-        </div>
-      </div>
+      <Grid gap="lg" mb="lg">
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card h="100%">
+            <Title order={3} mb="lg">Fixo contra opcional</Title>
+            <Donut fixo={d.fixo} opcional={d.opcional} />
+            <Text size="sm" c="dimmed" mt="lg">
+              {parcelaOpcional > 0.35
+                ? 'Mais de um terço da sua cota é gasto opcional — é aí que dá pra mexer sem mudar de vida.'
+                : 'Sua base fixa domina o mês. Cortar aqui exige renegociar contrato, não só hábito.'}
+            </Text>
+          </Card>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card h="100%">
+            <Title order={3} mb="sm">Onde o dinheiro foi</Title>
+            <Categorias mapa={d.categorias} />
+          </Card>
+        </Grid.Col>
+      </Grid>
 
-      <div className="card">
-        <h3 style={{ marginBottom: 8 }}>Seu acerto em {mesLabel(mes)}</h3>
+      <Card>
+        <Title order={3} mb="xs">Seu acerto em {mesLabel(mes)}</Title>
         {Math.abs(meuSaldo) < 0.01 ? (
-          <p className="sub">Você está quite com todo mundo neste mês.</p>
-        ) : meuSaldo > 0 ? (
-          <p className="acerto">
-            Você tem <span style={{ color: 'var(--credit)' }}>{brl(meuSaldo)}</span> a receber.
-          </p>
+          <Text c="dimmed" size="md">Você está quite com todo mundo neste mês.</Text>
         ) : (
           <p className="acerto">
-            Você tem <span className="v">{brl(-meuSaldo)}</span> a pagar.
+            Você tem{' '}
+            <span style={{ color: meuSaldo > 0 ? 'var(--gf-credito)' : 'var(--gf-debito)' }}>
+              {brl(Math.abs(meuSaldo))}
+            </span>{' '}
+            {meuSaldo > 0 ? 'a receber.' : 'a pagar.'}
           </p>
         )}
-        <p className="faint" style={{ marginTop: 10 }}>
+        <Text size="sm" c="dimmed" mt="sm">
           Diferença entre o que saiu do seu bolso ({brl(d.pago)}) e a sua cota ({brl(d.cota)}).
-        </p>
-      </div>
+        </Text>
+      </Card>
     </>
   );
 }

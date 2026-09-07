@@ -45,8 +45,10 @@ backend/src/
   common/             guards, decorators e filtros compartilhados
 frontend/src/
   api/                cliente HTTP e hooks do TanStack Query
-  pages/              uma tela por rota
+  pages/              uma tela por rota, carregada sob demanda
   components/         peças de UI reaproveitadas
+  tema/               identidade do protótipo traduzida para o tema Mantine
+  feedback.ts         toast e confirmação de exclusão, centralizados
 shared/src/           tipos e constantes usados pelos dois lados
 ```
 
@@ -61,6 +63,25 @@ Domain      → funções puras de rateio. Não conhece banco, HTTP nem framewor
 
 O domínio isolado é o que permite testar o cálculo — a parte onde um bug significa
 alguém pagando errado — em milissegundos e sem subir infraestrutura.
+
+## Frontend
+
+React 19 + Vite + TypeScript, com **Mantine 9** como biblioteca de componentes.
+Formulários usam `@mantine/form`, datas o `@mantine/dates` em pt-BR, e exclusões passam
+por `modals.openConfirmModal` — nada é apagado sem confirmação, e toda escrita devolve um
+toast.
+
+A identidade visual do protótipo vive em `src/tema/tema.ts`: as cores e fontes viraram
+tokens do Mantine, então os componentes da biblioteca já nascem com a cara do produto sem
+precisar reestilizar um a um. Componente próprio é React puro consumindo as mesmas CSS
+variables — `src/styles/base.css` tem só 40 linhas.
+
+As rotas carregam sob demanda. O donut mora em `components/Donut.tsx` isolado de
+propósito: é o único ponto que importa `@mantine/charts`, que arrasta ~105 kB
+comprimidos. Junto do resto da UI, esse peso cairia no carregamento inicial e quem abre a
+tela de gastos pagaria por um gráfico que não vai ver.
+
+Carregamento inicial: **207 kB comprimidos** (166 kB de JS + 41 kB de CSS).
 
 ## Rateio
 
