@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoEntrada {
+  RECORRENTE
+  PONTUAL
+}
+
+enum TipoGasto {
+  FIXO
+  OPCIONAL
+}
+
+enum TipoRegra {
+  IGUAL
+  RENDA
+  SOBRA
+  FIXO
+  MEDIDOR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  cor       String
+  createdAt DateTime @default(now())
+
+  familiaId String?
+  familia   Familia? @relation("MembrosDaFamilia", fields: [familiaId], references: [id], onDelete: SetNull)
+
+  familiasCriadas Familia[]           @relation("CriadorDaFamilia")
+  entradas        Entrada[]
+  gastos          Gasto[]
+  participacoes   GastoParticipante[]
+  pesos           RegraPeso[]
+  medicoes        RegraMedicao[]
+
+  @@index([familiaId])
+}
+
+model Familia {
+  id            String   @id @default(cuid())
+  nome          String
+  codigoConvite String   @unique
+  createdAt     DateTime @default(now())
+
+  criadaPorId String
+  criadaPor   User   @relation("CriadorDaFamilia", fields: [criadaPorId], references: [id])
+
+  membros User[]        @relation("MembrosDaFamilia")
+  gastos  Gasto[]
+  regras  RegraRateio[]
+}
+
+model Entrada {
+  id        String      @id @default(cuid())
+  tipo      TipoEntrada
+  descricao String
+  valor     Decimal     @db.Decimal(12, 2)
+  /// preenchido quando tipo = RECORRENTE
+  diaDoMes  Int?
+  /// preenchido quando tipo = PONTUAL
+  data      DateTime?   @db.Date
+  createdAt DateTime    @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Gasto {
+  id        String    @id @default(cuid())
+  data      DateTime  @db.Date
+  /// competência YYYY-MM, derivada de `data` — evita range scan em todo relatório
+  mes       String    @db.VarChar(7)
+  pagamento String
+  categoria String
+  tipoGasto TipoGasto
+  descricao String
+  valor     Decimal   @db.Decimal(12, 2)
+  dividir   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// denormalizado de propósito: congela o histórico se o usuário trocar de família
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  regraId String?
+  regra   RegraRateio? @relation(fields: [regraId], references: [id], onDelete: SetNull)
+
+  participantes GastoParticipante[]
+
+  @@index([familiaId, mes])
+  @@index([userId, mes])
+}
+
+model GastoParticipante {
+  gastoId String
+  gasto   Gasto  @relation(fields: [gastoId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gastoId, userId])
+  @@index([userId])
+}
+
+model RegraRateio {
+  id        String    @id @default(cuid())
+  nome      String
+  tipo      TipoRegra
+  descricao String
+  /// só para tipo = MEDIDOR (ex.: "km")
+  unidade   String?
+  createdAt DateTime  @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  pesos    RegraPeso[]
+  medicoes RegraMedicao[]
+  gastos   Gasto[]
+
+  @@index([familiaId])
+}
+
+/// Percentuais combinados uma vez — tipo = FIXO
+model RegraPeso {
+  regraId String
+  regra   RegraRateio @relation(fields: [regraId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  percentual Decimal @db.Decimal(6, 2)
+
+  @@id([regraId, userId])
+}
+
+/// Medição lançada mês a mês — tipo = MEDIDOR
+model RegraMedicao {
+  regraId String
+  regra   RegraRateio @relation(fields: [regraId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mes   String  @db.VarChar(7)
+  valor Decimal @db.Decimal(12, 2)
+
+  @@id([regraId, userId, mes])
+  @@index([regraId, mes])
+}
