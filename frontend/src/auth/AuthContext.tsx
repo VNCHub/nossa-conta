@@ -8,88 +8,88 @@ import {
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { SessaoDTO } from '@shared/contratos';
-import { api, aoExpirar, definirToken } from '../api/client';
+import type { SessionDTO } from '@shared/contracts';
+import { api, onExpired, setToken } from '../api/client';
 
-type Usuario = SessaoDTO['user'];
+type User = SessionDTO['user'];
 
-interface Contexto {
-  usuario: Usuario | null;
-  carregando: boolean;
-  entrar: (email: string, senha: string) => Promise<void>;
-  cadastrar: (dados: {
-    nome: string;
+interface AuthContextValue {
+  user: User | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (data: {
+    name: string;
     email: string;
-    senha: string;
-    codigoConvite?: string;
-    nomeFamilia?: string;
+    password: string;
+    inviteCode?: string;
+    familyName?: string;
   }) => Promise<void>;
-  sair: () => Promise<void>;
-  recarregarUsuario: () => Promise<void>;
+  signOut: () => Promise<void>;
+  reloadUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<Contexto | null>(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [carregando, setCarregando] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const qc = useQueryClient();
 
-  const aplicar = useCallback((sessao: SessaoDTO) => {
-    definirToken(sessao.accessToken);
-    setUsuario(sessao.user);
+  const apply = useCallback((session: SessionDTO) => {
+    setToken(session.accessToken);
+    setUser(session.user);
   }, []);
 
-  const limpar = useCallback(() => {
-    definirToken(null);
-    setUsuario(null);
+  const clear = useCallback(() => {
+    setToken(null);
+    setUser(null);
     qc.clear();
   }, [qc]);
 
-  // Ao abrir o app, tenta reerguer a sessão pelo cookie httpOnly de refresh.
+  // On app open, try to bring the session back from the httpOnly refresh cookie.
   useEffect(() => {
-    let ativo = true;
+    let active = true;
     void (async () => {
-      const renovou = await api.renovarSessao();
-      if (!ativo) return;
-      if (renovou) {
+      const refreshed = await api.refreshSession();
+      if (!active) return;
+      if (refreshed) {
         try {
-          setUsuario(await api.get<Usuario>('/auth/me'));
+          setUser(await api.get<User>('/auth/me'));
         } catch {
-          limpar();
+          clear();
         }
       }
-      setCarregando(false);
+      setLoading(false);
     })();
     return () => {
-      ativo = false;
+      active = false;
     };
-  }, [limpar]);
+  }, [clear]);
 
-  useEffect(() => aoExpirar(limpar), [limpar]);
+  useEffect(() => onExpired(clear), [clear]);
 
-  const valor = useMemo<Contexto>(
+  const value = useMemo<AuthContextValue>(
     () => ({
-      usuario,
-      carregando,
-      entrar: async (email, senha) =>
-        aplicar(await api.post<SessaoDTO>('/auth/login', { email, senha })),
-      cadastrar: async (dados) =>
-        aplicar(await api.post<SessaoDTO>('/auth/register', dados)),
-      sair: async () => {
+      user,
+      loading,
+      signIn: async (email, password) =>
+        apply(await api.post<SessionDTO>('/auth/login', { email, password })),
+      signUp: async (data) =>
+        apply(await api.post<SessionDTO>('/auth/register', data)),
+      signOut: async () => {
         await api.post('/auth/logout').catch(() => undefined);
-        limpar();
+        clear();
       },
-      recarregarUsuario: async () => setUsuario(await api.get<Usuario>('/auth/me')),
+      reloadUser: async () => setUser(await api.get<User>('/auth/me')),
     }),
-    [usuario, carregando, aplicar, limpar],
+    [user, loading, apply, clear],
   );
 
-  return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth precisa estar dentro de AuthProvider.');
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider.');
   return ctx;
 }

@@ -1,33 +1,33 @@
 import { INestApplication, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-const TENTATIVAS = 8;
-const ESPERA_MS = 1500;
+const ATTEMPTS = 8;
+const WAIT_MS = 1500;
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(PrismaService.name);
 
   /**
-   * Conecta com repetição em vez de morrer na primeira falha.
+   * Connects with retries instead of dying on the first failure.
    *
-   * Não é paranoia: o Postgres do compose pode aceitar o healthcheck e ainda
-   * recusar conexão por um instante, e o plano gratuito do Neon suspende bancos
-   * ociosos — a primeira conexão depois de um tempo parado falha e só a segunda
-   * pega. Sem isso, o serviço cai e não volta sozinho.
+   * Not paranoia: the compose Postgres can pass the healthcheck and still refuse
+   * a connection for a moment, and Neon's free plan suspends idle databases —
+   * the first connection after a while idle fails and only the second one takes.
+   * Without this, the service goes down and does not come back on its own.
    */
   async onModuleInit() {
-    for (let tentativa = 1; tentativa <= TENTATIVAS; tentativa++) {
+    for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
       try {
         await this.$connect();
-        if (tentativa > 1) this.logger.log(`Banco conectado na tentativa ${tentativa}.`);
+        if (attempt > 1) this.logger.log(`Database connected on attempt ${attempt}.`);
         return;
-      } catch (erro) {
-        if (tentativa === TENTATIVAS) throw erro;
+      } catch (err) {
+        if (attempt === ATTEMPTS) throw err;
         this.logger.warn(
-          `Banco indisponível (tentativa ${tentativa}/${TENTATIVAS}). Nova tentativa em ${ESPERA_MS}ms.`,
+          `Database unavailable (attempt ${attempt}/${ATTEMPTS}). Retrying in ${WAIT_MS}ms.`,
         );
-        await new Promise((r) => setTimeout(r, ESPERA_MS));
+        await new Promise((r) => setTimeout(r, WAIT_MS));
       }
     }
   }

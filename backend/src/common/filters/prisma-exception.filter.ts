@@ -8,7 +8,7 @@ import {
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Prisma } from '@prisma/client';
 
-/** Traduz erros conhecidos do Prisma para HTTP, sem vazar detalhe de schema. */
+/** Maps known Prisma errors to HTTP, without leaking schema detail. */
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter extends BaseExceptionFilter {
   catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {

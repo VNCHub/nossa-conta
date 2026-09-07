@@ -11,56 +11,56 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { CATEGORIAS, catOf } from '@shared/dominio';
-import { brl, mesLabel, pct, shiftMes } from '@shared/formato';
+import { CATEGORIES, categoryOf } from '@shared/domain';
+import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
 
-export interface Membro {
+export interface Member {
   id: string;
-  nome: string;
-  cor: string;
+  name: string;
+  color: string;
 }
 
-export function Avatar({ user, lg }: { user: Membro; lg?: boolean }) {
+export function Avatar({ user, lg }: { user: Member; lg?: boolean }) {
   return (
-    <MAvatar size={lg ? 40 : 30} radius="xl" styles={{ placeholder: { background: user.cor, color: '#fff' } }}>
-      {user.nome[0]}
+    <MAvatar size={lg ? 40 : 30} radius="xl" styles={{ placeholder: { background: user.color, color: '#fff' } }}>
+      {user.name[0]}
     </MAvatar>
   );
 }
 
-export function MesNav({ mes, setMes }: { mes: string; setMes: (m: string) => void }) {
+export function MonthNav({ month, setMonth }: { month: string; setMonth: (m: string) => void }) {
   return (
     <Group gap="xs">
-      <ActionIcon variant="default" size="lg" aria-label="Mês anterior" onClick={() => setMes(shiftMes(mes, -1))}>
+      <ActionIcon variant="default" size="lg" aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}>
         ←
       </ActionIcon>
       <Text className="num" fw={600} ta="center" tt="capitalize" w={140}>
-        {mesLabel(mes)}
+        {monthLabel(month)}
       </Text>
-      <ActionIcon variant="default" size="lg" aria-label="Próximo mês" onClick={() => setMes(shiftMes(mes, 1))}>
+      <ActionIcon variant="default" size="lg" aria-label="Próximo mês" onClick={() => setMonth(shiftMonth(month, 1))}>
         →
       </ActionIcon>
     </Group>
   );
 }
 
-export function Categorias({ mapa }: { mapa: Record<string, number> }) {
-  const total = Object.values(mapa).reduce((s, v) => s + v, 0);
-  const itens = CATEGORIAS.map((c) => ({ ...c, v: mapa[c.id] || 0 }))
+export function Categories({ amounts }: { amounts: Record<string, number> }) {
+  const total = Object.values(amounts).reduce((s, v) => s + v, 0);
+  const items = CATEGORIES.map((c) => ({ ...c, v: amounts[c.id] || 0 }))
     .filter((c) => c.v > 0)
     .sort((a, b) => b.v - a.v);
 
-  if (!itens.length) return <Vazio>Sem gastos lançados neste mês.</Vazio>;
+  if (!items.length) return <Empty>Sem gastos lançados neste mês.</Empty>;
 
   return (
     <Stack gap="xs">
-      {itens.map((c) => (
+      {items.map((c) => (
         <Group key={c.id} gap="sm" wrap="nowrap">
           <Group gap={7} w={110} wrap="nowrap" style={{ flexShrink: 0 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 2, background: c.cor, flexShrink: 0 }} />
-            <Text size="md">{c.nome}</Text>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color, flexShrink: 0 }} />
+            <Text size="md">{c.name}</Text>
           </Group>
-          <Progress value={(c.v / total) * 100} color={c.cor} size="sm" radius="sm" style={{ flex: 1 }} />
+          <Progress value={(c.v / total) * 100} color={c.color} size="sm" radius="sm" style={{ flex: 1 }} />
           <Text className="num" size="sm" ta="right" w={110} style={{ flexShrink: 0 }}>
             {pct(c.v / total)} <Text span c="dimmed" size="sm">· {brl(c.v)}</Text>
           </Text>
@@ -70,68 +70,68 @@ export function Categorias({ mapa }: { mapa: Record<string, number> }) {
   );
 }
 
-export function ChipCategoria({ id }: { id: string }) {
-  const c = catOf(id);
+export function CategoryChip({ id }: { id: string }) {
+  const c = categoryOf(id);
   return (
     <Badge
       variant="light" radius="sm" tt="none" fw={500}
-      leftSection={<div style={{ width: 7, height: 7, borderRadius: 2, background: c.cor }} />}
+      leftSection={<div style={{ width: 7, height: 7, borderRadius: 2, background: c.color }} />}
       styles={{ root: { background: '#EDF0EB', color: 'var(--gf-ink-soft)' } }}
     >
-      {c.nome}
+      {c.name}
     </Badge>
   );
 }
 
-export function ChipTipoGasto({ tipo }: { tipo: 'fixo' | 'opcional' }) {
+export function ExpenseTypeChip({ type }: { type: 'fixed' | 'optional' }) {
   return (
-    <Badge color={tipo === 'fixo' ? 'petrol' : 'mostarda'} variant="light" radius="sm" tt="none" fw={500}>
-      {tipo === 'fixo' ? 'Fixo' : 'Opcional'}
+    <Badge color={type === 'fixed' ? 'petrol' : 'mustard'} variant="light" radius="sm" tt="none" fw={500}>
+      {type === 'fixed' ? 'Fixo' : 'Opcional'}
     </Badge>
   );
 }
 
-export function Cabecalho({
-  titulo,
-  descricao,
-  acao,
+export function PageHeader({
+  title,
+  description,
+  action,
 }: {
-  titulo: string;
-  descricao?: string;
-  acao?: ReactNode;
+  title: string;
+  description?: string;
+  action?: ReactNode;
 }) {
   return (
     <Group justify="space-between" align="flex-start" wrap="wrap" mb="lg">
       <div>
-        <Title order={1}>{titulo}</Title>
-        {descricao && <Text c="dimmed" size="md" mt={4}>{descricao}</Text>}
+        <Title order={1}>{title}</Title>
+        {description && <Text c="dimmed" size="md" mt={4}>{description}</Text>}
       </div>
-      {acao}
+      {action}
     </Group>
   );
 }
 
-export function Metrica({
-  rotulo,
-  valor,
-  detalhe,
-  cor,
+export function Metric({
+  label,
+  value,
+  detail,
+  color,
 }: {
-  rotulo: string;
-  valor: string;
-  detalhe?: ReactNode;
-  cor?: string;
+  label: string;
+  value: string;
+  detail?: ReactNode;
+  color?: string;
 }) {
   return (
     <>
-      <Text size="sm" c="dimmed">{rotulo}</Text>
-      <Text className="num" fz={26} fw={600} mt={4} c={cor}>{valor}</Text>
-      {detalhe && <Text size="sm" c="dimmed" mt={4}>{detalhe}</Text>}
+      <Text size="sm" c="dimmed">{label}</Text>
+      <Text className="num" fz={26} fw={600} mt={4} c={color}>{value}</Text>
+      {detail && <Text size="sm" c="dimmed" mt={4}>{detail}</Text>}
     </>
   );
 }
 
-export function Vazio({ children }: { children: ReactNode }) {
+export function Empty({ children }: { children: ReactNode }) {
   return (
     <Center
       p="xl"
@@ -142,7 +142,7 @@ export function Vazio({ children }: { children: ReactNode }) {
   );
 }
 
-export function Carregando() {
+export function Loading() {
   return (
     <Center py="xl">
       <Loader color="petrol" />

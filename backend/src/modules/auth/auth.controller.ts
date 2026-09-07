@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RegistrarDto } from './dto/auth.dto';
-import { Publico } from '../../common/decorators/publico.decorator';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { Public } from '../../common/decorators/public.decorator';
 import {
-  UsuarioAtual,
-  type UsuarioAutenticado,
-} from '../../common/decorators/usuario-atual.decorator';
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
 
 const COOKIE_REFRESH = 'refresh_token';
 
@@ -23,56 +23,57 @@ const COOKIE_REFRESH = 'refresh_token';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  @Publico()
+  @Public()
   @Post('register')
-  async registrar(@Body() dto: RegistrarDto, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...sessao } = await this.auth.registrar(dto);
-    this.gravarCookie(res, refreshToken);
-    return sessao;
+  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    const { refreshToken, ...session } = await this.auth.register(dto);
+    this.writeCookie(res, refreshToken);
+    return session;
   }
 
-  @Publico()
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...sessao } = await this.auth.login(dto);
-    this.gravarCookie(res, refreshToken);
-    return sessao;
+    const { refreshToken, ...session } = await this.auth.login(dto);
+    this.writeCookie(res, refreshToken);
+    return session;
   }
 
-  @Publico()
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async renovar(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...sessao } = await this.auth.renovar(
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { refreshToken, ...session } = await this.auth.refresh(
       req.cookies?.[COOKIE_REFRESH],
     );
-    this.gravarCookie(res, refreshToken);
-    return sessao;
+    this.writeCookie(res, refreshToken);
+    return session;
   }
 
-  @Publico()
+  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  sair(@Res({ passthrough: true }) res: Response) {
+  logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie(COOKIE_REFRESH, { path: '/auth' });
   }
 
   @Get('me')
-  eu(@UsuarioAtual() user: UsuarioAutenticado) {
-    return this.auth.eu(user.id);
+  me(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.me(user.id);
   }
 
   /**
-   * O refresh vive em cookie httpOnly: JavaScript da página não o alcança, então
-   * um XSS não leva embora a sessão longa. O access token, curto, fica em memória.
+   * The refresh token lives in an httpOnly cookie: page JavaScript cannot reach
+   * it, so an XSS does not carry off the long session. The short access token
+   * stays in memory.
    */
-  private gravarCookie(res: Response, refreshToken: string) {
-    const producao = process.env.NODE_ENV === 'production';
+  private writeCookie(res: Response, refreshToken: string) {
+    const production = process.env.NODE_ENV === 'production';
     res.cookie(COOKIE_REFRESH, refreshToken, {
       httpOnly: true,
-      secure: producao,
-      sameSite: producao ? 'none' : 'lax',
+      secure: production,
+      sameSite: production ? 'none' : 'lax',
       path: '/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });

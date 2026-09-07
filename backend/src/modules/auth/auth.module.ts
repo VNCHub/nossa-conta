@@ -5,10 +5,10 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
-import { FamiliasModule } from '../familias/familias.module';
+import { FamiliesModule } from '../families/families.module';
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), UsersModule, FamiliasModule],
+  imports: [PassportModule, JwtModule.register({}), UsersModule, FamiliesModule],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
 })

@@ -1,9 +1,9 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { PUBLICO } from '../decorators/publico.decorator';
+import { IS_PUBLIC } from '../decorators/public.decorator';
 
-/** Aplicado globalmente: toda rota exige token, salvo as marcadas com @Publico(). */
+/** Applied globally: every route requires a token, except those marked @Public(). */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private readonly reflector: Reflector) {
@@ -11,10 +11,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
-    const publico = this.reflector.getAllAndOverride<boolean>(PUBLICO, [
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
       context.getHandler(),
       context.getClass(),
     ]);
-    return publico ? true : super.canActivate(context);
+    return isPublic ? true : super.canActivate(context);
   }
 }

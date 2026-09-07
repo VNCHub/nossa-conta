@@ -1,50 +1,50 @@
-import type { SessaoDTO } from '@shared/contratos';
+import type { SessionDTO } from '@shared/contracts';
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 /**
- * O access token vive só em memória: não vai para localStorage, então um script
- * injetado na página não consegue lê-lo. Quem sobrevive ao reload é o refresh
- * token, guardado pelo servidor em cookie httpOnly.
+ * The access token lives only in memory: it does not go to localStorage, so a
+ * script injected into the page cannot read it. What survives a reload is the
+ * refresh token, kept by the server in an httpOnly cookie.
  */
 let accessToken: string | null = null;
-let aoPerderSessao: (() => void) | null = null;
+let onSessionLost: (() => void) | null = null;
 
-export const definirToken = (t: string | null) => {
+export const setToken = (t: string | null) => {
   accessToken = t;
 };
-export const aoExpirar = (fn: () => void) => {
-  aoPerderSessao = fn;
+export const onExpired = (fn: () => void) => {
+  onSessionLost = fn;
 };
 
-export class ErroApi extends Error {
+export class ApiError extends Error {
   constructor(
     readonly status: number,
-    mensagem: string,
+    message: string,
   ) {
-    super(mensagem);
+    super(message);
   }
 }
 
-async function mensagemDeErro(resposta: Response): Promise<string> {
+async function errorMessage(response: Response): Promise<string> {
   try {
-    const corpo = await resposta.json();
-    const m = corpo?.message;
-    // O ValidationPipe devolve um array de mensagens; mostramos a primeira.
+    const body = await response.json();
+    const m = body?.message;
+    // The ValidationPipe returns an array of messages; we show the first.
     if (Array.isArray(m)) return m[0] ?? 'Não foi possível concluir.';
     if (typeof m === 'string') return m;
   } catch {
-    /* resposta sem corpo JSON */
+    /* response with no JSON body */
   }
   return 'Não foi possível concluir. Tente de novo.';
 }
 
-async function enviar<T>(
-  caminho: string,
+async function send<T>(
+  path: string,
   init: RequestInit,
-  jaRenovou = false,
+  alreadyRefreshed = false,
 ): Promise<T> {
-  const resposta = await fetch(`${BASE}${caminho}`, {
+  const response = await fetch(`${BASE}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
@@ -54,28 +54,28 @@ async function enviar<T>(
     },
   });
 
-  // 401 com token expirado: renova uma única vez e repete a chamada original.
-  if (resposta.status === 401 && !jaRenovou && !caminho.startsWith('/auth/')) {
-    const renovada = await renovarSessao();
-    if (renovada) return enviar<T>(caminho, init, true);
-    aoPerderSessao?.();
-    throw new ErroApi(401, 'Sessão expirada. Entre de novo.');
+  // 401 with an expired token: refresh once and retry the original call.
+  if (response.status === 401 && !alreadyRefreshed && !path.startsWith('/auth/')) {
+    const refreshed = await refreshSession();
+    if (refreshed) return send<T>(path, init, true);
+    onSessionLost?.();
+    throw new ApiError(401, 'Sessão expirada. Entre de novo.');
   }
 
-  if (!resposta.ok) throw new ErroApi(resposta.status, await mensagemDeErro(resposta));
-  if (resposta.status === 204) return undefined as T;
-  return resposta.json() as Promise<T>;
+  if (!response.ok) throw new ApiError(response.status, await errorMessage(response));
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
 }
 
-async function renovarSessao(): Promise<boolean> {
+async function refreshSession(): Promise<boolean> {
   try {
     const r = await fetch(`${BASE}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     });
     if (!r.ok) return false;
-    const sessao: SessaoDTO = await r.json();
-    accessToken = sessao.accessToken;
+    const session: SessionDTO = await r.json();
+    accessToken = session.accessToken;
     return true;
   } catch {
     return false;
@@ -83,13 +83,13 @@ async function renovarSessao(): Promise<boolean> {
 }
 
 export const api = {
-  get: <T>(caminho: string) => enviar<T>(caminho, { method: 'GET' }),
-  post: <T>(caminho: string, corpo?: unknown) =>
-    enviar<T>(caminho, { method: 'POST', body: JSON.stringify(corpo ?? {}) }),
-  patch: <T>(caminho: string, corpo: unknown) =>
-    enviar<T>(caminho, { method: 'PATCH', body: JSON.stringify(corpo) }),
-  put: <T>(caminho: string, corpo: unknown) =>
-    enviar<T>(caminho, { method: 'PUT', body: JSON.stringify(corpo) }),
-  delete: <T>(caminho: string) => enviar<T>(caminho, { method: 'DELETE' }),
-  renovarSessao,
+  get: <T>(path: string) => send<T>(path, { method: 'GET' }),
+  post: <T>(path: string, body?: unknown) =>
+    send<T>(path, { method: 'POST', body: JSON.stringify(body ?? {}) }),
+  patch: <T>(path: string, body: unknown) =>
+    send<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) =>
+    send<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: <T>(path: string) => send<T>(path, { method: 'DELETE' }),
+  refreshSession,
 };

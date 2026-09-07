@@ -2,37 +2,37 @@ import { NavLink as RouterLink, Outlet } from 'react-router-dom';
 import { AppShell, Burger, Group, NavLink, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../auth/AuthContext';
-import { useFamilia } from '../api/hooks';
-import { Avatar, MesNav } from './ui';
-import { useMes } from '../useMes';
+import { useFamily } from '../api/hooks';
+import { Avatar, MonthNav } from './ui';
+import { useMonth } from '../useMonth';
 
-const TELAS = [
-  { para: '/', rotulo: 'Painel da família', fim: true },
-  { para: '/meu-painel', rotulo: 'Meu painel' },
-  { para: '/gastos', rotulo: 'Gastos' },
-  { para: '/entradas', rotulo: 'Entradas' },
-  { para: '/familia', rotulo: 'Família e rateios' },
+const SCREENS = [
+  { to: '/', label: 'Painel da família', end: true },
+  { to: '/meu-painel', label: 'Meu painel' },
+  { to: '/gastos', label: 'Gastos' },
+  { to: '/entradas', label: 'Entradas' },
+  { to: '/familia', label: 'Família e rateios' },
 ];
 
 export default function Shell() {
-  const { usuario, sair } = useAuth();
-  const { data: familia } = useFamilia();
-  const [mes, setMes] = useMes();
-  const [aberto, { toggle, close }] = useDisclosure(false);
+  const { user, signOut } = useAuth();
+  const { data: family } = useFamily();
+  const [month, setMonth] = useMonth();
+  const [opened, { toggle, close }] = useDisclosure(false);
 
   return (
     <AppShell
       header={{ height: 60 }}
-      navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !aberto } }}
+      navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding="lg"
     >
       <AppShell.Header bg="var(--gf-card)">
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
-            <Burger opened={aberto} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
             <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
           </Group>
-          <MesNav mes={mes} setMes={setMes} />
+          <MonthNav month={month} setMonth={setMonth} />
         </Group>
       </AppShell.Header>
 
@@ -42,25 +42,25 @@ export default function Shell() {
             Nossa Conta
           </Text>
           <Text fz="xs" c="#8FAFA4" mt={4} style={{ letterSpacing: '0.04em' }}>
-            {familia?.nome ?? '—'}
+            {family?.name ?? '—'}
           </Text>
         </AppShell.Section>
 
         <AppShell.Section grow component={ScrollArea} mt="lg">
           <Stack gap={2}>
-            {TELAS.map((t) => (
+            {SCREENS.map((s) => (
               <NavLink
-                key={t.para}
+                key={s.to}
                 component={RouterLink}
-                to={{ pathname: t.para, search: `?mes=${mes}` }}
-                end={t.fim}
-                label={t.rotulo}
+                to={{ pathname: s.to, search: `?mes=${month}` }}
+                end={s.end}
+                label={s.label}
                 onClick={close}
                 styles={{
                   root: { borderRadius: 8, color: '#B9CCC5' },
                   label: { fontSize: 13.5 },
                 }}
-                // O react-router aplica .active; o Mantine estiliza pelo data-attr.
+                // react-router applies .active; Mantine styles by the data attr.
                 className="rail-link"
               />
             ))}
@@ -69,10 +69,10 @@ export default function Shell() {
 
         <AppShell.Section pt="md" style={{ borderTop: '1px solid #2A4B43' }}>
           <Group gap="sm" mb="sm">
-            {usuario && <Avatar user={usuario} />}
-            <Text c="#fff" size="md">{usuario?.nome}</Text>
+            {user && <Avatar user={user} />}
+            <Text c="#fff" size="md">{user?.name}</Text>
           </Group>
-          <UnstyledButton onClick={() => void sair()}>
+          <UnstyledButton onClick={() => void signOut()}>
             <Text c="#B9CCC5" size="sm" td="underline">Sair da conta</Text>
           </UnstyledButton>
         </AppShell.Section>

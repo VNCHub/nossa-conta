@@ -1,7 +1,7 @@
 /*
- * Só o que o Mantine não cobre: as fontes do protótipo, os tokens como CSS
- * variables e dois tratamentos tipográficos próprios do produto.
- * Todo o resto (botão, input, card, tabela, modal) vem da biblioteca.
+ * Only what Mantine does not cover: the prototype's fonts, the tokens as CSS
+ * variables and two typographic treatments specific to the product.
+ * Everything else (button, input, card, table, modal) comes from the library.
  */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap');
 
@@ -12,9 +12,9 @@
   --gf-ink-soft: #4e605a;
   --gf-ink-faint: #8b978f;
   --gf-line: #dfe4dc;
-  --gf-credito: #2e7d63;
-  --gf-debito: #a8332a;
-  --gf-mostarda: #d9a21b;
+  --gf-credit: #2e7d63;
+  --gf-debit: #a8332a;
+  --gf-mustard: #d9a21b;
 }
 
 body {
@@ -23,13 +23,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Valores monetários alinham na vertical em tabelas e listas. */
+/* Money values line up vertically in tables and lists. */
 .num {
   font-variant-numeric: tabular-nums;
 }
 
-/* A frase do acerto do mês é o desfecho da tela: ganha peso editorial. */
-.acerto {
+/* The month's settlement sentence is the screen's payoff: it gets editorial weight. */
+.settlement {
   font-family: 'Newsreader', Georgia, serif;
   font-size: 30px;
   line-height: 1.3;
@@ -38,12 +38,12 @@ body {
 }
 
 @media (max-width: 48em) {
-  .acerto {
+  .settlement {
     font-size: 23px;
   }
 }
 
-/* Trilha de navegação: o react-router marca o link ativo com .active. */
+/* Navigation rail: react-router marks the active link with .active. */
 .rail-link:hover {
   background: #1b4239 !important;
   color: #fff !important;

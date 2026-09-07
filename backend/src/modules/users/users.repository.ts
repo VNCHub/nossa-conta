@@ -6,32 +6,32 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  buscarPorId(id: string) {
+  findById(id: string) {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  buscarPorEmail(email: string) {
+  findByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  criar(data: Prisma.UserCreateInput) {
+  create(data: Prisma.UserCreateInput) {
     return this.prisma.user.create({ data });
   }
 
-  /** Membros de uma família — sempre escopado, nunca lista global de usuários. */
-  listarMembros(familiaId: string) {
+  /** Members of a family — always scoped, never a global list of users. */
+  listMembers(familyId: string) {
     return this.prisma.user.findMany({
-      where: { familiaId },
-      select: { id: true, nome: true, email: true, cor: true },
+      where: { familyId },
+      select: { id: true, name: true, email: true, color: true },
       orderBy: { createdAt: 'asc' },
     });
   }
 
-  contarNaFamilia(familiaId: string) {
-    return this.prisma.user.count({ where: { familiaId } });
+  countInFamily(familyId: string) {
+    return this.prisma.user.count({ where: { familyId } });
   }
 
-  definirFamilia(userId: string, familiaId: string) {
-    return this.prisma.user.update({ where: { id: userId }, data: { familiaId } });
+  setFamily(userId: string, familyId: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { familyId } });
   }
 }

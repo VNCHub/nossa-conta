@@ -4,11 +4,11 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthController } from './health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-import { FamiliasModule } from './modules/familias/familias.module';
-import { EntradasModule } from './modules/entradas/entradas.module';
-import { GastosModule } from './modules/gastos/gastos.module';
-import { RegrasModule } from './modules/regras/regras.module';
-import { RelatoriosModule } from './modules/relatorios/relatorios.module';
+import { FamiliesModule } from './modules/families/families.module';
+import { IncomesModule } from './modules/incomes/incomes.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
+import { RulesModule } from './modules/rules/rules.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -16,11 +16,11 @@ import { RelatoriosModule } from './modules/relatorios/relatorios.module';
     PrismaModule,
     AuthModule,
     UsersModule,
-    FamiliasModule,
-    EntradasModule,
-    GastosModule,
-    RegrasModule,
-    RelatoriosModule,
+    FamiliesModule,
+    IncomesModule,
+    ExpensesModule,
+    RulesModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
 })

@@ -40,24 +40,27 @@ membros e 16 gastos em setembro/2026. Entre com **vinicius@email.com / 123456**.
 
 ```
 backend/src/
-  domain/rateio/      motor de cálculo puro — sem banco, sem HTTP, sem Nest
+  domain/split/       motor de cálculo puro — sem banco, sem HTTP, sem Nest
   modules/<área>/     controller → service → repository
   common/             guards, decorators e filtros compartilhados
 frontend/src/
   api/                cliente HTTP e hooks do TanStack Query
   pages/              uma tela por rota, carregada sob demanda
   components/         peças de UI reaproveitadas
-  tema/               identidade do protótipo traduzida para o tema Mantine
+  theme/              identidade do protótipo traduzida para o tema Mantine
   feedback.ts         toast e confirmação de exclusão, centralizados
 shared/src/           tipos e constantes usados pelos dois lados
 ```
+
+O código é em inglês; só o texto exibido ao usuário (rótulos, toasts, mensagens de erro,
+dados de seed) e os caminhos de rota HTTP ficam em português.
 
 A regra que sustenta o resto:
 
 ```
 Controller  → HTTP, valida o DTO, lê req.user. Não sabe o que é Prisma.
 Service     → regra de negócio e autorização. Não monta query.
-Repository  → único ponto que fala com o banco. Todo método recebe familiaId.
+Repository  → único ponto que fala com o banco. Todo método recebe familyId.
 Domain      → funções puras de rateio. Não conhece banco, HTTP nem framework.
 ```
 
@@ -71,7 +74,7 @@ Formulários usam `@mantine/form`, datas o `@mantine/dates` em pt-BR, e exclusõ
 por `modals.openConfirmModal` — nada é apagado sem confirmação, e toda escrita devolve um
 toast.
 
-A identidade visual do protótipo vive em `src/tema/tema.ts`: as cores e fontes viraram
+A identidade visual do protótipo vive em `src/theme/theme.ts`: as cores e fontes viraram
 tokens do Mantine, então os componentes da biblioteca já nascem com a cara do produto sem
 precisar reestilizar um a um. Componente próprio é React puro consumindo as mesmas CSS
 variables — `src/styles/base.css` tem só 40 linhas.
@@ -109,10 +112,10 @@ Duas decisões que valem saber:
 ## Privacidade
 
 Os dados de uma família não aparecem para quem está fora dela. A garantia é estrutural:
-todo método de repository exige `familiaId`, que vem sempre do token de quem está logado
+todo método de repository exige `familyId`, que vem sempre do token de quem está logado
 e nunca do corpo da requisição — não existe caminho onde o filtro possa ser esquecido.
 Acesso a registro de outra família responde `404`, não `403`, para não confirmar que ele
-existe. `test/privacidade.e2e-spec.ts` monta duas famílias reais e tenta atravessar a
+existe. `test/privacy.e2e-spec.ts` monta duas famílias reais e tenta atravessar a
 fronteira por todos os caminhos.
 
 ## Testes

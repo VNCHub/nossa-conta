@@ -15,14 +15,14 @@ import '@mantine/charts/styles.css';
 import './styles/base.css';
 
 import { AuthProvider } from './auth/AuthContext';
-import { tema } from './tema/tema';
+import { theme } from './theme/theme';
 import App from './App';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Dados de um mês fechado mudam pouco; refazer a busca a cada foco de aba
-      // só gera tráfego. As mutations invalidam o que precisa ser refeito.
+      // A closed month's data changes little; refetching on every tab focus
+      // only generates traffic. Mutations invalidate what needs refetching.
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 30_000,
@@ -32,7 +32,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider theme={tema} defaultColorScheme="light">
+    <MantineProvider theme={theme} defaultColorScheme="light">
       <DatesProvider settings={{ locale: 'pt-br', firstDayOfWeek: 0 }}>
         <Notifications position="top-right" />
         <BrowserRouter>

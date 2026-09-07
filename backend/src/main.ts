@@ -24,8 +24,8 @@ async function bootstrap() {
     }),
   );
 
-  // Autenticação por padrão: uma rota nova nasce protegida, e só sai disso
-  // com um @Publico() explícito.
+  // Authenticated by default: a new route is born protected and only leaves
+  // that state with an explicit @Public().
   app.useGlobalGuards(new JwtAuthGuard(app.get(Reflector)));
   app.useGlobalFilters(new PrismaExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
 
