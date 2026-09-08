@@ -2,34 +2,34 @@ import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 
 /**
- * Feedback de escrita, centralizado.
+ * Write feedback, centralized.
  *
- * Antes disto, salvar um lançamento não avisava nada e "Excluir" apagava no
- * clique. Numa tela onde as pessoas conferem quanto cada uma deve, apagar sem
- * querer e não perceber é o pior defeito possível.
+ * Before this, saving an entry gave no feedback and "Delete" removed on the
+ * click. On a screen where people check how much each one owes, deleting by
+ * accident and not noticing is the worst possible defect.
  */
 
-export const avisarSucesso = (mensagem: string) =>
-  notifications.show({ message: mensagem, color: 'petrol', autoClose: 3000 });
+export const notifySuccess = (message: string) =>
+  notifications.show({ message, color: 'petrol', autoClose: 3000 });
 
-export const avisarErro = (mensagem: string) =>
+export const notifyError = (message: string) =>
   notifications.show({
     title: 'Não deu certo',
-    message: mensagem,
-    color: 'tijolo',
+    message,
+    color: 'brick',
     autoClose: 6000,
   });
 
-export function confirmarExclusao(opcoes: {
-  titulo: string;
-  descricao: string;
-  aoConfirmar: () => void;
+export function confirmDelete(options: {
+  title: string;
+  description: string;
+  onConfirm: () => void;
 }) {
   modals.openConfirmModal({
-    title: opcoes.titulo,
-    children: opcoes.descricao,
+    title: options.title,
+    children: options.description,
     labels: { confirm: 'Excluir', cancel: 'Cancelar' },
-    confirmProps: { color: 'tijolo' },
-    onConfirm: opcoes.aoConfirmar,
+    confirmProps: { color: 'brick' },
+    onConfirm: options.onConfirm,
   });
 }

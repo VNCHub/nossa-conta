@@ -5,67 +5,68 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 import type {
-  ConsolidadoDTO,
-  EntradaDTO,
-  FamiliaDTO,
-  GastoDTO,
-  MembroDTO,
-  RegraDTO,
-} from '@shared/contratos';
+  StatementDTO,
+  IncomeDTO,
+  FamilyDTO,
+  ExpenseDTO,
+  MemberDTO,
+  RuleDTO,
+} from '@shared/contracts';
 import { api } from './client';
 
-export const chaves = {
-  familia: ['familia'] as const,
-  membros: ['membros'] as const,
-  entradas: ['entradas'] as const,
-  regras: ['regras'] as const,
-  gastos: (mes: string) => ['gastos', mes] as const,
-  consolidado: (mes: string) => ['consolidado', mes] as const,
+export const keys = {
+  family: ['family'] as const,
+  members: ['members'] as const,
+  incomes: ['incomes'] as const,
+  rules: ['rules'] as const,
+  expenses: (month: string) => ['expenses', month] as const,
+  statement: (month: string) => ['statement', month] as const,
 };
 
-export const useFamilia = () =>
-  useQuery({ queryKey: chaves.familia, queryFn: () => api.get<FamiliaDTO>('/familias/minha') });
+export const useFamily = () =>
+  useQuery({ queryKey: keys.family, queryFn: () => api.get<FamilyDTO>('/familias/minha') });
 
-export const useMembros = () =>
+export const useMembers = () =>
   useQuery({
-    queryKey: chaves.membros,
-    queryFn: () => api.get<MembroDTO[]>('/familias/minha/membros'),
+    queryKey: keys.members,
+    queryFn: () => api.get<MemberDTO[]>('/familias/minha/membros'),
   });
 
-export const useEntradas = () =>
-  useQuery({ queryKey: chaves.entradas, queryFn: () => api.get<EntradaDTO[]>('/entradas') });
+export const useIncomes = () =>
+  useQuery({ queryKey: keys.incomes, queryFn: () => api.get<IncomeDTO[]>('/entradas') });
 
-export const useRegras = () =>
-  useQuery({ queryKey: chaves.regras, queryFn: () => api.get<RegraDTO[]>('/regras') });
+export const useRules = () =>
+  useQuery({ queryKey: keys.rules, queryFn: () => api.get<RuleDTO[]>('/regras') });
 
-export const useGastos = (mes: string) =>
+export const useExpenses = (month: string) =>
   useQuery({
-    queryKey: chaves.gastos(mes),
-    queryFn: () => api.get<GastoDTO[]>(`/gastos?mes=${mes}`),
+    queryKey: keys.expenses(month),
+    queryFn: () => api.get<ExpenseDTO[]>(`/gastos?mes=${month}`),
   });
 
-export const useConsolidado = (mes: string) =>
+export const useStatement = (month: string) =>
   useQuery({
-    queryKey: chaves.consolidado(mes),
-    queryFn: () => api.get<ConsolidadoDTO>(`/relatorios/consolidado?mes=${mes}`),
+    queryKey: keys.statement(month),
+    queryFn: () => api.get<StatementDTO>(`/relatorios/consolidado?mes=${month}`),
   });
 
 /**
- * Qualquer escrita mexe no consolidado do mês, então toda mutation invalida as
- * chaves afetadas — é o que mantém painel, tabela e acerto contando a mesma história.
+ * Any write touches the month's statement, so every mutation invalidates the
+ * affected keys — that is what keeps the dashboard, table and settlement telling
+ * the same story.
  */
-export function useMutacao<TDados, TVars>(
-  fn: (vars: TVars) => Promise<TDados>,
-  invalidar: readonly (readonly unknown[])[],
-  opcoes?: Omit<UseMutationOptions<TDados, Error, TVars>, 'mutationFn'>,
+export function useAppMutation<TData, TVars>(
+  fn: (vars: TVars) => Promise<TData>,
+  invalidate: readonly (readonly unknown[])[],
+  options?: Omit<UseMutationOptions<TData, Error, TVars>, 'mutationFn'>,
 ) {
   const qc = useQueryClient();
-  return useMutation<TDados, Error, TVars>({
+  return useMutation<TData, Error, TVars>({
     mutationFn: fn,
-    ...opcoes,
-    onSuccess: (...args: Parameters<NonNullable<typeof opcoes>['onSuccess'] & object>) => {
-      invalidar.forEach((queryKey) => void qc.invalidateQueries({ queryKey }));
-      opcoes?.onSuccess?.(...args);
+    ...options,
+    onSuccess: (...args: Parameters<NonNullable<typeof options>['onSuccess'] & object>) => {
+      invalidate.forEach((queryKey) => void qc.invalidateQueries({ queryKey }));
+      options?.onSuccess?.(...args);
     },
   });
 }

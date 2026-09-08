@@ -1,3 +1,3 @@
-export * from './dominio';
-export * from './formato';
-export * from './contratos';
+export * from './domain';
+export * from './format';
+export * from './contracts';

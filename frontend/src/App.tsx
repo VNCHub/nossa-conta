@@ -4,33 +4,33 @@ import { Center, Loader } from '@mantine/core';
 import { useAuth } from './auth/AuthContext';
 import Shell from './components/Shell';
 import Login from './pages/Login';
-import SemFamilia from './pages/SemFamilia';
+import NoFamily from './pages/NoFamily';
 
 /**
- * Telas carregadas sob demanda.
+ * Screens loaded on demand.
  *
- * Os dois painéis arrastam a biblioteca de gráficos (~97 kB comprimidos) por
- * causa do donut. Sem esta divisão, quem abre a tela de gastos paga por um
- * gráfico que não vai ver.
+ * Both dashboards drag in the charts library (~97 kB compressed) because of the
+ * donut. Without this split, whoever opens the expenses screen pays for a chart
+ * they will not see.
  */
-const PainelFamilia = lazy(() => import('./pages/PainelFamilia'));
-const MeuPainel = lazy(() => import('./pages/MeuPainel'));
-const Gastos = lazy(() => import('./pages/Gastos'));
-const Entradas = lazy(() => import('./pages/Entradas'));
-const Familia = lazy(() => import('./pages/Familia'));
+const FamilyDashboard = lazy(() => import('./pages/FamilyDashboard'));
+const MyDashboard = lazy(() => import('./pages/MyDashboard'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Income = lazy(() => import('./pages/Income'));
+const Family = lazy(() => import('./pages/Family'));
 
-const Girando = () => (
+const Spinner = () => (
   <Center py="xl">
     <Loader color="petrol" />
   </Center>
 );
 
 export default function App() {
-  const { usuario, carregando } = useAuth();
+  const { user, loading } = useAuth();
 
-  // Enquanto o refresh não responde, não dá para saber se há sessão — mostrar o
-  // login aqui faria a tela piscar para quem já estava logado.
-  if (carregando) {
+  // While the refresh has not answered, we cannot know if there is a session —
+  // showing the login here would make the screen flash for someone already in.
+  if (loading) {
     return (
       <Center mih="100vh">
         <Loader color="petrol" />
@@ -38,8 +38,8 @@ export default function App() {
     );
   }
 
-  if (!usuario) return <Login />;
-  if (!usuario.familiaId) return <SemFamilia />;
+  if (!user) return <Login />;
+  if (!user.familyId) return <NoFamily />;
 
   return (
     <Routes>
@@ -48,11 +48,11 @@ export default function App() {
           <Shell />
         }
       >
-        <Route index element={<Suspense fallback={<Girando />}><PainelFamilia /></Suspense>} />
-        <Route path="meu-painel" element={<Suspense fallback={<Girando />}><MeuPainel /></Suspense>} />
-        <Route path="gastos" element={<Suspense fallback={<Girando />}><Gastos /></Suspense>} />
-        <Route path="entradas" element={<Suspense fallback={<Girando />}><Entradas /></Suspense>} />
-        <Route path="familia" element={<Suspense fallback={<Girando />}><Familia /></Suspense>} />
+        <Route index element={<Suspense fallback={<Spinner />}><FamilyDashboard /></Suspense>} />
+        <Route path="meu-painel" element={<Suspense fallback={<Spinner />}><MyDashboard /></Suspense>} />
+        <Route path="gastos" element={<Suspense fallback={<Spinner />}><Expenses /></Suspense>} />
+        <Route path="entradas" element={<Suspense fallback={<Spinner />}><Income /></Suspense>} />
+        <Route path="familia" element={<Suspense fallback={<Spinner />}><Family /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
