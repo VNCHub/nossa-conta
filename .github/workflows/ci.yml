@@ -6,7 +6,26 @@ on:
   pull_request:
 
 jobs:
-  backend:
+  backend-unit:
+    name: Backend · testes unitários
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npx tsc --noEmit
+        working-directory: backend
+      - name: Motor de rateio
+        run: npm run test:unit
+        working-directory: backend
+
+  backend-regression:
+    name: Backend · testes de regressão
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -34,16 +53,12 @@ jobs:
         working-directory: backend
       - run: npx prisma migrate deploy
         working-directory: backend
-      - run: npx tsc --noEmit
-        working-directory: backend
-      - name: Motor de rateio
-        run: npm test
-        working-directory: backend
       - name: Isolamento entre famílias
-        run: npm run test:e2e
+        run: npm run test:regression
         working-directory: backend
 
-  frontend:
+  frontend-unit:
+    name: Frontend · testes unitários
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +70,38 @@ jobs:
       - run: npm ci
         working-directory: frontend
       - run: npx tsc --noEmit
+        working-directory: frontend
+      - name: Formatadores e domínio
+        run: npm run test:unit
+        working-directory: frontend
+
+  frontend-regression:
+    name: Frontend · testes de regressão
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - name: Componentes e navegação de mês
+        run: npm run test:regression
+        working-directory: frontend
+
+  frontend-build:
+    name: Frontend · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
