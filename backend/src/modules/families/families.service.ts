@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { RuleType } from '@prisma/client';
 import { FamiliesRepository } from './families.repository';
 import { UsersRepository } from '../users/users.repository';
 import type { FamilyDTO, MemberDTO } from '@shared/contracts';
+import { currentMonth } from '@shared/format';
 
 /** No I, O, 0 or 1: the code is read aloud and typed by another person. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -96,6 +98,63 @@ export class FamiliesService {
 
   members(familyId: string): Promise<MemberDTO[]> {
     return this.users.listMembers(familyId);
+  }
+
+  async rename(familyId: string, userId: string, name: string): Promise<FamilyDTO> {
+    await this.requireCreator(familyId, userId);
+    const cleanName = name.trim();
+    if (!cleanName) throw new BadRequestException('Dê um nome à família.');
+    return this.toDTO(await this.families.updateName(familyId, cleanName));
+  }
+
+  async removeMember(familyId: string, userId: string, memberId: string): Promise<void> {
+    await this.requireCreator(familyId, userId);
+    if (memberId === userId) {
+      throw new BadRequestException(
+        'Você criou a família. Para sair, use "Sair da família" ou desfaça a família.',
+      );
+    }
+    const removed = await this.families.removeMember(familyId, memberId, currentMonth());
+    if (!removed) throw new NotFoundException('Membro não encontrado nesta família.');
+  }
+
+  async dissolve(familyId: string, userId: string): Promise<void> {
+    await this.requireCreator(familyId, userId);
+    await this.families.deleteFamily(familyId);
+  }
+
+  async leave(familyId: string, userId: string): Promise<void> {
+    const family = await this.requireFamily(familyId);
+
+    // Whoever created the family owns a reference every other member relies on.
+    // Before they leave it moves to the oldest remaining member; if there is
+    // nobody left, leaving is the same as dissolving.
+    if (family.createdById === userId) {
+      const members = await this.users.listMembers(familyId);
+      const heir = members.find((m) => m.id !== userId);
+      if (!heir) {
+        await this.families.deleteFamily(familyId);
+        return;
+      }
+      await this.families.transferOwnership(familyId, heir.id);
+    }
+
+    const left = await this.families.removeMember(familyId, userId, currentMonth());
+    if (!left) throw new NotFoundException('Você não faz parte desta família.');
+  }
+
+  private async requireFamily(familyId: string) {
+    const family = await this.families.findById(familyId);
+    if (!family) throw new NotFoundException('Família não encontrada.');
+    return family;
+  }
+
+  private async requireCreator(familyId: string, userId: string) {
+    const family = await this.requireFamily(familyId);
+    if (family.createdById !== userId) {
+      throw new ForbiddenException('Só quem criou a família pode fazer isso.');
+    }
+    return family;
   }
 
   private toDTO(f: {

@@ -8,6 +8,13 @@ export class CreateFamilyDto {
   name!: string;
 }
 
+export class UpdateFamilyDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Dê um nome à família.' })
+  @MaxLength(60)
+  name!: string;
+}
+
 export class JoinFamilyDto {
   @Transform(({ value }: { value: string }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,

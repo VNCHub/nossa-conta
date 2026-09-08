@@ -1,6 +1,17 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { FamiliesService } from './families.service';
-import { CreateFamilyDto, JoinFamilyDto } from './dto/families.dto';
+import { CreateFamilyDto, JoinFamilyDto, UpdateFamilyDto } from './dto/families.dto';
 import {
   CurrentUser,
   type AuthenticatedUser,
@@ -31,5 +42,32 @@ export class FamiliesController {
   @UseGuards(FamilyGuard)
   members(@CurrentUser() user: AuthenticatedUser) {
     return this.families.members(user.familyId!);
+  }
+
+  @Patch('minha')
+  @UseGuards(FamilyGuard)
+  rename(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateFamilyDto) {
+    return this.families.rename(user.familyId!, user.id, dto.name);
+  }
+
+  @Delete('minha')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(FamilyGuard)
+  dissolve(@CurrentUser() user: AuthenticatedUser) {
+    return this.families.dissolve(user.familyId!, user.id);
+  }
+
+  @Post('minha/sair')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(FamilyGuard)
+  leave(@CurrentUser() user: AuthenticatedUser) {
+    return this.families.leave(user.familyId!, user.id);
+  }
+
+  @Delete('minha/membros/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(FamilyGuard)
+  removeMember(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.families.removeMember(user.familyId!, user.id, id);
   }
 }

@@ -79,7 +79,7 @@ Backend (`cd backend`):
 ```bash
 npm run start:dev        # API com watch
 npm test                 # 37 testes do motor de rateio (domain/split/*.spec.ts)
-npm run test:e2e         # 10 testes de isolamento entre famílias (test/privacy.e2e-spec.ts, precisa do Postgres)
+npm run test:e2e         # 18 testes de fronteira entre famílias (test/*.e2e-spec.ts: isolamento + ações críticas da família, precisa do Postgres)
 npx tsc --noEmit         # checagem de tipos (roda no CI)
 npm run lint             # eslint
 npm run prisma:migrate   # cria migração em dev
