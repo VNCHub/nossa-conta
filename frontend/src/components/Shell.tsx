@@ -22,6 +22,7 @@ export default function Shell() {
 
   return (
     <AppShell
+      layout="alt"
       header={{ height: 60 }}
       navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding="lg"
@@ -79,7 +80,7 @@ export default function Shell() {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ maxWidth: 1180 }}>
+        <div style={{ maxWidth: 1180, marginInline: 'auto' }}>
           <Outlet />
         </div>
       </AppShell.Main>
