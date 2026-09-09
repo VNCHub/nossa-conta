@@ -26,8 +26,8 @@ export class AuthController {
   @Public()
   @Post('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...session } = await this.auth.register(dto);
-    this.writeCookie(res, refreshToken);
+    const { refreshToken, remember, ...session } = await this.auth.register(dto);
+    this.writeCookie(res, refreshToken, remember);
     return session;
   }
 
@@ -35,8 +35,8 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...session } = await this.auth.login(dto);
-    this.writeCookie(res, refreshToken);
+    const { refreshToken, remember, ...session } = await this.auth.login(dto);
+    this.writeCookie(res, refreshToken, remember);
     return session;
   }
 
@@ -44,10 +44,10 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { refreshToken, ...session } = await this.auth.refresh(
+    const { refreshToken, remember, ...session } = await this.auth.refresh(
       req.cookies?.[COOKIE_REFRESH],
     );
-    this.writeCookie(res, refreshToken);
+    this.writeCookie(res, refreshToken, remember);
     return session;
   }
 
@@ -67,15 +67,18 @@ export class AuthController {
    * The refresh token lives in an httpOnly cookie: page JavaScript cannot reach
    * it, so an XSS does not carry off the long session. The short access token
    * stays in memory.
+   *
+   * Without "remember me" the cookie has no maxAge — the browser drops it when
+   * the session ends, so the login does not survive a restart.
    */
-  private writeCookie(res: Response, refreshToken: string) {
+  private writeCookie(res: Response, refreshToken: string, remember: boolean) {
     const production = process.env.NODE_ENV === 'production';
     res.cookie(COOKIE_REFRESH, refreshToken, {
       httpOnly: true,
       secure: production,
       sameSite: production ? 'none' : 'lax',
       path: '/auth',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      ...(remember ? { maxAge: 30 * 24 * 60 * 60 * 1000 } : {}),
     });
   }
 }

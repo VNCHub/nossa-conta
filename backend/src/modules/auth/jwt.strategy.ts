@@ -8,6 +8,8 @@ import type { AuthenticatedUser } from '../../common/decorators/current-user.dec
 export interface JwtPayload {
   sub: string;
   email: string;
+  /** Only on the refresh token: whether the user asked to stay logged in. */
+  remember?: boolean;
 }
 
 @Injectable()

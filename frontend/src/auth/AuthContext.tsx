@@ -16,7 +16,7 @@ type User = SessionDTO['user'];
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signUp: (data: {
     name: string;
     email: string;
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      signIn: async (email, password) =>
-        apply(await api.post<SessionDTO>('/auth/login', { email, password })),
+      signIn: async (email, password, rememberMe = false) =>
+        apply(await api.post<SessionDTO>('/auth/login', { email, password, rememberMe })),
       signUp: async (data) =>
         apply(await api.post<SessionDTO>('/auth/register', data)),
       signOut: async () => {
