@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
   Card,
   Center,
+  Checkbox,
   Grid,
   PasswordInput,
   SegmentedControl,
   Stack,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useAuth } from '../auth/AuthContext';
+import logo from '../assets/login-logo.webp';
+import loginLeft from '../assets/login-left.webp';
+import loginRight from '../assets/login-right.webp';
 
 type Mode = 'signin' | 'signup';
 
@@ -25,7 +29,14 @@ export default function Login() {
 
   const form = useForm({
     mode: 'uncontrolled',
-    initialValues: { name: '', email: '', password: '', inviteCode: '', familyName: '' },
+    initialValues: {
+      name: '',
+      email: '',
+      password: '',
+      inviteCode: '',
+      familyName: '',
+      rememberMe: false,
+    },
     validate: {
       name: (v) => (mode === 'signup' && !v.trim() ? 'Informe seu nome.' : null),
       email: (v) => (/^\S+@\S+\.\S+$/.test(v) ? null : 'Informe um e-mail válido.'),
@@ -49,7 +60,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       if (mode === 'signin') {
-        await signIn(v.email, v.password);
+        await signIn(v.email, v.password, v.rememberMe);
       } else {
         await signUp({
           name: v.name,
@@ -67,16 +78,56 @@ export default function Login() {
   });
 
   return (
-    <Center mih="100vh" p="lg">
-      <Stack w="100%" maw={420} gap={0}>
-        <Title order={1}>Nossa Conta</Title>
-        <Text c="dimmed" size="md" mt={6} mb="xl">
-          Cada um lança o que gastou. No fim do mês, o app diz quem paga quanto pra quem.
-        </Text>
+    <Center mih="100vh" p="lg" pos="relative" style={{ overflow: 'hidden' }}>
+      {/* Decorative picnic scene, split so each half hugs one edge of the screen.
+          Hidden on phones, where it would crowd the form. */}
+      <Box
+        visibleFrom="md"
+        aria-hidden
+        style={{
+          position: 'fixed',
+          insetBlock: 0,
+          left: 0,
+          width: 'clamp(180px, 24vw, 380px)',
+          backgroundImage: `url(${loginLeft})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'right bottom',
+          maskImage: 'linear-gradient(to right, #000 55%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, #000 55%, transparent)',
+          pointerEvents: 'none',
+        }}
+      />
+      <Box
+        visibleFrom="md"
+        aria-hidden
+        style={{
+          position: 'fixed',
+          insetBlock: 0,
+          right: 0,
+          width: 'clamp(180px, 24vw, 380px)',
+          backgroundImage: `url(${loginRight})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'left bottom',
+          maskImage: 'linear-gradient(to left, #000 55%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to left, #000 55%, transparent)',
+          pointerEvents: 'none',
+        }}
+      />
 
-        <Card>
+      <Stack w="100%" maw={480} gap={0} pos="relative">
+        <Card shadow="lg" padding="xl">
+          <img
+            src={logo}
+            alt="Nossa Conta"
+            style={{ display: 'block', width: 'min(230px, 60%)', margin: '0 auto' }}
+          />
+          <Text c="dimmed" fz={{ base: 15, sm: 16 }} mt="sm" mb="xl" ta="center">
+            A gente cuida das contas e das somas — você fica com o resto do dia livre.
+          </Text>
+
           <SegmentedControl
             fullWidth
+            color="petrol"
             value={mode}
             onChange={(v) => switchMode(v as Mode)}
             data={[
@@ -92,14 +143,31 @@ export default function Login() {
                 <TextInput label="Nome" autoComplete="name" key={form.key('name')} {...form.getInputProps('name')} />
               )}
 
-              <TextInput label="E-mail" type="email" autoComplete="email" key={form.key('email')} {...form.getInputProps('email')} />
+              <TextInput
+                label="E-mail"
+                type="email"
+                placeholder="voce@email.com"
+                autoComplete="email"
+                autoFocus
+                key={form.key('email')}
+                {...form.getInputProps('email')}
+              />
 
               <PasswordInput
                 label="Senha"
+                placeholder="Sua senha"
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 key={form.key('password')}
                 {...form.getInputProps('password')}
               />
+
+              {mode === 'signin' && (
+                <Checkbox
+                  label="Lembre de mim"
+                  key={form.key('rememberMe')}
+                  {...form.getInputProps('rememberMe', { type: 'checkbox' })}
+                />
+              )}
 
               {mode === 'signup' && (
                 <Grid gap="sm">
@@ -118,11 +186,15 @@ export default function Login() {
                 </Grid>
               )}
 
+              {error && <Alert color="brick" variant="light">{error}</Alert>}
+
               <Button type="submit" loading={submitting} fullWidth>
                 {mode === 'signin' ? 'Entrar' : 'Criar conta'}
               </Button>
 
-              {error && <Alert color="brick" variant="light">{error}</Alert>}
+              <Text c="dimmed" size="sm" ta="center">
+                Seus lançamentos ficam visíveis só para a sua família.
+              </Text>
             </Stack>
           </form>
         </Card>

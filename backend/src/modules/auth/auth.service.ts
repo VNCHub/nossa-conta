@@ -64,7 +64,8 @@ export class AuthService {
       await this.families.create(user.id, dto.familyName!);
     }
 
-    return this.issueSession(user.id);
+    // A fresh account stays logged in: the first thing after signing up is setup.
+    return this.issueSession(user.id, true);
   }
 
   async login(dto: LoginDto) {
@@ -81,7 +82,7 @@ export class AuthService {
     if (!user || !matches) {
       throw new UnauthorizedException('E-mail ou senha não conferem.');
     }
-    return this.issueSession(user.id);
+    return this.issueSession(user.id, dto.rememberMe ?? false);
   }
 
   async refresh(refreshToken: string | undefined) {
@@ -94,7 +95,9 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Sessão expirada.');
     }
-    return this.issueSession(payload.sub);
+    // Carry the "remember me" choice forward so a refresh does not silently
+    // turn a session-only login into a persistent one.
+    return this.issueSession(payload.sub, payload.remember ?? false);
   }
 
   async me(userId: string): Promise<SessionDTO['user']> {
@@ -111,17 +114,19 @@ export class AuthService {
 
   private async issueSession(
     userId: string,
-  ): Promise<SessionDTO & { refreshToken: string }> {
+    remember: boolean,
+  ): Promise<SessionDTO & { refreshToken: string; remember: boolean }> {
     const user = await this.users.findById(userId);
     if (!user) throw new UnauthorizedException();
 
     const payload: JwtPayload = { sub: user.id, email: user.email };
+    const refreshPayload: JwtPayload = { ...payload, remember };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(payload, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         expiresIn: duration(this.config.get<string>('JWT_ACCESS_TTL', '15m'), '15m'),
       }),
-      this.jwt.signAsync(payload, {
+      this.jwt.signAsync(refreshPayload, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
         expiresIn: duration(this.config.get<string>('JWT_REFRESH_TTL', '30d'), '30d'),
       }),
@@ -130,6 +135,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+      remember,
       user: {
         id: user.id,
         name: user.name,

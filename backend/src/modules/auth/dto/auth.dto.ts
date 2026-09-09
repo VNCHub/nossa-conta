@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -19,6 +20,11 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty({ message: 'Informe a senha.' })
   password!: string;
+
+  /** Keeps the session alive across browser restarts; otherwise it ends on close. */
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
 
 export class RegisterDto {
