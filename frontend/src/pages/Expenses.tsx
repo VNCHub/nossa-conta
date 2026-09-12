@@ -329,7 +329,7 @@ export default function Expenses() {
                           options={CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
                           canEdit={canEdit}
                           onSave={(v) => patchField(e, { category: v as CategoryId | null })}
-                          render={(v) => <CategoryChip id={v} />}
+                          render={(v, clickable) => <CategoryChip id={v} clickable={clickable} />}
                         />
                       </Table.Td>
                       <Table.Td style={midCell}>
@@ -341,7 +341,7 @@ export default function Expenses() {
                           ]}
                           canEdit={canEdit}
                           onSave={(v) => patchField(e, { expenseType: v as ExpenseType | null })}
-                          render={(v) => <ExpenseTypeChip type={v as 'fixed' | 'optional'} />}
+                          render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional'} clickable={clickable} />}
                         />
                       </Table.Td>
                       <Table.Td style={midCell}>
@@ -350,7 +350,7 @@ export default function Expenses() {
                           options={PAYMENT_METHODS.map((p) => ({ value: p, label: p }))}
                           canEdit={canEdit}
                           onSave={(v) => patchField(e, { paymentMethod: v as PaymentMethod | null })}
-                          render={(v) => <PaymentMethodChip method={v as PaymentMethod} />}
+                          render={(v, clickable) => <PaymentMethodChip method={v as PaymentMethod} clickable={clickable} />}
                         />
                       </Table.Td>
                       <Table.Td style={midCell}>
@@ -443,7 +443,7 @@ function SortIcon({ active }: { active: 'asc' | 'desc' | null }) {
   );
 }
 
-function PaymentMethodChip({ method }: { method: PaymentMethod }) {
+function PaymentMethodChip({ method, clickable }: { method: PaymentMethod; clickable?: boolean }) {
   return (
     <Badge
       variant="light" radius="sm" tt="none" fw={600} fz="sm"
@@ -452,6 +452,7 @@ function PaymentMethodChip({ method }: { method: PaymentMethod }) {
           background: 'var(--gf-card)',
           color: 'var(--gf-ink)',
           border: '1.5px solid var(--mantine-color-petrol-3)',
+          ...(clickable ? { cursor: 'pointer' } : {}),
         },
       }}
     >
@@ -559,7 +560,7 @@ function EditableDate({
       opened={opened}
       onClose={() => setOpened(false)}
       target={
-        <UnstyledButton onClick={() => setOpened((o) => !o)}>
+        <UnstyledButton onClick={() => setOpened((o) => !o)} style={{ cursor: 'pointer' }}>
           <Text size="md">{display}</Text>
         </UnstyledButton>
       }
@@ -624,7 +625,7 @@ function EditableText({
   }
 
   return (
-    <UnstyledButton onClick={() => { setDraft(value); setEditing(true); }} style={{ width: '100%', textAlign: 'left' }}>
+    <UnstyledButton onClick={() => { setDraft(value); setEditing(true); }} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
       {value ? <Text size="md">{value}</Text> : <Text size="md" c="dimmed">{placeholder}</Text>}
     </UnstyledButton>
   );
@@ -680,7 +681,7 @@ function EditableAmount({
   return (
     <UnstyledButton
       onClick={() => { setDraft(String(value || '')); setEditing(true); }}
-      style={{ width: '100%', textAlign: 'right' }}
+      style={{ width: '100%', textAlign: 'right', cursor: 'pointer' }}
     >
       {value > 0 ? (
         <Text size="md" fw={600} span>{brl(value)}</Text>
@@ -706,7 +707,7 @@ function EditableBadge({
   options: { value: string; label: string }[];
   canEdit: boolean;
   onSave: (v: string | null) => void;
-  render: (v: string) => ReactNode;
+  render: (v: string, clickable?: boolean) => ReactNode;
 }) {
   const [opened, setOpened] = useState(false);
 
@@ -724,8 +725,8 @@ function EditableBadge({
       onClose={() => setOpened(false)}
       width={150}
       target={
-        <UnstyledButton onClick={() => setOpened((o) => !o)}>
-          {value ? render(value) : <Text size="md" c="dimmed">A definir</Text>}
+        <UnstyledButton onClick={() => setOpened((o) => !o)} style={{ cursor: 'pointer' }}>
+          {value ? render(value, true) : <Text size="md" c="dimmed">A definir</Text>}
         </UnstyledButton>
       }
     >
@@ -737,6 +738,7 @@ function EditableBadge({
             px="xs" py={6}
             style={{
               borderRadius: 6,
+              cursor: 'pointer',
               background: o.value === value ? 'var(--mantine-color-petrol-0)' : undefined,
             }}
           >
@@ -744,7 +746,7 @@ function EditableBadge({
           </UnstyledButton>
         ))}
         {value && (
-          <UnstyledButton onClick={() => { setOpened(false); onSave(null); }} px="xs" py={6} style={{ borderRadius: 6 }}>
+          <UnstyledButton onClick={() => { setOpened(false); onSave(null); }} px="xs" py={6} style={{ borderRadius: 6, cursor: 'pointer' }}>
             <Text size="sm" c="dimmed">Limpar</Text>
           </UnstyledButton>
         )}
@@ -813,7 +815,7 @@ function DivisaoEditor({
       onClose={() => setOpened(false)}
       width={280}
       target={
-        <UnstyledButton onClick={() => (opened ? setOpened(false) : open())} style={{ width: '100%', textAlign: 'left' }}>
+        <UnstyledButton onClick={() => (opened ? setOpened(false) : open())} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
           {view}
         </UnstyledButton>
       }

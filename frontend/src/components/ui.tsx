@@ -83,7 +83,7 @@ export const hexToRgba = (hex: string, alpha: number) => {
  * stand out over the green/red row tints that mark complete/incomplete
  * expenses, not just over plain white.
  */
-export function CategoryChip({ id }: { id: string }) {
+export function CategoryChip({ id, clickable }: { id: string; clickable?: boolean }) {
   const c = categoryOf(id);
   return (
     <Badge
@@ -94,6 +94,10 @@ export function CategoryChip({ id }: { id: string }) {
           background: 'var(--gf-card)',
           color: 'var(--gf-ink)',
           border: `1.5px solid ${hexToRgba(c.color, 0.55)}`,
+          // Badge hardcodes `cursor: default` on its own root, which wins over
+          // an ancestor button's `cursor: pointer` — only an inline style on
+          // the badge itself can override it.
+          ...(clickable ? { cursor: 'pointer' } : {}),
         },
       }}
     >
@@ -102,9 +106,12 @@ export function CategoryChip({ id }: { id: string }) {
   );
 }
 
-export function ExpenseTypeChip({ type }: { type: 'fixed' | 'optional' }) {
+export function ExpenseTypeChip({ type, clickable }: { type: 'fixed' | 'optional'; clickable?: boolean }) {
   return (
-    <Badge color={type === 'fixed' ? 'petrol' : 'mustard'} variant="filled" radius="sm" tt="none" fw={600} fz="sm">
+    <Badge
+      color={type === 'fixed' ? 'petrol' : 'mustard'} variant="filled" radius="sm" tt="none" fw={600} fz="sm"
+      styles={clickable ? { root: { cursor: 'pointer' } } : undefined}
+    >
       {type === 'fixed' ? 'Fixo' : 'Opcional'}
     </Badge>
   );
