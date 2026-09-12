@@ -70,22 +70,48 @@ export function Categories({ amounts }: { amounts: Record<string, number> }) {
   );
 }
 
-export function CategoryChip({ id }: { id: string }) {
+/** `#rrggbb` + alpha → `rgba(...)`, so a badge can tint its own background from a hex token. */
+export const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+/**
+ * A solid card background + a colored border, not just a pale tint: needs to
+ * stand out over the green/red row tints that mark complete/incomplete
+ * expenses, not just over plain white.
+ */
+export function CategoryChip({ id, clickable }: { id: string; clickable?: boolean }) {
   const c = categoryOf(id);
   return (
     <Badge
-      variant="light" radius="sm" tt="none" fw={500}
+      variant="light" radius="sm" tt="none" fw={600} fz="sm"
       leftSection={<div style={{ width: 7, height: 7, borderRadius: 2, background: c.color }} />}
-      styles={{ root: { background: '#EDF0EB', color: 'var(--gf-ink-soft)' } }}
+      styles={{
+        root: {
+          background: 'var(--gf-card)',
+          color: 'var(--gf-ink)',
+          border: `1.5px solid ${hexToRgba(c.color, 0.55)}`,
+          // Badge hardcodes `cursor: default` on its own root, which wins over
+          // an ancestor button's `cursor: pointer` — only an inline style on
+          // the badge itself can override it.
+          ...(clickable ? { cursor: 'pointer' } : {}),
+        },
+      }}
     >
       {c.name}
     </Badge>
   );
 }
 
-export function ExpenseTypeChip({ type }: { type: 'fixed' | 'optional' }) {
+export function ExpenseTypeChip({ type, clickable }: { type: 'fixed' | 'optional'; clickable?: boolean }) {
   return (
-    <Badge color={type === 'fixed' ? 'petrol' : 'mustard'} variant="light" radius="sm" tt="none" fw={500}>
+    <Badge
+      color={type === 'fixed' ? 'petrol' : 'mustard'} variant="filled" radius="sm" tt="none" fw={600} fz="sm"
+      styles={clickable ? { root: { cursor: 'pointer' } } : undefined}
+    >
       {type === 'fixed' ? 'Fixo' : 'Opcional'}
     </Badge>
   );
@@ -101,7 +127,7 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <Group justify="space-between" align="flex-start" wrap="wrap" mb="lg">
+    <Group justify="space-between" align="center" wrap="wrap" mb="lg">
       <div>
         <Title order={1}>{title}</Title>
         {description && <Text c="dimmed" size="md" mt={4}>{description}</Text>}

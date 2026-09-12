@@ -6,7 +6,6 @@ import {
   IsBoolean,
   IsIn,
   IsISO8601,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -14,7 +13,6 @@ import {
   Matches,
   Max,
   MaxLength,
-  ValidateIf,
 } from 'class-validator';
 import {
   CATEGORY_IDS,
@@ -26,43 +24,52 @@ import {
   type ExpenseType,
 } from '@shared/domain';
 
+/**
+ * Every field but `shared` is optional: an expense can be logged incomplete
+ * and completed later from the edit modal (see ExpensesService.isComplete).
+ */
 export class CreateExpenseDto {
+  @IsOptional()
   @IsISO8601({ strict: true }, { message: 'Informe a data no formato AAAA-MM-DD.' })
-  date!: string;
+  date?: string;
 
+  @IsOptional()
   @IsIn(PAYMENT_METHODS as unknown as string[])
-  paymentMethod!: PaymentMethod;
+  paymentMethod?: PaymentMethod | null;
 
+  @IsOptional()
   @IsIn(CATEGORY_IDS)
-  category!: CategoryId;
+  category?: CategoryId | null;
 
+  @IsOptional()
   @IsIn(EXPENSE_TYPES as unknown as string[])
-  expenseType!: ExpenseType;
+  expenseType?: ExpenseType | null;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Descreva o gasto.' })
   @MaxLength(120)
-  description!: string;
+  description?: string;
 
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Informe um valor válido.' })
   @IsPositive({ message: 'O valor precisa ser maior que zero.' })
   @Max(99_999_999)
-  amount!: number;
+  amount?: number | null;
 
+  @IsOptional()
   @IsBoolean()
-  shared!: boolean;
+  shared?: boolean;
 
-  @ValidateIf((o: CreateExpenseDto) => o.shared)
+  @IsOptional()
   @IsArray()
   @ArrayUnique()
   @ArrayMaxSize(20)
   @IsString({ each: true })
-  participants!: string[];
+  participants?: string[];
 
-  @ValidateIf((o: CreateExpenseDto) => o.shared)
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Escolha a regra de rateio.' })
-  ruleId!: string;
+  ruleId?: string | null;
 }
 
 export class UpdateExpenseDto extends CreateExpenseDto {}

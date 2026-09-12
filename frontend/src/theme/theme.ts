@@ -33,12 +33,12 @@ export const theme = createTheme({
     fontFamily: "'Newsreader', Georgia, serif",
     fontWeight: '500',
     sizes: {
-      h1: { fontSize: '30px', lineHeight: '1.15' },
-      h2: { fontSize: '21px', lineHeight: '1.25' },
-      h3: { fontSize: '16px', lineHeight: '1.3' },
+      h1: { fontSize: '32px', lineHeight: '1.15' },
+      h2: { fontSize: '22px', lineHeight: '1.25' },
+      h3: { fontSize: '17px', lineHeight: '1.3' },
     },
   },
-  fontSizes: { xs: '11.5px', sm: '12.5px', md: '13.5px', lg: '16px', xl: '21px' },
+  fontSizes: { xs: '12.5px', sm: '13.5px', md: '14.5px', lg: '17px', xl: '22px' },
   defaultRadius: 'md',
   radius: { sm: '7px', md: '8px', lg: '12px', xl: '14px' },
 

@@ -34,14 +34,16 @@ export interface ExpenseDTO {
   id: string;
   userId: string;
   date: string;
-  paymentMethod: PaymentMethod;
-  category: CategoryId;
-  expenseType: ExpenseType;
+  paymentMethod: PaymentMethod | null;
+  category: CategoryId | null;
+  expenseType: ExpenseType | null;
   description: string;
   amount: number;
   shared: boolean;
   participants: string[];
   ruleId: string | null;
+  /** false when a required field is still missing — needs action before it counts anywhere */
+  complete: boolean;
 }
 
 export interface RuleDTO {

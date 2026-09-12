@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Expense" ALTER COLUMN "paymentMethod" DROP NOT NULL,
+ALTER COLUMN "category" DROP NOT NULL,
+ALTER COLUMN "expenseType" DROP NOT NULL,
+ALTER COLUMN "description" SET DEFAULT '',
+ALTER COLUMN "amount" DROP NOT NULL;

@@ -80,7 +80,7 @@ export default function Shell() {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ maxWidth: 1180, marginInline: 'auto' }}>
+        <div style={{ maxWidth: 1320, marginInline: 'auto' }}>
           <Outlet />
         </div>
       </AppShell.Main>
