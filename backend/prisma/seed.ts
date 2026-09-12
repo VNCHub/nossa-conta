@@ -24,20 +24,20 @@ async function main() {
   const passwordHash = await argon2.hash('123456');
   const [vinicius, camila, rafael] = await Promise.all([
     prisma.user.create({
-      data: { name: 'Vinicius', email: 'vinicius@email.com', passwordHash, color: '#1F5F52' },
+      data: { name: 'Teste 1', email: 'teste1@email.com', passwordHash, color: '#1F5F52' },
     }),
     prisma.user.create({
-      data: { name: 'Camila', email: 'camila@email.com', passwordHash, color: '#B8452F' },
+      data: { name: 'Teste 2', email: 'teste2@email.com', passwordHash, color: '#B8452F' },
     }),
     prisma.user.create({
-      data: { name: 'Rafael', email: 'rafael@email.com', passwordHash, color: '#7A5AA6' },
+      data: { name: 'Teste 3', email: 'teste3@email.com', passwordHash, color: '#7A5AA6' },
     }),
   ]);
 
   const family = await prisma.family.create({
     data: {
-      name: 'Casa da Vila Nova',
-      inviteCode: 'VILA-7K2M',
+      name: 'Família Teste',
+      inviteCode: 'TESTE-0001',
       createdById: vinicius.id,
       members: { connect: [{ id: vinicius.id }, { id: camila.id }, { id: rafael.id }] },
     },
@@ -140,7 +140,7 @@ async function main() {
 
   const total = await prisma.expense.count();
   console.log(`Seed pronto: família "${family.name}" (${family.inviteCode}), 3 membros, ${total} gastos em ${MONTH}.`);
-  console.log('Entre com vinicius@email.com / 123456');
+  console.log('Entre com teste1@email.com / 123456');
 }
 
 main()
