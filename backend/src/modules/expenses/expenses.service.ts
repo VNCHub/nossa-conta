@@ -31,18 +31,19 @@ export class ExpensesService {
     dto: CreateExpenseDto,
   ): Promise<ExpenseDTO> {
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
+    const date = dto.date ?? isoToday();
     const row = await this.repo.create(
       {
         userId,
         familyId,
-        date: new Date(`${dto.date}T00:00:00Z`),
-        month: dto.date.slice(0, 7),
-        paymentMethod: dto.paymentMethod,
-        category: dto.category,
-        expenseType: dto.expenseType === 'fixed' ? ExpenseTypeDb.FIXED : ExpenseTypeDb.OPTIONAL,
-        description: dto.description.trim(),
-        amount: dto.amount,
-        shared: dto.shared,
+        date: new Date(`${date}T00:00:00Z`),
+        month: date.slice(0, 7),
+        paymentMethod: dto.paymentMethod ?? null,
+        category: dto.category ?? null,
+        expenseType: toDbExpenseType(dto.expenseType),
+        description: dto.description?.trim() ?? '',
+        amount: dto.amount ?? null,
+        shared: dto.shared ?? false,
         ruleId,
       },
       participants,
@@ -56,20 +57,21 @@ export class ExpensesService {
     id: string,
     dto: UpdateExpenseDto,
   ): Promise<ExpenseDTO> {
-    await this.requireOwn(familyId, userId, id);
+    const existing = await this.requireOwn(familyId, userId, id);
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
+    const date = dto.date ?? existing.date.toISOString().slice(0, 10);
 
     const row = await this.repo.update(
       id,
       {
-        date: new Date(`${dto.date}T00:00:00Z`),
-        month: dto.date.slice(0, 7),
-        paymentMethod: dto.paymentMethod,
-        category: dto.category,
-        expenseType: dto.expenseType === 'fixed' ? ExpenseTypeDb.FIXED : ExpenseTypeDb.OPTIONAL,
-        description: dto.description.trim(),
-        amount: dto.amount,
-        shared: dto.shared,
+        date: new Date(`${date}T00:00:00Z`),
+        month: date.slice(0, 7),
+        paymentMethod: dto.paymentMethod ?? null,
+        category: dto.category ?? null,
+        expenseType: toDbExpenseType(dto.expenseType),
+        description: dto.description?.trim() ?? '',
+        amount: dto.amount ?? null,
+        shared: dto.shared ?? false,
         ruleId,
       },
       participants,
@@ -82,10 +84,10 @@ export class ExpensesService {
     await this.repo.remove(id);
   }
 
-  /** The family's expenses in the split engine's format. */
+  /** The family's expenses in the split engine's format — incomplete ones can't be rated yet. */
   async forCalc(familyId: string): Promise<ExpenseCalc[]> {
     const rows = await this.repo.list(familyId);
-    return rows.map(toCalc);
+    return rows.filter(isComplete).map(toCalc);
   }
 
   /**
@@ -97,34 +99,38 @@ export class ExpensesService {
   ): Promise<{ calc: ExpenseCalc[]; dto: Map<string, ExpenseDTO> }> {
     const rows = await this.repo.list(familyId);
     return {
-      calc: rows.map(toCalc),
+      calc: rows.filter(isComplete).map(toCalc),
       dto: new Map(rows.map((r) => [r.id, toDTO(r)])),
     };
   }
 
   /**
-   * A shared expense is only accepted with participants who belong to this
-   * family and a rule that belongs to this family. Without that, someone could
-   * push a share onto an outside user or point to another household's rule.
+   * Participants must belong to this family and a chosen rule must belong to
+   * this family — without that, someone could push a share onto an outside
+   * user or point to another household's rule. Both are optional, though: an
+   * expense marked "shared" without them yet is simply incomplete.
    */
   private async validateSplit(familyId: string, dto: CreateExpenseDto) {
     if (!dto.shared) return { participants: [], ruleId: null };
 
-    if (!dto.participants?.length) {
-      throw new BadRequestException('Escolha com quem o gasto será dividido.');
+    const participants = dto.participants ?? [];
+    if (participants.length) {
+      const members = await this.users.listMembers(familyId);
+      const familyIds = new Set(members.map((m) => m.id));
+      const outsider = participants.find((p) => !familyIds.has(p));
+      if (outsider) {
+        throw new BadRequestException('Só é possível dividir com membros da família.');
+      }
     }
 
-    const members = await this.users.listMembers(familyId);
-    const familyIds = new Set(members.map((m) => m.id));
-    const outsider = dto.participants.find((p) => !familyIds.has(p));
-    if (outsider) {
-      throw new BadRequestException('Só é possível dividir com membros da família.');
+    let ruleId: string | null = null;
+    if (dto.ruleId) {
+      const rule = await this.rules.find(familyId, dto.ruleId);
+      if (!rule) throw new BadRequestException('Regra de rateio não encontrada.');
+      ruleId = rule.id;
     }
 
-    const rule = await this.rules.find(familyId, dto.ruleId);
-    if (!rule) throw new BadRequestException('Regra de rateio não encontrada.');
-
-    return { participants: dto.participants, ruleId: rule.id };
+    return { participants, ruleId };
   }
 
   private async requireOwn(familyId: string, userId: string, id: string) {
@@ -139,31 +145,57 @@ export class ExpensesService {
   }
 }
 
-const expenseTypeOf = (t: ExpenseTypeDb) => (t === ExpenseTypeDb.FIXED ? 'fixed' : 'optional');
+const isoToday = () => new Date().toISOString().slice(0, 10);
+
+const expenseTypeOf = (t: ExpenseTypeDb | null) =>
+  t === null ? null : t === ExpenseTypeDb.FIXED ? 'fixed' : 'optional';
+
+const toDbExpenseType = (t: string | null | undefined) =>
+  t === 'fixed' ? ExpenseTypeDb.FIXED : t === 'optional' ? ExpenseTypeDb.OPTIONAL : null;
+
+/**
+ * Whether every field needed to count this expense in a statement is filled
+ * in — surfaced to the UI so an incomplete entry can be flagged and finished.
+ */
+export function isComplete(e: ExpenseWithShares): boolean {
+  if (
+    !e.paymentMethod ||
+    !e.category ||
+    !e.expenseType ||
+    !e.description.trim() ||
+    e.amount === null ||
+    Number(e.amount) <= 0
+  ) {
+    return false;
+  }
+  return !e.shared || (!!e.ruleId && e.shares.length > 0);
+}
 
 export function toDTO(e: ExpenseWithShares): ExpenseDTO {
   return {
     id: e.id,
     userId: e.userId,
     date: e.date.toISOString().slice(0, 10),
-    paymentMethod: e.paymentMethod as PaymentMethod,
-    category: e.category as CategoryId,
+    paymentMethod: e.paymentMethod as PaymentMethod | null,
+    category: e.category as CategoryId | null,
     expenseType: expenseTypeOf(e.expenseType),
     description: e.description,
-    amount: toReais(toCents(String(e.amount))),
+    amount: e.amount === null ? 0 : toReais(toCents(String(e.amount))),
     shared: e.shared,
     participants: e.shares.map((s) => s.userId),
     ruleId: e.ruleId,
+    complete: isComplete(e),
   };
 }
 
+/** Only called on rows that already passed {@link isComplete}, so the non-null fields are safe. */
 export function toCalc(e: ExpenseWithShares): ExpenseCalc {
   return {
     id: e.id,
     userId: e.userId,
     month: e.month,
-    category: e.category,
-    expenseType: expenseTypeOf(e.expenseType),
+    category: e.category!,
+    expenseType: expenseTypeOf(e.expenseType)!,
     amountCents: toCents(String(e.amount)),
     shared: e.shared,
     participants: e.shares.map((s) => s.userId),

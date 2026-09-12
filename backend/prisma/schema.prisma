@@ -82,11 +82,12 @@ model Expense {
   date          DateTime    @db.Date
   /// YYYY-MM period, derived from `date` — avoids a range scan on every report
   month         String      @db.VarChar(7)
-  paymentMethod String
-  category      String
-  expenseType   ExpenseType
-  description   String
-  amount        Decimal     @db.Decimal(12, 2)
+  /// null fields mean the expense was logged incomplete and still needs action
+  paymentMethod String?
+  category      String?
+  expenseType   ExpenseType?
+  description   String      @default("")
+  amount        Decimal?    @db.Decimal(12, 2)
   shared        Boolean     @default(false)
   createdAt     DateTime    @default(now())
 

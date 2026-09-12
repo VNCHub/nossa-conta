@@ -138,6 +138,15 @@ async function main() {
   await expense(vinicius.id, '2026-09-21', 'Débito', 'car', O, 'Lavagem do carro', 90, couple, perKm.id);
   await expense(camila.id, '2026-09-22', 'Pix', 'pets', O, 'Banho e tosa', 130, everyone, halfAndHalf.id);
 
+  // Logged in a hurry, still needs category/valor/etc. — demonstrates the "incompleto" state.
+  await prisma.expense.create({
+    data: {
+      userId: rafael.id, familyId: family.id,
+      date: new Date('2026-09-23T00:00:00Z'), month: MONTH,
+      description: 'Farmácia', shared: false,
+    },
+  });
+
   const total = await prisma.expense.count();
   console.log(`Seed pronto: família "${family.name}" (${family.inviteCode}), 3 membros, ${total} gastos em ${MONTH}.`);
   console.log('Entre com vinicius@email.com / 123456');
