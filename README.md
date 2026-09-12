@@ -30,8 +30,8 @@ docker compose exec backend npx prisma migrate deploy
 docker compose exec backend npm run seed
 ```
 
-O seed recria a família do protótipo (`Casa da Vila Nova`, convite `VILA-7K2M`) com três
-membros e 16 gastos em setembro/2026. Entre com **vinicius@email.com / 123456**.
+O seed recria a família do protótipo (`Família Teste`, convite `TESTE-0001`) com três
+membros e 16 gastos em setembro/2026. Entre com **teste1@email.com / 123456**.
 
 > A porta do Postgres no host é 5433 e não 5432 para não conflitar com outros projetos.
 > Mude `POSTGRES_PORT` no `.env` se preferir outra.
