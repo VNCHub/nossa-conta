@@ -44,11 +44,15 @@ async function send<T>(
   init: RequestInit,
   alreadyRefreshed = false,
 ): Promise<T> {
+  // A FormData body (file upload) must not get a manual Content-Type — the
+  // browser needs to set its own, with the multipart boundary included.
+  const isFormData = init.body instanceof FormData;
+
   const response = await fetch(`${BASE}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...init.headers,
     },
@@ -91,5 +95,6 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     send<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string) => send<T>(path, { method: 'DELETE' }),
+  upload: <T>(path: string, body: FormData) => send<T>(path, { method: 'POST', body }),
   refreshSession,
 };

@@ -34,12 +34,18 @@ services:
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       PORT: 3000
+      IMPORT_STORAGE_DIR: ${IMPORT_STORAGE_DIR:-./storage/imports}
+      IMPORT_RETENTION_DAYS: ${IMPORT_RETENTION_DAYS:-7}
+      IMPORT_MAX_FILE_SIZE_MB: ${IMPORT_MAX_FILE_SIZE_MB:-5}
+      IMPORT_MAX_FILES_PER_REQUEST: ${IMPORT_MAX_FILES_PER_REQUEST:-10}
     ports:
       - "3000:3000"
     volumes:
       - ./backend/src:/app/backend/src
       - ./backend/prisma:/app/backend/prisma
       - ./shared:/app/shared
+      # Arquivos de importação sobrevivem a reinícios, separado do bind mount de código.
+      - dados_importacoes:/app/backend/storage
 
   frontend:
     build:
@@ -69,3 +75,4 @@ services:
 
 volumes:
   dados_postgres:
+  dados_importacoes:

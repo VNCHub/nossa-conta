@@ -2,7 +2,17 @@
  * API v1 contract — the same shape produced by the backend and consumed by the front.
  * Money values travel as a number in reais (already converted from cents).
  */
-import type { CategoryId, PaymentMethod, IncomeType, ExpenseType, RuleType } from './domain';
+import type {
+  CategoryId,
+  PaymentMethod,
+  IncomeType,
+  ExpenseType,
+  RuleType,
+  BankId,
+  ImportDocumentType,
+  ImportFileFormat,
+  RecordSource,
+} from './domain';
 
 export interface MemberDTO {
   id: string;
@@ -28,6 +38,8 @@ export interface IncomeDTO {
   dayOfMonth?: number | null;
   /** present when type = oneOff (YYYY-MM-DD) */
   date?: string | null;
+  source: RecordSource;
+  importedFileId: string | null;
 }
 
 export interface ExpenseDTO {
@@ -44,6 +56,8 @@ export interface ExpenseDTO {
   ruleId: string | null;
   /** false when a required field is still missing — needs action before it counts anywhere */
   complete: boolean;
+  source: RecordSource;
+  importedFileId: string | null;
 }
 
 export interface RuleDTO {
@@ -93,4 +107,34 @@ export interface StatementDTO {
 export interface SessionDTO {
   accessToken: string;
   user: MemberDTO & { familyId: string | null };
+}
+
+/** One row of the import history — GET /gastos/importacoes. */
+export interface ImportedFileDTO {
+  id: string;
+  bank: BankId;
+  documentType: ImportDocumentType;
+  fileFormat: ImportFileFormat;
+  originalName: string;
+  sizeBytes: number;
+  /** YYYY-MM-DD — oldest/newest transaction found in the file */
+  periodStart: string;
+  periodEnd: string;
+  expensesCount: number;
+  /** refunds on an invoice, imported as a one-off Income instead of a Gasto */
+  incomesCount: number;
+  /** transactions in this file that matched one already saved by an earlier import — a re-exported, overlapping statement is expected to have some */
+  duplicateTransactionsSkipped: number;
+  importedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** One entry per uploaded file — response of POST /gastos/importacoes. */
+export interface ImportResultDTO {
+  fileName: string;
+  status: 'success' | 'error';
+  /** user-facing reason, present when status = 'error' */
+  message?: string;
+  file?: ImportedFileDTO;
 }

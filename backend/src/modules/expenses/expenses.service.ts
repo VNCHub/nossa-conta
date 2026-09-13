@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ExpenseType as ExpenseTypeDb } from '@prisma/client';
+import { ExpenseType as ExpenseTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
 import type { ExpenseDTO } from '@shared/contracts';
-import type { CategoryId, PaymentMethod } from '@shared/domain';
+import type { CategoryId, PaymentMethod, RecordSource } from '@shared/domain';
 import type { ExpenseCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
 import { ExpensesRepository, type ExpenseWithShares } from './expenses.repository';
@@ -148,10 +148,22 @@ export class ExpensesService {
 const isoToday = () => new Date().toISOString().slice(0, 10);
 
 const expenseTypeOf = (t: ExpenseTypeDb | null) =>
-  t === null ? null : t === ExpenseTypeDb.FIXED ? 'fixed' : 'optional';
+  t === null
+    ? null
+    : t === ExpenseTypeDb.FIXED
+      ? 'fixed'
+      : t === ExpenseTypeDb.OPTIONAL
+        ? 'optional'
+        : 'oneOff';
 
 const toDbExpenseType = (t: string | null | undefined) =>
-  t === 'fixed' ? ExpenseTypeDb.FIXED : t === 'optional' ? ExpenseTypeDb.OPTIONAL : null;
+  t === 'fixed'
+    ? ExpenseTypeDb.FIXED
+    : t === 'optional'
+      ? ExpenseTypeDb.OPTIONAL
+      : t === 'oneOff'
+        ? ExpenseTypeDb.ONE_OFF
+        : null;
 
 /**
  * Whether every field needed to count this expense in a statement is filled
@@ -185,8 +197,13 @@ export function toDTO(e: ExpenseWithShares): ExpenseDTO {
     participants: e.shares.map((s) => s.userId),
     ruleId: e.ruleId,
     complete: isComplete(e),
+    source: recordSourceOf(e.source),
+    importedFileId: e.importedFileId,
   };
 }
+
+const recordSourceOf = (s: RecordSourceDb): RecordSource =>
+  s === RecordSourceDb.IMPORT ? 'import' : 'manual';
 
 /** Only called on rows that already passed {@link isComplete}, so the non-null fields are safe. */
 export function toCalc(e: ExpenseWithShares): ExpenseCalc {

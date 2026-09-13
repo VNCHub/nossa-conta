@@ -22,7 +22,7 @@ export const categoryOf = (id: string) =>
 export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const EXPENSE_TYPES = ['fixed', 'optional'] as const;
+export const EXPENSE_TYPES = ['fixed', 'optional', 'oneOff'] as const;
 export type ExpenseType = (typeof EXPENSE_TYPES)[number];
 
 export const INCOME_TYPES = ['recurring', 'oneOff'] as const;
@@ -53,3 +53,21 @@ export const MONTH_NAMES = [
 /** Accounting period in YYYY-MM format. */
 export type Month = string;
 export const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** Banks supported by the statement-import feature — only Nubank for now. */
+export const BANK_PROVIDERS = [{ id: 'nubank', name: 'Nubank' }] as const;
+export type BankId = (typeof BANK_PROVIDERS)[number]['id'];
+
+export const IMPORT_DOCUMENT_TYPES = ['accountStatement', 'invoice'] as const;
+export type ImportDocumentType = (typeof IMPORT_DOCUMENT_TYPES)[number];
+export const IMPORT_DOCUMENT_TYPE_LABELS: Record<ImportDocumentType, string> = {
+  accountStatement: 'Extrato da conta',
+  invoice: 'Fatura do cartão',
+};
+
+export const IMPORT_FILE_FORMATS = ['csv', 'ofx'] as const;
+export type ImportFileFormat = (typeof IMPORT_FILE_FORMATS)[number];
+
+/** Where a record came from — kept even if the import that created it is later purged. */
+export const RECORD_SOURCES = ['manual', 'import'] as const;
+export type RecordSource = (typeof RECORD_SOURCES)[number];
