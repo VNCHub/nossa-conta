@@ -19,6 +19,7 @@ const emptySummary = (incomeCents: number): UserSummaryCalc => ({
   shareCents: 0,
   fixedCents: 0,
   optionalCents: 0,
+  oneOffCents: 0,
   incomeCents,
   categoryCents: {},
 });
@@ -55,7 +56,8 @@ export function buildStatement(input: {
 
       target.shareCents += amount;
       if (e.expenseType === 'fixed') target.fixedCents += amount;
-      else target.optionalCents += amount;
+      else if (e.expenseType === 'optional') target.optionalCents += amount;
+      else target.oneOffCents += amount;
       target.categoryCents[e.category] =
         (target.categoryCents[e.category] ?? 0) + amount;
 

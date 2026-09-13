@@ -75,7 +75,7 @@ const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
     ownerName ?? '',
     e.description,
     e.category ? categoryOf(e.category).name : '',
-    e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : '',
+    e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : e.expenseType === 'oneOff' ? 'Pontual' : '',
     e.paymentMethod ?? '',
     brl(e.amount),
     e.amount.toFixed(2),
@@ -182,7 +182,7 @@ export default function ExpensesLedger() {
       case 'category':
         return e.category ? categoryOf(e.category).name : '';
       case 'expenseType':
-        return e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : '';
+        return e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : e.expenseType === 'oneOff' ? 'Pontual' : '';
       case 'paymentMethod':
         return e.paymentMethod ?? '';
       case 'amount':
@@ -326,12 +326,13 @@ export default function ExpensesLedger() {
                       <EditableBadge
                         value={e.expenseType}
                         options={[
-                          { value: 'fixed', label: 'Gasto fixo' },
-                          { value: 'optional', label: 'Gasto opcional' },
+                          { value: 'fixed', label: 'Fixo' },
+                          { value: 'optional', label: 'Opcional' },
+                          { value: 'oneOff', label: 'Pontual' },
                         ]}
                         canEdit={canEdit}
                         onSave={(v) => patchField(e, { expenseType: v as ExpenseType | null })}
-                        render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional'} clickable={clickable} />}
+                        render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional' | 'oneOff'} clickable={clickable} />}
                       />
                     </Table.Td>
                     <Table.Td style={midCell}>
@@ -937,8 +938,9 @@ function ExpenseForm({
           <Select
             label="Tipo" placeholder="A definir" clearable
             data={[
-              { value: 'fixed', label: 'Gasto fixo' },
-              { value: 'optional', label: 'Gasto opcional' },
+              { value: 'fixed', label: 'Fixo' },
+              { value: 'optional', label: 'Opcional' },
+              { value: 'oneOff', label: 'Pontual' },
             ]}
             key={form.key('expenseType')} {...form.getInputProps('expenseType')}
           />

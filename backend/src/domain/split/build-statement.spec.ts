@@ -5,7 +5,7 @@ const MONTH = '2026-09';
 const members = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }];
 
 const e = (
-  userId: string, expenseType: 'fixed' | 'optional', category: string,
+  userId: string, expenseType: 'fixed' | 'optional' | 'oneOff', category: string,
   amountCents: number, shared: boolean, participants: string[], ruleId: string | null,
   month = MONTH,
 ): ExpenseCalc => ({
@@ -63,6 +63,16 @@ describe('buildStatement — worked examples', () => {
     expect(r.byUser.u3.optionalCents).toBe(24900);
     expect(r.byUser.u1.shareCents).toBe(0);
     expect(r.transfers).toEqual([]);
+  });
+
+  it('a one-off expense goes to its own bucket, not fixed or optional', () => {
+    const r = buildStatement({
+      members, incomes: [], rules, month: MONTH,
+      expenses: [e('u2', 'oneOff', 'outing', 15000, false, [], null)],
+    });
+    expect(r.byUser.u2.oneOffCents).toBe(15000);
+    expect(r.byUser.u2.fixedCents).toBe(0);
+    expect(r.byUser.u2.optionalCents).toBe(0);
   });
 
   it('only the expenses of the queried month enter the statement', () => {
@@ -131,10 +141,10 @@ describe('buildStatement — invariants over a full month', () => {
     expect(Object.values(r.balanceCents).reduce((s, v) => s + v, 0)).toBe(0);
   });
 
-  it('fixed + optional reconstructs the share, and the categories too', () => {
+  it('fixed + optional + one-off reconstructs the share, and the categories too', () => {
     for (const u of members) {
       const d = r.byUser[u.id];
-      expect(d.fixedCents + d.optionalCents).toBe(d.shareCents);
+      expect(d.fixedCents + d.optionalCents + d.oneOffCents).toBe(d.shareCents);
       const perCategory = Object.values(d.categoryCents).reduce((s, v) => s + v, 0);
       expect(perCategory).toBe(d.shareCents);
     }

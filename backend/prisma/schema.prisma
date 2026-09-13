@@ -15,6 +15,7 @@ enum IncomeType {
 enum ExpenseType {
   FIXED
   OPTIONAL
+  ONE_OFF
 }
 
 enum RuleType {

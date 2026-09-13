@@ -43,6 +43,7 @@ export interface UserSummaryCalc {
   shareCents: number;
   fixedCents: number;
   optionalCents: number;
+  oneOffCents: number;
   incomeCents: number;
   categoryCents: Record<string, number>;
 }
