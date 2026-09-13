@@ -22,7 +22,7 @@ export const categoryOf = (id: string) =>
 export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const EXPENSE_TYPES = ['fixed', 'optional', 'oneOff'] as const;
+export const EXPENSE_TYPES = ['fixed', 'optional'] as const;
 export type ExpenseType = (typeof EXPENSE_TYPES)[number];
 
 export const INCOME_TYPES = ['recurring', 'oneOff'] as const;

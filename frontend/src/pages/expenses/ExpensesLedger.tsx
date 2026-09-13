@@ -75,7 +75,7 @@ const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
     ownerName ?? '',
     e.description,
     e.category ? categoryOf(e.category).name : '',
-    e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : e.expenseType === 'oneOff' ? 'Pontual' : '',
+    e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : '',
     e.paymentMethod ?? '',
     brl(e.amount),
     e.amount.toFixed(2),
@@ -182,7 +182,7 @@ export default function ExpensesLedger() {
       case 'category':
         return e.category ? categoryOf(e.category).name : '';
       case 'expenseType':
-        return e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : e.expenseType === 'oneOff' ? 'Pontual' : '';
+        return e.expenseType === 'fixed' ? 'Fixo' : e.expenseType === 'optional' ? 'Opcional' : '';
       case 'paymentMethod':
         return e.paymentMethod ?? '';
       case 'amount':
@@ -328,11 +328,10 @@ export default function ExpensesLedger() {
                         options={[
                           { value: 'fixed', label: 'Gasto fixo' },
                           { value: 'optional', label: 'Gasto opcional' },
-                          { value: 'oneOff', label: 'Despesa pontual' },
                         ]}
                         canEdit={canEdit}
                         onSave={(v) => patchField(e, { expenseType: v as ExpenseType | null })}
-                        render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional' | 'oneOff'} clickable={clickable} />}
+                        render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional'} clickable={clickable} />}
                       />
                     </Table.Td>
                     <Table.Td style={midCell}>
@@ -940,7 +939,6 @@ function ExpenseForm({
             data={[
               { value: 'fixed', label: 'Gasto fixo' },
               { value: 'optional', label: 'Gasto opcional' },
-              { value: 'oneOff', label: 'Despesa pontual' },
             ]}
             key={form.key('expenseType')} {...form.getInputProps('expenseType')}
           />
