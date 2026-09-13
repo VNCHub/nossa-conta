@@ -11,6 +11,7 @@ import type {
   ExpenseDTO,
   MemberDTO,
   RuleDTO,
+  ImportedFileDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -21,6 +22,7 @@ export const keys = {
   rules: ['rules'] as const,
   expenses: (month: string) => ['expenses', month] as const,
   statement: (month: string) => ['statement', month] as const,
+  imports: ['imports'] as const,
 };
 
 export const useFamily = () =>
@@ -48,6 +50,12 @@ export const useStatement = (month: string) =>
   useQuery({
     queryKey: keys.statement(month),
     queryFn: () => api.get<StatementDTO>(`/relatorios/consolidado?mes=${month}`),
+  });
+
+export const useImports = () =>
+  useQuery({
+    queryKey: keys.imports,
+    queryFn: () => api.get<ImportedFileDTO[]>('/gastos/importacoes'),
   });
 
 /**

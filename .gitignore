@@ -9,3 +9,4 @@ coverage/
 .vite/
 backend/prisma/*.db
 *.tsbuildinfo
+backend/storage/

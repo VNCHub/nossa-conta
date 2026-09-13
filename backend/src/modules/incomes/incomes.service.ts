@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { IncomeType as IncomeTypeDb } from '@prisma/client';
+import { IncomeType as IncomeTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
 import type { IncomeDTO } from '@shared/contracts';
+import type { RecordSource } from '@shared/domain';
 import type { IncomeCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
 import { IncomesRepository } from './incomes.repository';
@@ -14,6 +15,8 @@ type IncomeRow = {
   amount: unknown;
   dayOfMonth: number | null;
   date: Date | null;
+  source: RecordSourceDb;
+  importedFileId: string | null;
 };
 
 @Injectable()
@@ -95,5 +98,7 @@ function toDTO(i: IncomeRow): IncomeDTO {
     amount: toReais(toCents(String(i.amount))),
     dayOfMonth: i.dayOfMonth,
     date: i.date ? i.date.toISOString().slice(0, 10) : null,
+    source: i.source === RecordSourceDb.IMPORT ? 'import' : 'manual',
+    importedFileId: i.importedFileId,
   };
 }

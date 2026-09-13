@@ -9,6 +9,7 @@ import { IncomesModule } from './modules/incomes/incomes.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ImportsModule } from './modules/imports/imports.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     ExpensesModule,
     RulesModule,
     ReportsModule,
+    ImportsModule,
   ],
   controllers: [HealthController],
 })

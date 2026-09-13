@@ -25,6 +25,27 @@ enum RuleType {
   METER
 }
 
+enum BankProvider {
+  NUBANK
+}
+
+enum ImportDocumentType {
+  ACCOUNT_STATEMENT
+  INVOICE
+}
+
+enum ImportFileFormat {
+  CSV
+  OFX
+}
+
+/// Where a record came from — kept even if the ImportedFile it points to is
+/// later purged, so provenance never disappears with the file.
+enum RecordSource {
+  MANUAL
+  IMPORT
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -42,6 +63,7 @@ model User {
   expenseShares    ExpenseShare[]
   ruleWeights      RuleWeight[]
   ruleMeasurements RuleMeasurement[]
+  importedFiles    ImportedFile[]
 
   @@index([familyId])
 }
@@ -55,9 +77,10 @@ model Family {
   createdById String
   createdBy   User   @relation("FamilyCreator", fields: [createdById], references: [id])
 
-  members  User[]      @relation("FamilyMembers")
-  expenses Expense[]
-  rules    SplitRule[]
+  members       User[]         @relation("FamilyMembers")
+  expenses      Expense[]
+  rules         SplitRule[]
+  importedFiles ImportedFile[]
 }
 
 model Income {
@@ -68,12 +91,22 @@ model Income {
   /// filled when type = RECURRING
   dayOfMonth  Int?
   /// filled when type = ONE_OFF
-  date        DateTime?  @db.Date
-  createdAt   DateTime   @default(now())
+  date        DateTime?    @db.Date
+  /// permanent, unlike importedFileId — survives the file being purged
+  source      RecordSource @default(MANUAL)
+  createdAt   DateTime     @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  importedFileId String?
+  importedFile   ImportedFile? @relation(fields: [importedFileId], references: [id], onDelete: SetNull)
+  /// dedup key for imported rows — lets a re-imported, still-incomplete
+  /// statement skip transactions an earlier file already brought in. Null for
+  /// manual entries; Postgres allows any number of nulls in a unique index.
+  importKey      String?
+
+  @@unique([userId, importKey])
   @@index([userId])
 }
 
@@ -87,9 +120,11 @@ model Expense {
   category      String?
   expenseType   ExpenseType?
   description   String      @default("")
-  amount        Decimal?    @db.Decimal(12, 2)
-  shared        Boolean     @default(false)
-  createdAt     DateTime    @default(now())
+  amount        Decimal?     @db.Decimal(12, 2)
+  shared        Boolean      @default(false)
+  /// permanent, unlike importedFileId — survives the file being purged
+  source        RecordSource @default(MANUAL)
+  createdAt     DateTime     @default(now())
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -101,8 +136,14 @@ model Expense {
   ruleId String?
   rule   SplitRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
 
+  importedFileId String?
+  importedFile   ImportedFile? @relation(fields: [importedFileId], references: [id], onDelete: SetNull)
+  /// dedup key for imported rows — see Income.importKey
+  importKey      String?
+
   shares ExpenseShare[]
 
+  @@unique([familyId, importKey])
   @@index([familyId, month])
   @@index([userId, month])
 }
@@ -163,4 +204,43 @@ model RuleMeasurement {
 
   @@id([ruleId, userId, month])
   @@index([ruleId, month])
+}
+
+/// History of a bank statement import — one row per file, created only when
+/// the whole file is processed successfully (see ImportsService).
+model ImportedFile {
+  id           String             @id @default(cuid())
+  bank         BankProvider
+  documentType ImportDocumentType
+  fileFormat   ImportFileFormat
+  originalName String
+  storagePath  String
+  /// sha256 of the raw upload — dedup key, scoped to the family
+  fingerprint  String
+  sizeBytes    Int
+  /// oldest / newest transaction date found in the file (its coverage)
+  periodStart  DateTime  @db.Date
+  periodEnd    DateTime  @db.Date
+  /// transactions in this file that matched an importKey already saved by an
+  /// earlier import — a re-exported, previously-incomplete statement often
+  /// overlaps like this instead of being byte-identical
+  duplicateTransactionsSkipped Int @default(0)
+  /// createdAt + IMPORT_RETENTION_DAYS — read by the (future) cleanup task
+  expiresAt    DateTime
+  /// set once the cleanup task deletes the physical file
+  purgedAt     DateTime?
+  createdAt    DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// denormalized like Expense.familyId: freezes history if the user changes family
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  expenses Expense[]
+  incomes  Income[]
+
+  @@unique([familyId, fingerprint])
+  @@index([familyId, createdAt])
 }

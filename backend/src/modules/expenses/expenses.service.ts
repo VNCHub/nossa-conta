@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { ExpenseType as ExpenseTypeDb } from '@prisma/client';
+import { ExpenseType as ExpenseTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
 import type { ExpenseDTO } from '@shared/contracts';
-import type { CategoryId, PaymentMethod } from '@shared/domain';
+import type { CategoryId, PaymentMethod, RecordSource } from '@shared/domain';
 import type { ExpenseCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
 import { ExpensesRepository, type ExpenseWithShares } from './expenses.repository';
@@ -185,8 +185,13 @@ export function toDTO(e: ExpenseWithShares): ExpenseDTO {
     participants: e.shares.map((s) => s.userId),
     ruleId: e.ruleId,
     complete: isComplete(e),
+    source: recordSourceOf(e.source),
+    importedFileId: e.importedFileId,
   };
 }
+
+const recordSourceOf = (s: RecordSourceDb): RecordSource =>
+  s === RecordSourceDb.IMPORT ? 'import' : 'manual';
 
 /** Only called on rows that already passed {@link isComplete}, so the non-null fields are safe. */
 export function toCalc(e: ExpenseWithShares): ExpenseCalc {
