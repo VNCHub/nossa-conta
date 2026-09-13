@@ -84,6 +84,7 @@ export interface UserSummary {
   share: number;
   fixed: number;
   optional: number;
+  oneOff: number;
   income: number;
   categories: Record<string, number>;
 }

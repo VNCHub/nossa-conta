@@ -18,6 +18,7 @@ import {
   Text,
   TextInput,
   Title,
+  Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -39,6 +40,26 @@ const TYPE_LABEL: Record<RuleType, string> = {
   fixed: 'Percentual fixo',
   meter: 'Medidor mensal',
 };
+
+// Só os tipos de cálculo automático (sem configuração) têm uma fórmula fixa
+// vale a pena explicar — fixed/meter dependem de pesos que a própria família define.
+const RULE_FORMULA: Partial<Record<RuleType, string>> = {
+  equal: 'Cada participante paga a mesma fração: cota = valor do gasto ÷ número de participantes.',
+  income:
+    'O peso de cada pessoa é sua entrada recorrente mensal. cota = (entrada recorrente da pessoa ÷ soma das entradas recorrentes de quem participa) × valor do gasto.',
+  surplus:
+    'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos individuais: livre = entrada recorrente − gastos fixos individuais do mês (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto.',
+};
+
+function InfoIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+}
 
 export default function Family() {
   const [month] = useMonth();
@@ -326,7 +347,19 @@ export default function Family() {
                 <Paper key={r.id} withBorder radius="lg" p="md">
                   <Group justify="space-between" align="flex-start" wrap="wrap" mb="sm">
                     <div>
-                      <Text fw={600} fz="lg">{r.name}</Text>
+                      <Group gap={6} align="center">
+                        <Text fw={600} fz="lg">{r.name}</Text>
+                        {RULE_FORMULA[r.type] && (
+                          <Tooltip label={RULE_FORMULA[r.type]} multiline w={300} withArrow>
+                            <ActionIcon
+                              variant="subtle" color="gray" size="sm"
+                              aria-label={`Como a regra "${r.name}" calcula a cota`}
+                            >
+                              <InfoIcon />
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                      </Group>
                       <Text size="sm" c="dimmed">{r.description}</Text>
                     </div>
                     <Group gap="xs">

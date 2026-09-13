@@ -27,7 +27,7 @@ const DEFAULT_RULES = [
     description: 'Cada um paga na proporção da sua entrada recorrente.',
   },
   {
-    name: 'Proporcional à sobra livre',
+    name: 'Proporcional Livre',
     type: RuleType.SURPLUS,
     description: 'Proporção da renda recorrente menos os gastos fixos individuais.',
   },

@@ -106,13 +106,16 @@ export function CategoryChip({ id, clickable }: { id: string; clickable?: boolea
   );
 }
 
-export function ExpenseTypeChip({ type, clickable }: { type: 'fixed' | 'optional'; clickable?: boolean }) {
+const EXPENSE_TYPE_LABEL = { fixed: 'Fixo', optional: 'Opcional', oneOff: 'Pontual' } as const;
+const EXPENSE_TYPE_COLOR = { fixed: 'petrol', optional: 'mustard', oneOff: 'grape' } as const;
+
+export function ExpenseTypeChip({ type, clickable }: { type: 'fixed' | 'optional' | 'oneOff'; clickable?: boolean }) {
   return (
     <Badge
-      color={type === 'fixed' ? 'petrol' : 'mustard'} variant="filled" radius="sm" tt="none" fw={600} fz="sm"
+      color={EXPENSE_TYPE_COLOR[type]} variant="filled" radius="sm" tt="none" fw={600} fz="sm"
       styles={clickable ? { root: { cursor: 'pointer' } } : undefined}
     >
-      {type === 'fixed' ? 'Fixo' : 'Opcional'}
+      {EXPENSE_TYPE_LABEL[type]}
     </Badge>
   );
 }

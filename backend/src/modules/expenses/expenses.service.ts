@@ -148,10 +148,22 @@ export class ExpensesService {
 const isoToday = () => new Date().toISOString().slice(0, 10);
 
 const expenseTypeOf = (t: ExpenseTypeDb | null) =>
-  t === null ? null : t === ExpenseTypeDb.FIXED ? 'fixed' : 'optional';
+  t === null
+    ? null
+    : t === ExpenseTypeDb.FIXED
+      ? 'fixed'
+      : t === ExpenseTypeDb.OPTIONAL
+        ? 'optional'
+        : 'oneOff';
 
 const toDbExpenseType = (t: string | null | undefined) =>
-  t === 'fixed' ? ExpenseTypeDb.FIXED : t === 'optional' ? ExpenseTypeDb.OPTIONAL : null;
+  t === 'fixed'
+    ? ExpenseTypeDb.FIXED
+    : t === 'optional'
+      ? ExpenseTypeDb.OPTIONAL
+      : t === 'oneOff'
+        ? ExpenseTypeDb.ONE_OFF
+        : null;
 
 /**
  * Whether every field needed to count this expense in a statement is filled

@@ -25,7 +25,7 @@ export default function Expenses() {
         action={
           <Card>
             <Metric
-              label="Total de meus gastos no mês"
+              label="Meus gastos no mês"
               value={myTotal === null ? '—' : brl(myTotal)}
             />
           </Card>

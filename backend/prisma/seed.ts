@@ -67,7 +67,7 @@ async function main() {
 
   const halfAndHalf = await rule('Meio a meio', RuleType.EQUAL, 'Divide igualmente entre quem participa.');
   const byIncome = await rule('Proporcional à renda', RuleType.INCOME, 'Cada um paga na proporção da sua entrada recorrente.');
-  await rule('Proporcional à sobra livre', RuleType.SURPLUS, 'Proporção da renda recorrente menos os gastos fixos individuais.');
+  await rule('Proporcional Livre', RuleType.SURPLUS, 'Proporção da renda recorrente menos os gastos fixos individuais.');
   const housing = await rule('Moradia 60/40', RuleType.FIXED, 'Percentuais combinados uma vez.', {
     weights: [
       { userId: vinicius.id, percent: 60 },

@@ -53,6 +53,7 @@ export class ReportsService {
             share: toReais(u.shareCents),
             fixed: toReais(u.fixedCents),
             optional: toReais(u.optionalCents),
+            oneOff: toReais(u.oneOffCents),
             income: toReais(u.incomeCents),
             categories: Object.fromEntries(
               Object.entries(u.categoryCents).map(([c, v]) => [c, toReais(v)]),

@@ -4,9 +4,6 @@ Controle financeiro para quem divide as contas. Cada pessoa lança o que ganhou 
 gastou; no fim do mês o sistema calcula a cota de cada um conforme a regra de rateio
 escolhida e diz **quem paga quanto para quem**.
 
-- Requisitos de produto: [`docs/requisitos.md`](docs/requisitos.md)
-- Protótipo visual que serviu de especificação: [`docs/prototipo.jsx`](docs/prototipo.jsx)
-
 ## Subir o projeto
 
 Pré-requisitos: Docker com Compose v2+.

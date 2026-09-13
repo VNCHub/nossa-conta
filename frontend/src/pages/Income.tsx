@@ -120,7 +120,11 @@ export default function Income() {
       <PageHeader
         title="Minhas entradas"
         description="Recorrentes valem todo mês. Pontuais entram só no mês da data."
-        action={<Metric label={`Total em ${monthLabel(month)}`} value={brl(total)} />}
+        action={
+          <Card>
+            <Metric label={`Total em ${monthLabel(month)}`} value={brl(total)} />
+          </Card>
+        }
       />
 
       <Card component="form" onSubmit={submit} mb="lg">

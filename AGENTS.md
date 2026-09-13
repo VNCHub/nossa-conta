@@ -9,9 +9,7 @@ este arquivo — mantenha só este.
 que ganhou e o que gastou; no fim do mês o sistema calcula a cota de cada um pela regra
 de rateio da família e diz **quem paga quanto para quem**.
 
-Contexto de produto: [`docs/requisitos.md`](docs/requisitos.md). Protótipo que serviu de
-especificação visual: [`docs/prototipo.jsx`](docs/prototipo.jsx). Visão geral técnica:
-[`README.md`](README.md).
+Visão geral técnica: [`README.md`](README.md).
 
 ## Estrutura
 
@@ -19,7 +17,6 @@ especificação visual: [`docs/prototipo.jsx`](docs/prototipo.jsx). Visão geral
 backend/    NestJS 11 + Prisma 6 + Postgres. API REST.
 frontend/   React 19 + Vite 6 + Mantine 9 + TanStack Query.
 shared/     Tipos e constantes usados pelos dois lados (import via @shared).
-docs/       Requisitos e protótipo.
 ```
 
 ## Convenções que não são óbvias no código

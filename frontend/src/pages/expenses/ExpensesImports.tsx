@@ -51,7 +51,6 @@ export default function ExpensesImports() {
                 <Table.Th><Text fz={16} fw={600}>Período</Text></Table.Th>
                 <Table.Th ta="right"><Text fz={16} fw={600}>Gastos</Text></Table.Th>
                 <Table.Th ta="right"><Text fz={16} fw={600}>Entradas</Text></Table.Th>
-                <Table.Th ta="right"><Text fz={16} fw={600}>Já existiam</Text></Table.Th>
                 <Table.Th><Text fz={16} fw={600}>Importado em</Text></Table.Th>
                 <Table.Th><Text fz={16} fw={600}>Retenção</Text></Table.Th>
               </Table.Tr>
@@ -99,11 +98,6 @@ function ImportRow({ file }: { file: ImportedFileDTO }) {
       <Table.Td><Text size="sm" className="num">{brDate(file.periodStart)} – {brDate(file.periodEnd)}</Text></Table.Td>
       <Table.Td ta="right"><Text size="md" fw={600} className="num">{file.expensesCount}</Text></Table.Td>
       <Table.Td ta="right"><Text size="md" fw={600} className="num">{file.incomesCount}</Text></Table.Td>
-      <Table.Td ta="right">
-        <Text size="md" c="dimmed" className="num">
-          {file.duplicateTransactionsSkipped > 0 ? file.duplicateTransactionsSkipped : '—'}
-        </Text>
-      </Table.Td>
       <Table.Td><Text size="sm">{brDateTime(file.createdAt)}</Text></Table.Td>
       <Table.Td>
         <Text size="sm" c="dimmed">
@@ -260,12 +254,15 @@ const brDateTime = (iso: string) => {
 /** Abstract badge, not the trademarked logo — a colored mark that identifies the bank at a glance. */
 function BankLogo({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       <rect width="24" height="24" rx="6" fill="#820AD1" />
-      <path
-        d="M8 6.5v6.6c0 1.6 1.2 2.9 2.7 2.9h.1c1.1 0 2-.5 2.6-1.4l1.9-2.8v3.7a.9.9 0 0 0 1.7.5V10a2.7 2.7 0 0 0-2.7-2.7h-.1c-1.1 0-2 .5-2.6 1.4l-1.9 2.8V6.5a.9.9 0 1 0-1.7 0Z"
+      <text
+        x="12" y="17" textAnchor="middle"
+        fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif"
         fill="#fff"
-      />
+      >
+        N
+      </text>
     </svg>
   );
 }

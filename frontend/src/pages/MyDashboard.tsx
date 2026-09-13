@@ -21,7 +21,9 @@ export default function MyDashboard() {
 
   const leftOver = d.income - d.share;
   const myBalance = calc.balance[user.id] ?? 0;
-  const optionalShare = d.fixed + d.optional > 0 ? d.optional / (d.fixed + d.optional) : 0;
+  const nonFixedTotal = d.optional + d.oneOff;
+  const nonFixedShare =
+    nonFixedTotal + d.fixed > 0 ? nonFixedTotal / (nonFixedTotal + d.fixed) : 0;
 
   return (
     <>
@@ -48,11 +50,11 @@ export default function MyDashboard() {
       <Grid gap="lg" mb="lg">
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
-            <Title order={3} mb="lg">Fixo contra opcional</Title>
-            <Donut fixed={d.fixed} optional={d.optional} />
+            <Title order={3} mb="lg">Tipo de gasto</Title>
+            <Donut fixed={d.fixed} optional={d.optional} oneOff={d.oneOff} />
             <Text size="sm" c="dimmed" mt="lg">
-              {optionalShare > 0.35
-                ? 'Mais de um terço da sua cota é gasto opcional — é aí que dá pra mexer sem mudar de vida.'
+              {nonFixedShare > 0.35
+                ? 'Mais de um terço da sua cota é gasto opcional ou pontual — é aí que dá pra mexer sem mudar de vida.'
                 : 'Sua base fixa domina o mês. Cortar aqui exige renegociar contrato, não só hábito.'}
             </Text>
           </Card>
