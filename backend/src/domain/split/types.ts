@@ -7,6 +7,13 @@ export interface IncomeCalc {
   amountCents: number;
   /** YYYY-MM-DD — only present on a one-off income */
   date?: string | null;
+  /**
+   * YYYY-MM a recurring income starts counting from (its creation month) — it
+   * must not retroactively appear in months before it was entered. Absent
+   * means no lower bound (a one-off income does not need one: `date` already
+   * pins it to a single month).
+   */
+  since?: string | null;
 }
 
 export interface ExpenseCalc {

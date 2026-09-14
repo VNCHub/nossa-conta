@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { IncomeType as IncomeTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
 import type { IncomeDTO } from '@shared/contracts';
 import type { RecordSource } from '@shared/domain';
+import { monthOf } from '@shared/format';
 import type { IncomeCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
 import { IncomesRepository } from './incomes.repository';
@@ -78,7 +79,13 @@ export class IncomesService {
       type: i.type === IncomeTypeDb.RECURRING ? 'recurring' : 'oneOff',
       amountCents: toCents(String(i.amount)),
       date: i.date ? i.date.toISOString().slice(0, 10) : null,
+      since: i.type === IncomeTypeDb.RECURRING ? monthOf(i.createdAt.toISOString()) : null,
     }));
+  }
+
+  /** Earliest month with any income for the family — recurring counts from its own creation. */
+  earliestMonth(familyId: string): Promise<string | null> {
+    return this.repo.earliestMonth(familyId);
   }
 
   private async requireOwn(familyId: string, userId: string, id: string) {

@@ -9,6 +9,8 @@ import { randomInt } from 'node:crypto';
 import { RuleType } from '@prisma/client';
 import { FamiliesRepository } from './families.repository';
 import { UsersRepository } from '../users/users.repository';
+import { IncomesService } from '../incomes/incomes.service';
+import { ExpensesService } from '../expenses/expenses.service';
 import type { FamilyDTO, MemberDTO } from '@shared/contracts';
 import { currentMonth } from '@shared/format';
 
@@ -38,6 +40,8 @@ export class FamiliesService {
   constructor(
     private readonly families: FamiliesRepository,
     private readonly users: UsersRepository,
+    private readonly incomes: IncomesService,
+    private readonly expenses: ExpensesService,
   ) {}
 
   private randomCode(name: string) {
@@ -157,17 +161,25 @@ export class FamiliesService {
     return family;
   }
 
-  private toDTO(f: {
+  private async toDTO(f: {
     id: string;
     name: string;
     inviteCode: string;
     createdById: string;
-  }): FamilyDTO {
+  }): Promise<FamilyDTO> {
+    const [incomesMonth, expensesMonth] = await Promise.all([
+      this.incomes.earliestMonth(f.id),
+      this.expenses.earliestMonth(f.id),
+    ]);
+    const months = [incomesMonth, expensesMonth].filter((m): m is string => m !== null);
     return {
       id: f.id,
       name: f.name,
       inviteCode: f.inviteCode,
       createdById: f.createdById,
+      // No entries yet means no lower bound — the month nav should not block
+      // someone with an empty family from looking around.
+      earliestMonth: months.length ? months.sort()[0] : null,
     };
   }
 }

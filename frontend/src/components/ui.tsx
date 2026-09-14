@@ -28,16 +28,39 @@ export function Avatar({ user, lg }: { user: Member; lg?: boolean }) {
   );
 }
 
-export function MonthNav({ month, setMonth }: { month: string; setMonth: (m: string) => void }) {
+export function MonthNav({
+  month,
+  setMonth,
+  min,
+  max,
+}: {
+  month: string;
+  setMonth: (m: string) => void;
+  /** Earliest/latest month the account has data for — e.g. account creation and "now". */
+  min?: string;
+  max?: string;
+}) {
   return (
     <Group gap="xs">
-      <ActionIcon variant="default" size="lg" aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}>
+      <ActionIcon
+        variant="default"
+        size="lg"
+        aria-label="Mês anterior"
+        disabled={min !== undefined && month <= min}
+        onClick={() => setMonth(shiftMonth(month, -1))}
+      >
         ←
       </ActionIcon>
       <Text className="num" fw={600} ta="center" tt="capitalize" w={140}>
         {monthLabel(month)}
       </Text>
-      <ActionIcon variant="default" size="lg" aria-label="Próximo mês" onClick={() => setMonth(shiftMonth(month, 1))}>
+      <ActionIcon
+        variant="default"
+        size="lg"
+        aria-label="Próximo mês"
+        disabled={max !== undefined && month >= max}
+        onClick={() => setMonth(shiftMonth(month, 1))}
+      >
         →
       </ActionIcon>
     </Group>

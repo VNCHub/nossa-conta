@@ -20,3 +20,6 @@ export const currentMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
+
+/** "YYYY-MM" from an ISO date/datetime string — e.g. an account's createdAt. */
+export const monthOf = (iso: string) => iso.slice(0, 7);
