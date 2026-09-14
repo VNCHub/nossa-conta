@@ -12,6 +12,8 @@ import type {
   ImportDocumentType,
   ImportFileFormat,
   RecordSource,
+  AppRole,
+  ErrorSource,
 } from './domain';
 
 export interface MemberDTO {
@@ -107,7 +109,55 @@ export interface StatementDTO {
 
 export interface SessionDTO {
   accessToken: string;
-  user: MemberDTO & { familyId: string | null };
+  user: MemberDTO & { familyId: string | null; roles: AppRole[] };
+}
+
+/** Output of GET /administracao/resumo — platform-wide counters for the admin panel. */
+export interface AdminOverviewDTO {
+  totalUsers: number;
+  totalFamilies: number;
+  totalExpenses: number;
+  totalIncomes: number;
+}
+
+/** One row of GET /administracao/usuarios. */
+export interface AdminUserDTO {
+  id: string;
+  name: string;
+  lastLoginAt: string | null;
+}
+
+export interface PaginatedDTO<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** One row of GET /erros — a group of similar errors. Never carries a stack. */
+export interface ErrorIssueDTO {
+  id: string;
+  source: ErrorSource;
+  /** summarized — see the events for the raw message */
+  title: string;
+  fingerprint: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  eventsCount: number;
+}
+
+/** One occurrence of an ErrorIssueDTO — full title and stack. */
+export interface ErrorEventDTO {
+  id: string;
+  title: string;
+  stack: string;
+  occurredAt: string;
+}
+
+/** Output of GET /erros/:id — the issue plus a page of its occurrences. */
+export interface ErrorIssueDetailDTO {
+  issue: ErrorIssueDTO;
+  events: PaginatedDTO<ErrorEventDTO>;
 }
 
 /** One row of the import history — GET /gastos/importacoes. */

@@ -1,9 +1,11 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { AppRole } from '@shared/domain';
 
 export interface AuthenticatedUser {
   id: string;
   email: string;
   familyId: string | null;
+  roles: AppRole[];
 }
 
 /**

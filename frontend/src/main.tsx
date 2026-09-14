@@ -16,8 +16,12 @@ import '@mantine/dropzone/styles.css';
 import './styles/base.css';
 
 import { AuthProvider } from './auth/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { installGlobalErrorReporting } from './observability';
 import { theme } from './theme/theme';
 import App from './App';
+
+installGlobalErrorReporting();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +44,9 @@ createRoot(document.getElementById('root')!).render(
           <QueryClientProvider client={queryClient}>
             <ModalsProvider labels={{ confirm: 'Confirmar', cancel: 'Cancelar' }}>
               <AuthProvider>
-                <App />
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
               </AuthProvider>
             </ModalsProvider>
           </QueryClientProvider>
