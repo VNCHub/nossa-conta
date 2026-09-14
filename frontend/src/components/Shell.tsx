@@ -1,4 +1,4 @@
-import { NavLink as RouterLink, Outlet } from 'react-router-dom';
+import { NavLink as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { AppShell, Burger, Group, NavLink, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useAuth } from '../auth/AuthContext';
@@ -20,11 +20,18 @@ export default function Shell() {
   const [month, setMonth] = useMonth();
   const [opened, { toggle, close }] = useDisclosure(false);
   const isAdmin = user?.roles.includes('admin') ?? false;
+  // The admin panel is platform-wide, not scoped to a month — the selector
+  // that drives every family screen makes no sense there.
+  const isAdminScreen = useLocation().pathname.startsWith('/administracao');
 
   return (
     <AppShell
       layout="alt"
-      header={{ height: 60 }}
+      // Above "sm" the header only ever holds the month selector (the burger
+      // and title are mobile-only) — on the admin screen, which has neither,
+      // a 60px bar there would just be an empty stripe. The burger still
+      // needs its 60px on mobile to open the nav.
+      header={{ height: isAdminScreen ? { base: 60, sm: 0 } : 60 }}
       navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding="lg"
     >
@@ -34,7 +41,7 @@ export default function Shell() {
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
             <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
           </Group>
-          <MonthNav month={month} setMonth={setMonth} />
+          {!isAdminScreen && <MonthNav month={month} setMonth={setMonth} />}
         </Group>
       </AppShell.Header>
 
