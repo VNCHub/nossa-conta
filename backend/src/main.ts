@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { ErrorLoggingFilter } from './common/filters/error-logging.filter';
+import { ErrorsService } from './modules/errors/errors.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,7 +29,16 @@ async function bootstrap() {
   // Authenticated by default: a new route is born protected and only leaves
   // that state with an explicit @Public().
   app.useGlobalGuards(new JwtAuthGuard(app.get(Reflector)));
-  app.useGlobalFilters(new PrismaExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
+
+  // Order matters: NestJS hands an exception to the first filter whose
+  // @Catch() matches, so the Prisma-specific filter must come before the
+  // catch-all or it would never see a Prisma error.
+  const httpAdapter = app.get(HttpAdapterHost).httpAdapter;
+  const errors = app.get(ErrorsService);
+  app.useGlobalFilters(
+    new PrismaExceptionFilter(httpAdapter, errors),
+    new ErrorLoggingFilter(httpAdapter, errors),
+  );
 
   await app.listen(Number(process.env.PORT ?? 3000), '0.0.0.0');
 }

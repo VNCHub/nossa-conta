@@ -75,3 +75,7 @@ export type RecordSource = (typeof RECORD_SOURCES)[number];
 /** Platform-wide roles — not scoped to a family. Every user has "default"; only "admin" gates anything today. */
 export const APP_ROLES = ['default', 'admin'] as const;
 export type AppRole = (typeof APP_ROLES)[number];
+
+/** Where an observed error came from — the frontend app or the backend API. */
+export const ERROR_SOURCES = ['frontend', 'backend'] as const;
+export type ErrorSource = (typeof ERROR_SOURCES)[number];

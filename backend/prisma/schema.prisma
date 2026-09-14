@@ -99,6 +99,40 @@ model UserRole {
   @@index([roleId])
 }
 
+enum ErrorSource {
+  FRONTEND
+  BACKEND
+}
+
+/// One row per group of similar errors — what the observability list shows.
+/// Never holds a stack trace; that only lives on ErrorEvent.
+model ErrorIssue {
+  id          String      @id @default(cuid())
+  source      ErrorSource
+  fingerprint String      @unique
+  title       String
+  firstSeenAt DateTime    @default(now())
+  lastSeenAt  DateTime    @default(now())
+  eventsCount Int         @default(0)
+
+  events ErrorEvent[]
+
+  @@index([source, lastSeenAt])
+}
+
+/// One row per occurrence of an ErrorIssue — the raw title/stack the issues list never shows.
+model ErrorEvent {
+  id         String   @id @default(cuid())
+  title      String
+  stack      String   @db.Text
+  occurredAt DateTime @default(now())
+
+  issueId String
+  issue   ErrorIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([issueId, occurredAt])
+}
+
 model Family {
   id         String   @id @default(cuid())
   name       String

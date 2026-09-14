@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Card, Group, Pagination, SimpleGrid, Table, Title } from '@mantine/core';
+import { Badge, Card, Group, Pagination, SimpleGrid, Table, Title } from '@mantine/core';
 import { useAuth } from '../auth/AuthContext';
-import { useAdminOverview, useAdminUsers } from '../api/hooks';
+import { useAdminOverview, useAdminUsers, useErrorIssues } from '../api/hooks';
 import { PageHeader, Metric, Loading, Empty } from '../components/ui';
+import { ErrorIssueModal } from '../components/ErrorIssueModal';
 
 const PAGE_SIZE = 20;
 
@@ -12,6 +13,10 @@ export default function AdminPanel() {
   const [page, setPage] = useState(1);
   const overview = useAdminOverview();
   const users = useAdminUsers(page, PAGE_SIZE);
+
+  const [issuesPage, setIssuesPage] = useState(1);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const issues = useErrorIssues(issuesPage, PAGE_SIZE);
 
   // Backend already refuses non-admins with 403; this just avoids flashing the
   // panel for someone who reached the URL directly.
@@ -72,8 +77,56 @@ export default function AdminPanel() {
 
       <Card>
         <Title order={3} mb="sm">Observabilidade</Title>
-        <Empty>Em breve — logs de erro do backend e do frontend.</Empty>
+        {!issues.data ? (
+          issues.error ? <Empty>{issues.error.message}</Empty> : <Loading />
+        ) : issues.data.items.length === 0 ? (
+          <Empty>Nenhum erro registrado.</Empty>
+        ) : (
+          <>
+            <Table verticalSpacing="sm" highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Origem</Table.Th>
+                  <Table.Th>Erro</Table.Th>
+                  <Table.Th>Ocorrências</Table.Th>
+                  <Table.Th>Última vez</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {issues.data.items.map((i) => (
+                  <Table.Tr
+                    key={i.id}
+                    onClick={() => setSelectedIssueId(i.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <Table.Td>
+                      <Badge color={i.source === 'backend' ? 'grape' : 'petrol'} variant="light" tt="none">
+                        {i.source === 'backend' ? 'Backend' : 'Frontend'}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td>{i.title}</Table.Td>
+                    <Table.Td>{i.eventsCount}</Table.Td>
+                    <Table.Td>{new Date(i.lastSeenAt).toLocaleString('pt-BR')}</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+            {issues.data.total > PAGE_SIZE && (
+              <Group justify="flex-end" mt="md">
+                <Pagination
+                  value={issuesPage}
+                  onChange={setIssuesPage}
+                  total={Math.ceil(issues.data.total / PAGE_SIZE)}
+                />
+              </Group>
+            )}
+          </>
+        )}
       </Card>
+
+      {selectedIssueId && (
+        <ErrorIssueModal issueId={selectedIssueId} onClose={() => setSelectedIssueId(null)} />
+      )}
     </>
   );
 }

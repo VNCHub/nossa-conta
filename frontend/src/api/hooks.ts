@@ -15,6 +15,8 @@ import type {
   AdminOverviewDTO,
   AdminUserDTO,
   PaginatedDTO,
+  ErrorIssueDTO,
+  ErrorIssueDetailDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -28,6 +30,8 @@ export const keys = {
   imports: ['imports'] as const,
   adminOverview: ['admin', 'overview'] as const,
   adminUsers: (page: number) => ['admin', 'users', page] as const,
+  errorIssues: (page: number) => ['errors', 'issues', page] as const,
+  errorIssueDetail: (id: string, page: number) => ['errors', 'issue', id, page] as const,
 };
 
 export const useFamily = () =>
@@ -74,6 +78,19 @@ export const useAdminUsers = (page: number, pageSize = 20) =>
     queryKey: keys.adminUsers(page),
     queryFn: () =>
       api.get<PaginatedDTO<AdminUserDTO>>(`/administracao/usuarios?page=${page}&pageSize=${pageSize}`),
+  });
+
+export const useErrorIssues = (page: number, pageSize = 20) =>
+  useQuery({
+    queryKey: keys.errorIssues(page),
+    queryFn: () => api.get<PaginatedDTO<ErrorIssueDTO>>(`/erros?page=${page}&pageSize=${pageSize}`),
+  });
+
+export const useErrorIssueDetail = (issueId: string | null, page: number, pageSize = 20) =>
+  useQuery({
+    queryKey: keys.errorIssueDetail(issueId ?? '', page),
+    queryFn: () => api.get<ErrorIssueDetailDTO>(`/erros/${issueId}?page=${page}&pageSize=${pageSize}`),
+    enabled: !!issueId,
   });
 
 /**
