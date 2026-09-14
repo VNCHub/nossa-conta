@@ -10,6 +10,8 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ImportsModule } from './modules/imports/imports.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { ImportsModule } from './modules/imports/imports.module';
     RulesModule,
     ReportsModule,
     ImportsModule,
+    RolesModule,
+    AdminModule,
   ],
   controllers: [HealthController],
 })

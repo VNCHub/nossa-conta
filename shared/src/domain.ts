@@ -71,3 +71,7 @@ export type ImportFileFormat = (typeof IMPORT_FILE_FORMATS)[number];
 /** Where a record came from — kept even if the import that created it is later purged. */
 export const RECORD_SOURCES = ['manual', 'import'] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
+
+/** Platform-wide roles — not scoped to a family. Every user has "default"; only "admin" gates anything today. */
+export const APP_ROLES = ['default', 'admin'] as const;
+export type AppRole = (typeof APP_ROLES)[number];

@@ -1,9 +1,9 @@
 /**
  * Fills the database with the prototype's demo data (docs/prototipo.jsx), so the
  * family dashboard reproduces exactly the September/2026 numbers.
- * Password for everyone: 123456.
+ * Password for everyone, including the admin login below: 123456.
  */
-import { PrismaClient, IncomeType, ExpenseType, RuleType } from '@prisma/client';
+import { PrismaClient, IncomeType, ExpenseType, RuleType, RoleName } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
@@ -41,6 +41,44 @@ async function main() {
       createdById: vinicius.id,
       members: { connect: [{ id: vinicius.id }, { id: camila.id }, { id: rafael.id }] },
     },
+  });
+
+  // Roles survive a reseed (only users/families are wiped above), but upsert
+  // them anyway so a fresh database — no migration run yet — still works.
+  const [defaultRole, adminRole] = await Promise.all([
+    prisma.role.upsert({
+      where: { name: RoleName.DEFAULT },
+      update: {},
+      create: { name: RoleName.DEFAULT },
+    }),
+    prisma.role.upsert({
+      where: { name: RoleName.ADMIN },
+      update: {},
+      create: { name: RoleName.ADMIN },
+    }),
+  ]);
+  await prisma.userRole.createMany({
+    data: [vinicius, camila, rafael].map((u) => ({ userId: u.id, roleId: defaultRole.id })),
+  });
+
+  // Platform admin, kept in their own family so "Painel Administrativo" shows
+  // up in the sidebar without touching the demo family's numbers above.
+  const admin = await prisma.user.create({
+    data: { name: 'Vinicius Carrocine', email: 'viniciuscarrocine@gmail.com', passwordHash, color: '#3D6A8F' },
+  });
+  await prisma.family.create({
+    data: {
+      name: 'Administração',
+      inviteCode: 'ADMIN-0001',
+      createdById: admin.id,
+      members: { connect: { id: admin.id } },
+    },
+  });
+  await prisma.userRole.createMany({
+    data: [
+      { userId: admin.id, roleId: defaultRole.id },
+      { userId: admin.id, roleId: adminRole.id },
+    ],
   });
 
   const rule = async (
@@ -150,6 +188,7 @@ async function main() {
   const total = await prisma.expense.count();
   console.log(`Seed pronto: família "${family.name}" (${family.inviteCode}), 3 membros, ${total} gastos em ${MONTH}.`);
   console.log('Entre com teste1@email.com / 123456');
+  console.log('Painel Administrativo: viniciuscarrocine@gmail.com / 123456');
 }
 
 main()

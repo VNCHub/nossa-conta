@@ -12,6 +12,9 @@ import type {
   MemberDTO,
   RuleDTO,
   ImportedFileDTO,
+  AdminOverviewDTO,
+  AdminUserDTO,
+  PaginatedDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -23,6 +26,8 @@ export const keys = {
   expenses: (month: string) => ['expenses', month] as const,
   statement: (month: string) => ['statement', month] as const,
   imports: ['imports'] as const,
+  adminOverview: ['admin', 'overview'] as const,
+  adminUsers: (page: number) => ['admin', 'users', page] as const,
 };
 
 export const useFamily = () =>
@@ -56,6 +61,19 @@ export const useImports = () =>
   useQuery({
     queryKey: keys.imports,
     queryFn: () => api.get<ImportedFileDTO[]>('/gastos/importacoes'),
+  });
+
+export const useAdminOverview = () =>
+  useQuery({
+    queryKey: keys.adminOverview,
+    queryFn: () => api.get<AdminOverviewDTO>('/administracao/resumo'),
+  });
+
+export const useAdminUsers = (page: number, pageSize = 20) =>
+  useQuery({
+    queryKey: keys.adminUsers(page),
+    queryFn: () =>
+      api.get<PaginatedDTO<AdminUserDTO>>(`/administracao/usuarios?page=${page}&pageSize=${pageSize}`),
   });
 
 /**

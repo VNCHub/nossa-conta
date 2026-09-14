@@ -18,6 +18,7 @@ const MyDashboard = lazy(() => import('./pages/MyDashboard'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Income = lazy(() => import('./pages/Income'));
 const Family = lazy(() => import('./pages/Family'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 
 const Spinner = () => (
   <Center py="xl">
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="gastos" element={<Suspense fallback={<Spinner />}><Expenses /></Suspense>} />
         <Route path="entradas" element={<Suspense fallback={<Spinner />}><Income /></Suspense>} />
         <Route path="familia" element={<Suspense fallback={<Spinner />}><Family /></Suspense>} />
+        <Route path="administracao" element={<Suspense fallback={<Spinner />}><AdminPanel /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

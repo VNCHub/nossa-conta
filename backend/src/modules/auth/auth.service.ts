@@ -10,6 +10,7 @@ import { MEMBER_COLORS } from '@shared/domain';
 import type { SessionDTO } from '@shared/contracts';
 import { UsersRepository } from '../users/users.repository';
 import { FamiliesService } from '../families/families.service';
+import { RolesRepository } from '../roles/roles.repository';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import type { JwtPayload } from './jwt.strategy';
 
@@ -36,6 +37,7 @@ export class AuthService {
   constructor(
     private readonly users: UsersRepository,
     private readonly families: FamiliesService,
+    private readonly roles: RolesRepository,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -56,6 +58,7 @@ export class AuthService {
       passwordHash: await argon2.hash(dto.password),
       color: MEMBER_COLORS[Math.floor(Math.random() * MEMBER_COLORS.length)],
     });
+    await this.roles.assignDefault(user.id);
 
     // The family is joined after the user exists: both operations need the id.
     if (dto.inviteCode) {
@@ -82,6 +85,7 @@ export class AuthService {
     if (!user || !matches) {
       throw new UnauthorizedException('E-mail ou senha não conferem.');
     }
+    await this.users.touchLogin(user.id);
     return this.issueSession(user.id, dto.rememberMe ?? false);
   }
 
@@ -109,6 +113,7 @@ export class AuthService {
       email: user.email,
       color: user.color,
       familyId: user.familyId,
+      roles: await this.roles.namesFor(user.id),
     };
   }
 
@@ -118,6 +123,7 @@ export class AuthService {
   ): Promise<SessionDTO & { refreshToken: string; remember: boolean }> {
     const user = await this.users.findById(userId);
     if (!user) throw new UnauthorizedException();
+    const roles = await this.roles.namesFor(user.id);
 
     const payload: JwtPayload = { sub: user.id, email: user.email };
     const refreshPayload: JwtPayload = { ...payload, remember };
@@ -142,6 +148,7 @@ export class AuthService {
         email: user.email,
         color: user.color,
         familyId: user.familyId,
+        roles,
       },
     };
   }

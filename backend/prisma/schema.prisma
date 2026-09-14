@@ -47,13 +47,19 @@ enum RecordSource {
   IMPORT
 }
 
+enum RoleName {
+  DEFAULT
+  ADMIN
+}
+
 model User {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String    @unique
   passwordHash String
   color        String
-  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
 
   familyId String?
   family   Family? @relation("FamilyMembers", fields: [familyId], references: [id], onDelete: SetNull)
@@ -65,8 +71,32 @@ model User {
   ruleWeights      RuleWeight[]
   ruleMeasurements RuleMeasurement[]
   importedFiles    ImportedFile[]
+  roles            UserRole[]
 
   @@index([familyId])
+}
+
+/// Platform-wide roles — not scoped to a family. Today only "admin" gates
+/// anything (the administrative panel); every other user has just "default".
+model Role {
+  id        String   @id @default(cuid())
+  name      RoleName @unique
+  createdAt DateTime @default(now())
+
+  userRoles UserRole[]
+}
+
+model UserRole {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([roleId])
 }
 
 model Family {

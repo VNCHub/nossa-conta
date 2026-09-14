@@ -34,4 +34,11 @@ export class UsersRepository {
   setFamily(userId: string, familyId: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { familyId } });
   }
+
+  touchLogin(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+  }
 }

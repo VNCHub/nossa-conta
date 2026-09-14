@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersRepository } from '../users/users.repository';
+import { RolesRepository } from '../roles/roles.repository';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 
 export interface JwtPayload {
@@ -17,6 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     config: ConfigService,
     private readonly users: UsersRepository,
+    private readonly roles: RolesRepository,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -26,13 +28,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   /**
-   * The family comes from the database on every request, not from the token: if
-   * someone leaves the family, access drops immediately, without waiting for the
-   * token to expire.
+   * The family and roles come from the database on every request, not from the
+   * token: if someone leaves the family or loses a role, access drops
+   * immediately, without waiting for the token to expire.
    */
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     const user = await this.users.findById(payload.sub);
     if (!user) throw new UnauthorizedException();
-    return { id: user.id, email: user.email, familyId: user.familyId };
+    const roles = await this.roles.namesFor(user.id);
+    return { id: user.id, email: user.email, familyId: user.familyId, roles };
   }
 }

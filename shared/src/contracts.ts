@@ -12,6 +12,7 @@ import type {
   ImportDocumentType,
   ImportFileFormat,
   RecordSource,
+  AppRole,
 } from './domain';
 
 export interface MemberDTO {
@@ -107,7 +108,29 @@ export interface StatementDTO {
 
 export interface SessionDTO {
   accessToken: string;
-  user: MemberDTO & { familyId: string | null };
+  user: MemberDTO & { familyId: string | null; roles: AppRole[] };
+}
+
+/** Output of GET /administracao/resumo — platform-wide counters for the admin panel. */
+export interface AdminOverviewDTO {
+  totalUsers: number;
+  totalFamilies: number;
+  totalExpenses: number;
+  totalIncomes: number;
+}
+
+/** One row of GET /administracao/usuarios. */
+export interface AdminUserDTO {
+  id: string;
+  name: string;
+  lastLoginAt: string | null;
+}
+
+export interface PaginatedDTO<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /** One row of the import history — GET /gastos/importacoes. */
