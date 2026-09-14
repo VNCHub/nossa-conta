@@ -20,6 +20,18 @@ describe('MonthNav', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Próximo mês' }));
     expect(setMonth).toHaveBeenLastCalledWith('2026-02');
   });
+
+  it('disables "próximo mês" once at the max month', () => {
+    renderWithProviders(<MonthNav month="2026-09" setMonth={() => {}} max="2026-09" />);
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeEnabled();
+  });
+
+  it('disables "mês anterior" once at the min month', () => {
+    renderWithProviders(<MonthNav month="2026-01" setMonth={() => {}} min="2026-01" />);
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeEnabled();
+  });
 });
 
 describe('Categories', () => {

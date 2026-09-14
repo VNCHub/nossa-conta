@@ -47,4 +47,15 @@ describe('useMonth', () => {
     await userEvent.click(screen.getByRole('button', { name: 'mudar' }));
     expect(screen.getByTestId('month')).toHaveTextContent('2025-01');
   });
+
+  it('clamps ?mes= to the current month when it is in the future', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 1));
+    try {
+      renderWithProviders(<Probe />, { route: '/gastos?mes=2099-01' });
+      expect(screen.getByTestId('month')).toHaveTextContent('2026-07');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

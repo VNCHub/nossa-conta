@@ -28,6 +28,8 @@ export interface FamilyDTO {
   name: string;
   inviteCode: string;
   createdById: string;
+  /** YYYY-MM of the family's earliest income/expense, or null with no data yet. */
+  earliestMonth: string | null;
 }
 
 export interface IncomeDTO {

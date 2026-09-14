@@ -104,6 +104,10 @@ export class ExpensesService {
     };
   }
 
+  earliestMonth(familyId: string): Promise<string | null> {
+    return this.repo.earliestMonth(familyId);
+  }
+
   /**
    * Participants must belong to this family and a chosen rule must belong to
    * this family — without that, someone could push a share onto an outside

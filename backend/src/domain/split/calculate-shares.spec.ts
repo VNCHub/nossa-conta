@@ -42,7 +42,18 @@ describe('incomes', () => {
   });
 
   it('recurringIncome ignores one-offs', () => {
-    expect(recurringIncome(incomes, 'u1')).toBe(620000);
+    expect(recurringIncome(incomes, 'u1', MONTH)).toBe(620000);
+  });
+
+  it('a recurring income does not count before its own "since" month', () => {
+    const sinceOctober: IncomeCalc[] = [
+      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-10' },
+    ];
+    expect(incomeForMonth(sinceOctober, 'u1', '2026-09')).toBe(0);
+    expect(incomeForMonth(sinceOctober, 'u1', '2026-10')).toBe(500000);
+    expect(incomeForMonth(sinceOctober, 'u1', '2026-11')).toBe(500000);
+    expect(recurringIncome(sinceOctober, 'u1', '2026-09')).toBe(0);
+    expect(recurringIncome(sinceOctober, 'u1', '2026-10')).toBe(500000);
   });
 });
 

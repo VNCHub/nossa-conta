@@ -1,6 +1,7 @@
 import { NavLink as RouterLink, Outlet, useLocation } from 'react-router-dom';
 import { AppShell, Burger, Group, NavLink, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { currentMonth } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useFamily } from '../api/hooks';
 import { Avatar, MonthNav } from './ui';
@@ -41,7 +42,14 @@ export default function Shell() {
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
             <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
           </Group>
-          {!isAdminScreen && <MonthNav month={month} setMonth={setMonth} />}
+          {!isAdminScreen && (
+            <MonthNav
+              month={month}
+              setMonth={setMonth}
+              min={family?.earliestMonth ?? undefined}
+              max={currentMonth()}
+            />
+          )}
         </Group>
       </AppShell.Header>
 

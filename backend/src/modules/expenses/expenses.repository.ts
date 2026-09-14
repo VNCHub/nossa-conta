@@ -61,4 +61,12 @@ export class ExpensesRepository {
   remove(id: string) {
     return this.prisma.expense.delete({ where: { id } });
   }
+
+  async earliestMonth(familyId: string): Promise<string | null> {
+    const { _min } = await this.prisma.expense.aggregate({
+      where: { familyId },
+      _min: { month: true },
+    });
+    return _min.month;
+  }
 }

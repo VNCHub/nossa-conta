@@ -6,7 +6,10 @@
  */
 import type { SplitContext, IncomeCalc, ExpenseCalc, RuleCalc } from './types';
 
-/** Recurring counts every month; one-off only in the month of its date. */
+/**
+ * Recurring counts every month from its `since` month onward (it cannot have
+ * applied to a month before it existed); one-off only in the month of its date.
+ */
 export function incomeForMonth(
   incomes: IncomeCalc[],
   userId: string,
@@ -14,13 +17,22 @@ export function incomeForMonth(
 ): number {
   return incomes
     .filter((i) => i.userId === userId)
-    .filter((i) => i.type === 'recurring' || (i.date ?? '').slice(0, 7) === month)
+    .filter(
+      (i) =>
+        (i.type === 'recurring' && (!i.since || i.since <= month)) ||
+        (i.date ?? '').slice(0, 7) === month,
+    )
     .reduce((s, i) => s + i.amountCents, 0);
 }
 
-export function recurringIncome(incomes: IncomeCalc[], userId: string): number {
+/** Recurring income already in effect for `month` — see {@link incomeForMonth}. */
+export function recurringIncome(
+  incomes: IncomeCalc[],
+  userId: string,
+  month: string,
+): number {
   return incomes
-    .filter((i) => i.userId === userId && i.type === 'recurring')
+    .filter((i) => i.userId === userId && i.type === 'recurring' && (!i.since || i.since <= month))
     .reduce((s, i) => s + i.amountCents, 0);
 }
 
@@ -69,14 +81,14 @@ export function calculateShares(
       break;
     case 'income':
       weights = Object.fromEntries(
-        parts.map((p) => [p, recurringIncome(incomes, p)]),
+        parts.map((p) => [p, recurringIncome(incomes, p, month)]),
       );
       break;
     case 'surplus':
       weights = Object.fromEntries(
         parts.map((p) => [
           p,
-          Math.max(0, recurringIncome(incomes, p) - individualFixedExpenses(expenses, p, month)),
+          Math.max(0, recurringIncome(incomes, p, month) - individualFixedExpenses(expenses, p, month)),
         ]),
       );
       break;
