@@ -8,7 +8,7 @@ import type {
   IncomeType,
   ExpenseType,
   RuleType,
-  BankId,
+  ImportSourceId,
   ImportDocumentType,
   ImportFileFormat,
   RecordSource,
@@ -165,7 +165,7 @@ export interface ErrorIssueDetailDTO {
 /** One row of the import history — GET /gastos/importacoes. */
 export interface ImportedFileDTO {
   id: string;
-  bank: BankId;
+  bank: ImportSourceId;
   documentType: ImportDocumentType;
   fileFormat: ImportFileFormat;
   originalName: string;
@@ -190,4 +190,26 @@ export interface ImportResultDTO {
   /** user-facing reason, present when status = 'error' */
   message?: string;
   file?: ImportedFileDTO;
+}
+
+/**
+ * One gasto inside an ExpensesExportDTO — only what's portable across
+ * families/environments (no id, shared, participants or ruleId: an id is
+ * only stable for one direct hop between environments, so re-import dedup
+ * is derived from this content instead, not carried as a field).
+ */
+export interface ExportedExpenseDTO {
+  date: string;
+  description: string;
+  amount: number;
+  category: CategoryId | null;
+  expenseType: ExpenseType | null;
+  paymentMethod: PaymentMethod | null;
+}
+
+/** Output of GET /gastos/exportar — the file "Exportar dados" downloads and "Interno" re-imports. */
+export interface ExpensesExportDTO {
+  version: 1;
+  exportedAt: string;
+  expenses: ExportedExpenseDTO[];
 }

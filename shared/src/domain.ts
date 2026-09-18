@@ -58,14 +58,19 @@ export const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 export const BANK_PROVIDERS = [{ id: 'nubank', name: 'Nubank' }] as const;
 export type BankId = (typeof BANK_PROVIDERS)[number]['id'];
 
-export const IMPORT_DOCUMENT_TYPES = ['accountStatement', 'invoice'] as const;
+/** Pseudo-bank for a file produced by this app's own "Exportar dados" — not a real bank. */
+export const INTERNAL_SOURCE_ID = 'internal' as const;
+export type ImportSourceId = BankId | typeof INTERNAL_SOURCE_ID;
+
+export const IMPORT_DOCUMENT_TYPES = ['accountStatement', 'invoice', 'internalExport'] as const;
 export type ImportDocumentType = (typeof IMPORT_DOCUMENT_TYPES)[number];
 export const IMPORT_DOCUMENT_TYPE_LABELS: Record<ImportDocumentType, string> = {
   accountStatement: 'Extrato da conta',
   invoice: 'Fatura do cartão',
+  internalExport: 'Exportação interna',
 };
 
-export const IMPORT_FILE_FORMATS = ['csv', 'ofx'] as const;
+export const IMPORT_FILE_FORMATS = ['csv', 'ofx', 'json'] as const;
 export type ImportFileFormat = (typeof IMPORT_FILE_FORMATS)[number];
 
 /** Where a record came from — kept even if the import that created it is later purged. */
