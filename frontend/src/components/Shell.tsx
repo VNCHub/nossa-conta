@@ -111,9 +111,14 @@ export default function Shell() {
             {user && <Avatar user={user} />}
             <Text c="#fff" size="md">{user?.name}</Text>
           </Group>
-          <UnstyledButton onClick={() => void signOut()}>
-            <Text c="#B9CCC5" size="sm" td="underline">Sair da conta</Text>
-          </UnstyledButton>
+          <Stack gap={4}>
+            <UnstyledButton component={RouterLink} to="/perfil" onClick={close}>
+              <Text c="#B9CCC5" size="sm" td="underline">Meu perfil</Text>
+            </UnstyledButton>
+            <UnstyledButton onClick={() => void signOut()}>
+              <Text c="#B9CCC5" size="sm" td="underline">Sair da conta</Text>
+            </UnstyledButton>
+          </Stack>
         </AppShell.Section>
       </AppShell.Navbar>
 

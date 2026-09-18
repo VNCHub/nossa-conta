@@ -5,6 +5,8 @@ import { useAuth } from './auth/AuthContext';
 import Shell from './components/Shell';
 import Login from './pages/Login';
 import NoFamily from './pages/NoFamily';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 /**
  * Screens loaded on demand.
@@ -19,6 +21,7 @@ const Expenses = lazy(() => import('./pages/Expenses'));
 const Income = lazy(() => import('./pages/Income'));
 const Family = lazy(() => import('./pages/Family'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 const Spinner = () => (
   <Center py="xl">
@@ -39,7 +42,15 @@ export default function App() {
     );
   }
 
-  if (!user) return <Login />;
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/esqueci-senha" element={<ForgotPassword />} />
+        <Route path="/redefinir-senha" element={<ResetPassword />} />
+        <Route path="*" element={<Login />} />
+      </Routes>
+    );
+  }
   if (!user.familyId) return <NoFamily />;
 
   return (
@@ -54,6 +65,7 @@ export default function App() {
         <Route path="gastos" element={<Suspense fallback={<Spinner />}><Expenses /></Suspense>} />
         <Route path="entradas" element={<Suspense fallback={<Spinner />}><Income /></Suspense>} />
         <Route path="familia" element={<Suspense fallback={<Spinner />}><Family /></Suspense>} />
+        <Route path="perfil" element={<Suspense fallback={<Spinner />}><Profile /></Suspense>} />
         <Route path="administracao" element={<Suspense fallback={<Spinner />}><AdminPanel /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

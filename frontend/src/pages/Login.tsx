@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import {
   Alert,
+  Anchor,
   Box,
   Button,
   Card,
   Center,
   Checkbox,
   Grid,
+  Group,
   PasswordInput,
   SegmentedControl,
   Stack,
@@ -14,6 +16,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import logo from '../assets/login-logo.webp';
 import loginLeft from '../assets/login-left.webp';
@@ -162,11 +165,16 @@ export default function Login() {
               />
 
               {mode === 'signin' && (
-                <Checkbox
-                  label="Lembre de mim"
-                  key={form.key('rememberMe')}
-                  {...form.getInputProps('rememberMe', { type: 'checkbox' })}
-                />
+                <Group justify="space-between">
+                  <Checkbox
+                    label="Lembre de mim"
+                    key={form.key('rememberMe')}
+                    {...form.getInputProps('rememberMe', { type: 'checkbox' })}
+                  />
+                  <Anchor component={Link} to="/esqueci-senha" size="sm">
+                    Esqueci minha senha
+                  </Anchor>
+                </Group>
               )}
 
               {mode === 'signup' && (

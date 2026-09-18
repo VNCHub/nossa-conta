@@ -4,13 +4,20 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import {
   CurrentUser,
@@ -61,6 +68,29 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.auth.me(user.id);
+  }
+
+  @Public()
+  @Post('esqueci-senha')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.auth.requestPasswordReset(dto.email);
+    // Same message whether or not the e-mail has an account.
+    return { message: 'Se esse e-mail tiver uma conta, o link pra redefinir a senha já foi enviado.' };
+  }
+
+  @Public()
+  @Post('redefinir-senha')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.auth.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Senha redefinida. Você já pode entrar.' };
+  }
+
+  @Patch('perfil')
+  @HttpCode(HttpStatus.OK)
+  updateProfile(@Body() dto: UpdateProfileDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.auth.updateProfile(user.id, dto);
   }
 
   /**
