@@ -1,3 +1,4 @@
+import { setDefaultResultOrder } from 'node:dns';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
@@ -7,6 +8,12 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { ErrorLoggingFilter } from './common/filters/error-logging.filter';
 import { ErrorsService } from './modules/errors/errors.service';
+
+// Render's containers have no IPv6 route; Node's default DNS order can still
+// hand back an AAAA record, which fails outbound connections (e.g. Gmail
+// SMTP) with ENETUNREACH. Preferring IPv4 avoids that everywhere, not just
+// for mail.
+setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

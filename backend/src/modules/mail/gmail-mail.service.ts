@@ -28,9 +28,12 @@ export class GmailMailService implements MailSender, OnModuleInit {
     this.transport = createTransport({
       service: 'gmail',
       auth: { user, pass },
-      // Some hosts block or silently drop outbound SMTP — without these, a
-      // blocked connection hangs forever instead of failing, and the request
-      // that awaits it never responds.
+      // Defense in depth: some hosts block or silently drop outbound SMTP
+      // entirely — without these, a blocked connection hangs forever instead
+      // of failing, and the request that awaits it never responds. (The
+      // ENETUNREACH-to-IPv6 case, seen on Render, is fixed process-wide in
+      // main.ts with dns.setDefaultResultOrder('ipv4first') — nodemailer has
+      // no per-transport option for that.)
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
       socketTimeout: 10_000,
