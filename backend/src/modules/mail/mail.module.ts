@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MAIL_SENDER } from './mail-sender.interface';
-import { GmailMailService } from './gmail-mail.service';
+import { SendgridMailService } from './sendgrid-mail.service';
 
 /**
- * Only line to touch when switching provider (e.g. to SendGrid once a domain
- * is verified): change useClass here to the new implementation of MailSender.
+ * Only line to touch when switching provider: change useClass here to the
+ * new implementation of MailSender.
  */
 @Module({
-  providers: [{ provide: MAIL_SENDER, useClass: GmailMailService }],
+  providers: [{ provide: MAIL_SENDER, useClass: SendgridMailService }],
   exports: [MAIL_SENDER],
 })
 export class MailModule {}
