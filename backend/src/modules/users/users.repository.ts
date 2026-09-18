@@ -41,4 +41,12 @@ export class UsersRepository {
       data: { lastLoginAt: new Date() },
     });
   }
+
+  updatePassword(userId: string, passwordHash: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  }
+
+  updateName(userId: string, name: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { name } });
+  }
 }

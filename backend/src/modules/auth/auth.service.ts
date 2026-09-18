@@ -1,18 +1,28 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
+import { randomBytes, createHash } from 'node:crypto';
 import { MEMBER_COLORS } from '@shared/domain';
 import type { SessionDTO } from '@shared/contracts';
 import { UsersRepository } from '../users/users.repository';
 import { FamiliesService } from '../families/families.service';
 import { RolesRepository } from '../roles/roles.repository';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { PasswordResetTokensRepository } from './password-reset-tokens.repository';
+import { MAIL_SENDER, type MailSender } from '../mail/mail-sender.interface';
+import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 import type { JwtPayload } from './jwt.strategy';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 /**
  * The TTL comes from the environment as a string ("15m", "30d"). The type the
@@ -40,6 +50,8 @@ export class AuthService {
     private readonly roles: RolesRepository,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly resetTokens: PasswordResetTokensRepository,
+    @Inject(MAIL_SENDER) private readonly mail: MailSender,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -115,6 +127,60 @@ export class AuthService {
       familyId: user.familyId,
       roles: await this.roles.namesFor(user.id),
     };
+  }
+
+  /**
+   * Always resolves the same way whether or not the e-mail has an account —
+   * same anti-enumeration reasoning as login(). The token itself is random
+   * (not derived from anything guessable); only its hash is stored, so a
+   * database leak does not hand out working reset links.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.users.findByEmail(email);
+    if (user) {
+      const token = randomBytes(32).toString('hex');
+      await this.resetTokens.create(
+        user.id,
+        hashToken(token),
+        new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      );
+      const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:5173');
+      const resetUrl = `${frontendUrl}/redefinir-senha?token=${token}`;
+      await this.mail
+        .sendPasswordReset({ to: user.email, name: user.name, resetUrl })
+        .catch(() => undefined);
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const record = await this.resetTokens.findValid(hashToken(token));
+    if (!record) {
+      throw new UnauthorizedException('Link inválido ou expirado. Peça um novo.');
+    }
+    await this.users.updatePassword(record.userId, await argon2.hash(newPassword));
+    await this.resetTokens.markUsed(record.id);
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<SessionDTO['user']> {
+    const user = await this.users.findById(userId);
+    if (!user) throw new UnauthorizedException();
+
+    if (dto.newPassword) {
+      if (!dto.currentPassword) {
+        throw new UnauthorizedException('Informe a senha atual pra trocar a senha.');
+      }
+      const matches = await argon2
+        .verify(user.passwordHash, dto.currentPassword)
+        .catch(() => false);
+      if (!matches) throw new UnauthorizedException('Senha atual não confere.');
+      await this.users.updatePassword(userId, await argon2.hash(dto.newPassword));
+    }
+
+    if (dto.name?.trim()) {
+      await this.users.updateName(userId, dto.name.trim());
+    }
+
+    return this.me(userId);
   }
 
   private async issueSession(

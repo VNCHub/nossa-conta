@@ -72,8 +72,24 @@ model User {
   ruleMeasurements RuleMeasurement[]
   importedFiles    ImportedFile[]
   roles            UserRole[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([familyId])
+}
+
+/// Single-use, short-lived token for the "forgot password" flow. Stores the
+/// hash, never the token itself — the same reasoning as passwordHash: a
+/// database leak should not hand out working reset links.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 /// Platform-wide roles — not scoped to a family. Today only "admin" gates

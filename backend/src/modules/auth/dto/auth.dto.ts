@@ -54,3 +54,38 @@ export class RegisterDto {
   @MaxLength(60)
   familyName?: string;
 }
+
+export class ForgotPasswordDto {
+  @Transform(normalizeEmail)
+  @IsEmail({}, { message: 'Informe um e-mail válido.' })
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Link inválido.' })
+  token!: string;
+
+  @IsString()
+  @MinLength(6, { message: 'A senha precisa ter 6 caracteres ou mais.' })
+  @MaxLength(72)
+  newPassword!: string;
+}
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  name?: string;
+
+  /** Required only when newPassword is set — checked in AuthService. */
+  @IsOptional()
+  @IsString()
+  currentPassword?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6, { message: 'A senha precisa ter 6 caracteres ou mais.' })
+  @MaxLength(72)
+  newPassword?: string;
+}

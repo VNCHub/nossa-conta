@@ -17,6 +17,7 @@ import type {
   PaginatedDTO,
   ErrorIssueDTO,
   ErrorIssueDetailDTO,
+  SessionDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -92,6 +93,26 @@ export const useErrorIssueDetail = (issueId: string | null, page: number, pageSi
     queryFn: () => api.get<ErrorIssueDetailDTO>(`/erros/${issueId}?page=${page}&pageSize=${pageSize}`),
     enabled: !!issueId,
   });
+
+export const useForgotPassword = () =>
+  useAppMutation(
+    (email: string) => api.post<{ message: string }>('/auth/esqueci-senha', { email }),
+    [],
+  );
+
+export const useResetPassword = () =>
+  useAppMutation(
+    (data: { token: string; newPassword: string }) =>
+      api.post<{ message: string }>('/auth/redefinir-senha', data),
+    [],
+  );
+
+export const useUpdateProfile = () =>
+  useAppMutation(
+    (data: { name?: string; currentPassword?: string; newPassword?: string }) =>
+      api.patch<SessionDTO['user']>('/auth/perfil', data),
+    [],
+  );
 
 /**
  * Any write touches the month's statement, so every mutation invalidates the
