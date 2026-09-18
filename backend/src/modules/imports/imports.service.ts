@@ -12,6 +12,7 @@ import type {
   BankId,
   ImportDocumentType,
   ImportFileFormat,
+  ImportSourceId,
 } from '@shared/domain';
 import {
   detectDocumentType,
@@ -22,6 +23,8 @@ import {
   periodOf,
   type RawTransaction,
 } from '../../domain/bank-import';
+import { expenseKeyOf, parseInternalExport, type InternalExpenseEntry } from '../../domain/internal-export';
+import { toDbExpenseType } from '../expenses/expenses.service';
 import { ImportsRepository, type ImportedFileWithCounts } from './imports.repository';
 import { ImportsStorage } from './imports.storage';
 
@@ -45,7 +48,7 @@ export class ImportsService {
   async importFiles(
     familyId: string,
     userId: string,
-    bank: BankId,
+    source: ImportSourceId,
     files: Express.Multer.File[],
   ): Promise<ImportResultDTO[]> {
     if (files.length === 0) {
@@ -53,12 +56,16 @@ export class ImportsService {
     }
     const results: ImportResultDTO[] = [];
     for (const file of files) {
-      results.push(await this.processFile(familyId, userId, bank, file));
+      results.push(
+        source === 'internal'
+          ? await this.processInternalFile(familyId, userId, file)
+          : await this.processBankFile(familyId, userId, source, file),
+      );
     }
     return results;
   }
 
-  private async processFile(
+  private async processBankFile(
     familyId: string,
     userId: string,
     bank: BankId,
@@ -157,6 +164,83 @@ export class ImportsService {
     }
   }
 
+  /**
+   * A file from this app's own "Exportar dados" — already shaped as gastos,
+   * so there is no bank to detect and no invoice/statement split. Every
+   * imported row lands personal and unshared (source and target may be
+   * different families entirely), same as a bank import.
+   */
+  private async processInternalFile(
+    familyId: string,
+    userId: string,
+    file: Express.Multer.File,
+  ): Promise<ImportResultDTO> {
+    const fileName = file.originalname;
+
+    if (!fileName.toLowerCase().endsWith('.json')) {
+      return { fileName, status: 'error', message: 'Envie um arquivo .json exportado pela Nossa Conta.' };
+    }
+
+    const fingerprint = fingerprintOf(file.buffer);
+    if (await this.repo.findByFingerprint(familyId, fingerprint)) {
+      return { fileName, status: 'error', message: 'Este arquivo já foi importado antes.' };
+    }
+
+    let entries: InternalExpenseEntry[];
+    try {
+      entries = parseInternalExport(file.buffer);
+    } catch (err) {
+      return { fileName, status: 'error', message: (err as Error).message };
+    }
+
+    if (entries.length === 0) {
+      return { fileName, status: 'error', message: 'Nenhum gasto encontrado no arquivo.' };
+    }
+
+    const dates = entries.map((e) => e.date).sort();
+    const period = { start: dates[0], end: dates[dates.length - 1] };
+
+    const storagePath = await this.storage.save(file.buffer, 'json');
+    try {
+      const saved = await this.repo.saveImport({
+        file: {
+          bank: BankProviderDb.INTERNAL,
+          documentType: ImportDocumentTypeDb.INTERNAL_EXPORT,
+          fileFormat: ImportFileFormatDb.JSON,
+          originalName: fileName,
+          storagePath,
+          fingerprint,
+          sizeBytes: file.size,
+          periodStart: new Date(`${period.start}T00:00:00Z`),
+          periodEnd: new Date(`${period.end}T00:00:00Z`),
+          expiresAt: this.expiresAt(),
+          userId,
+          familyId,
+        },
+        expenses: entries.map((e) => ({
+          userId,
+          familyId,
+          date: new Date(`${e.date}T00:00:00Z`),
+          month: e.date.slice(0, 7),
+          description: e.description,
+          amount: e.amount,
+          category: e.category,
+          expenseType: toDbExpenseType(e.expenseType),
+          paymentMethod: e.paymentMethod,
+          source: RecordSource.IMPORT,
+          importKey: `internal:${expenseKeyOf(e)}`,
+        })),
+        incomes: [],
+      });
+
+      return { fileName, status: 'success', file: toDTO(saved) };
+    } catch (err) {
+      await this.storage.remove(storagePath);
+      this.logger.error(`Failed to save import ${fileName}: ${(err as Error).message}`);
+      return { fileName, status: 'error', message: 'Não foi possível salvar a importação.' };
+    }
+  }
+
   private expiresAt(): Date {
     const days = Number(this.config.get<string>('IMPORT_RETENTION_DAYS') ?? 7);
     return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -169,6 +253,7 @@ function bankDbOf(bank: BankId): BankProviderDb {
   throw new Error(`Unsupported bank: ${bank satisfies never}`);
 }
 
+/** Bank imports only — internal ones go through documentTypeDbOf's INTERNAL_EXPORT case directly. */
 function documentTypeDbOf(t: ImportDocumentType): ImportDocumentTypeDb {
   return t === 'accountStatement'
     ? ImportDocumentTypeDb.ACCOUNT_STATEMENT
@@ -179,12 +264,26 @@ function fileFormatDbOf(f: ImportFileFormat): ImportFileFormatDb {
   return f === 'csv' ? ImportFileFormatDb.CSV : ImportFileFormatDb.OFX;
 }
 
+function sourceIdOf(bank: BankProviderDb): ImportSourceId {
+  return bank === BankProviderDb.INTERNAL ? 'internal' : 'nubank';
+}
+
+function documentTypeOf(t: ImportDocumentTypeDb): ImportDocumentType {
+  if (t === ImportDocumentTypeDb.INTERNAL_EXPORT) return 'internalExport';
+  return t === ImportDocumentTypeDb.ACCOUNT_STATEMENT ? 'accountStatement' : 'invoice';
+}
+
+function fileFormatOf(f: ImportFileFormatDb): ImportFileFormat {
+  if (f === ImportFileFormatDb.JSON) return 'json';
+  return f === ImportFileFormatDb.CSV ? 'csv' : 'ofx';
+}
+
 function toDTO(row: ImportedFileWithCounts): ImportedFileDTO {
   return {
     id: row.id,
-    bank: 'nubank',
-    documentType: row.documentType === ImportDocumentTypeDb.ACCOUNT_STATEMENT ? 'accountStatement' : 'invoice',
-    fileFormat: row.fileFormat === ImportFileFormatDb.CSV ? 'csv' : 'ofx',
+    bank: sourceIdOf(row.bank),
+    documentType: documentTypeOf(row.documentType),
+    fileFormat: fileFormatOf(row.fileFormat),
     originalName: row.originalName,
     sizeBytes: row.sizeBytes,
     periodStart: row.periodStart.toISOString().slice(0, 10),

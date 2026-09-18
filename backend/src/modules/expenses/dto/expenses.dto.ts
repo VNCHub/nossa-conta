@@ -85,6 +85,21 @@ export class ListExpensesQuery {
   escopo?: 'todos' | 'meus';
 }
 
+/** Query for GET /gastos/exportar — same 'escopo' as ListExpensesQuery, plus an optional date range. */
+export class ExportExpensesQuery {
+  @IsOptional()
+  @IsISO8601({ strict: true }, { message: 'Informe a data inicial no formato AAAA-MM-DD.' })
+  inicio?: string;
+
+  @IsOptional()
+  @IsISO8601({ strict: true }, { message: 'Informe a data final no formato AAAA-MM-DD.' })
+  fim?: string;
+
+  @IsOptional()
+  @IsIn(['todos', 'meus'])
+  escopo?: 'todos' | 'meus';
+}
+
 export class MonthQuery {
   @Type(() => String)
   @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })

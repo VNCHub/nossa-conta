@@ -15,13 +15,20 @@ import {
 import { Dropzone } from '@mantine/dropzone';
 import { useDisclosure } from '@mantine/hooks';
 import type { ImportedFileDTO, ImportResultDTO } from '@shared/contracts';
-import { BANK_PROVIDERS, IMPORT_DOCUMENT_TYPE_LABELS, type BankId } from '@shared/domain';
+import {
+  BANK_PROVIDERS,
+  IMPORT_DOCUMENT_TYPE_LABELS,
+  INTERNAL_SOURCE_ID,
+  type ImportSourceId,
+} from '@shared/domain';
 import { api } from '../../api/client';
 import { keys, useAppMutation, useImports } from '../../api/hooks';
 import { Empty, Loading } from '../../components/ui';
 import { notifyError, notifySuccess } from '../../feedback';
 
-const ACCEPTED_EXTENSIONS = ['.csv', '.ofx'];
+/** Bank files are sniffed by content; the internal export is a fixed .json shape, so its extension is all that's checked. */
+const acceptedExtensionsFor = (source: ImportSourceId) =>
+  source === INTERNAL_SOURCE_ID ? ['.json'] : ['.csv', '.ofx'];
 
 export default function ExpensesImports() {
   const imports = useImports();
@@ -90,8 +97,8 @@ function ImportRow({ file }: { file: ImportedFileDTO }) {
       </Table.Td>
       <Table.Td>
         <Group gap={7} wrap="nowrap">
-          <BankLogo size={22} />
-          <Text size="md">{bank?.name ?? file.bank}</Text>
+          {file.bank === INTERNAL_SOURCE_ID ? <InternalLogo size={22} /> : <BankLogo size={22} />}
+          <Text size="md">{file.bank === INTERNAL_SOURCE_ID ? 'Nossa Conta' : bank?.name ?? file.bank}</Text>
         </Group>
       </Table.Td>
       <Table.Td><Text size="md">{IMPORT_DOCUMENT_TYPE_LABELS[file.documentType]}</Text></Table.Td>
@@ -111,14 +118,18 @@ function ImportRow({ file }: { file: ImportedFileDTO }) {
 type WizardStep = 'select' | 'loading';
 
 /**
- * Bank + files, then a loading state while the backend validates and
- * processes each file — no document-type step: the backend sniffs whether a
- * file is an account statement or an invoice, CSV or OFX, from its content.
+ * Origem (banco ou o "Interno" da própria Nossa Conta) + files, then a
+ * loading state while the backend validates and processes each file — no
+ * document-type step: the backend sniffs whether a bank file is an account
+ * statement or an invoice, CSV or OFX, from its content; the internal export
+ * always has the same shape.
  */
 function ImportWizard({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<WizardStep>('select');
-  const [bank, setBank] = useState<BankId>(BANK_PROVIDERS[0].id);
+  const [bank, setBank] = useState<ImportSourceId>(BANK_PROVIDERS[0].id);
   const [files, setFiles] = useState<File[]>([]);
+  const extensions = acceptedExtensionsFor(bank);
+  const isInternal = bank === INTERNAL_SOURCE_ID;
 
   const importMutation = useAppMutation(
     (formData: FormData) => api.upload<ImportResultDTO[]>('/gastos/importacoes', formData),
@@ -139,10 +150,10 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
 
   const addFiles = (accepted: File[]) => {
     const valid = accepted.filter((f) =>
-      ACCEPTED_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext)),
+      extensions.some((ext) => f.name.toLowerCase().endsWith(ext)),
     );
     if (valid.length < accepted.length) {
-      notifyError('Envie apenas arquivos .csv ou .ofx.');
+      notifyError(`Envie apenas arquivos ${extensions.join(' ou ')}.`);
     }
     setFiles((prev) => [...prev, ...valid]);
   };
@@ -170,12 +181,12 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
   return (
     <Stack gap="md">
       <div>
-        <Text size="sm" fw={500} c="dimmed" mb={6}>Banco</Text>
+        <Text size="sm" fw={500} c="dimmed" mb={6}>Origem</Text>
         <Group gap="sm">
           {BANK_PROVIDERS.map((b) => (
             <UnstyledButton
               key={b.id}
-              onClick={() => setBank(b.id)}
+              onClick={() => { setBank(b.id); setFiles([]); }}
               p="sm"
               style={{
                 borderRadius: 8,
@@ -189,15 +200,35 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
               </Group>
             </UnstyledButton>
           ))}
+          <UnstyledButton
+            onClick={() => { setBank(INTERNAL_SOURCE_ID); setFiles([]); }}
+            p="sm"
+            style={{
+              borderRadius: 8,
+              border: `1.5px solid ${isInternal ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
+              background: isInternal ? 'var(--mantine-color-petrol-0)' : undefined,
+            }}
+          >
+            <Group gap={8}>
+              <InternalLogo size={26} />
+              <Text size="sm" fw={600}>Interno</Text>
+            </Group>
+          </UnstyledButton>
         </Group>
       </div>
 
       <div>
-        <Text size="sm" fw={500} c="dimmed" mb={6}>Arquivos (extrato da conta ou fatura, CSV ou OFX)</Text>
-        <Dropzone onDrop={addFiles} multiple>
+        <Text size="sm" fw={500} c="dimmed" mb={6}>
+          {isInternal ? 'Arquivo (exportado pela Nossa Conta)' : 'Arquivos (extrato da conta ou fatura, CSV ou OFX)'}
+        </Text>
+        <Dropzone onDrop={addFiles} multiple={!isInternal}>
           <Stack align="center" gap={4} py="md">
-            <Text size="sm">Arraste os arquivos aqui ou clique para escolher</Text>
-            <Text size="xs" c="dimmed">Aceita vários arquivos de uma vez — .csv ou .ofx</Text>
+            <Text size="sm">Arraste {isInternal ? 'o arquivo' : 'os arquivos'} aqui ou clique para escolher</Text>
+            <Text size="xs" c="dimmed">
+              {isInternal
+                ? 'O .json baixado em "Exportar dados"'
+                : 'Aceita vários arquivos de uma vez — .csv ou .ofx'}
+            </Text>
           </Stack>
         </Dropzone>
       </div>
@@ -262,6 +293,22 @@ function BankLogo({ size = 24 }: { size?: number }) {
         fill="#fff"
       >
         N
+      </text>
+    </svg>
+  );
+}
+
+/** Marks a file as coming from this app's own "Exportar dados", not a bank — same badge shape as BankLogo, own color. */
+function InternalLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect width="24" height="24" rx="6" fill="var(--mantine-color-petrol-6)" />
+      <text
+        x="12" y="16" textAnchor="middle"
+        fontSize="10" fontWeight="700" fontFamily="Arial, sans-serif"
+        fill="#fff"
+      >
+        NC
       </text>
     </svg>
   );

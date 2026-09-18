@@ -15,6 +15,7 @@ import { ExpensesService } from './expenses.service';
 import {
   UpdateExpenseDto,
   CreateExpenseDto,
+  ExportExpensesQuery,
   ListExpensesQuery,
 } from './dto/expenses.dto';
 import { FamilyGuard } from '../../common/guards/family.guard';
@@ -33,6 +34,15 @@ export class ExpensesController {
     return this.expenses.list(user.familyId!, {
       month: q.mes,
       userId: q.escopo === 'meus' ? user.id : undefined,
+    });
+  }
+
+  @Get('exportar')
+  export(@CurrentUser() user: AuthenticatedUser, @Query() q: ExportExpensesQuery) {
+    return this.expenses.export(user.familyId!, {
+      userId: q.escopo === 'meus' ? user.id : undefined,
+      dateFrom: q.inicio,
+      dateTo: q.fim,
     });
   }
 

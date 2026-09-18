@@ -22,6 +22,25 @@ export class ExpensesRepository {
     });
   }
 
+  /** Same as `list`, but filtered by a day-level date range instead of a whole month — only "Exportar dados" needs that. */
+  listForExport(
+    familyId: string,
+    filters: { userId?: string; dateFrom?: string; dateTo?: string } = {},
+  ) {
+    return this.prisma.expense.findMany({
+      where: {
+        familyId,
+        userId: filters.userId,
+        date: {
+          gte: filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00Z`) : undefined,
+          lte: filters.dateTo ? new Date(`${filters.dateTo}T23:59:59Z`) : undefined,
+        },
+      },
+      include: WITH_SHARES,
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
   find(familyId: string, id: string) {
     return this.prisma.expense.findFirst({
       where: { id, familyId },

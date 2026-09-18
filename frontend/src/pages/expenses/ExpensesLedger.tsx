@@ -39,13 +39,12 @@ import { useAuth } from '../../auth/AuthContext';
 import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty } from '../../components/ui';
 import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
+import { iso } from './date';
+import { ExportExpensesModal } from './ExportExpensesModal';
 
 type Filter = 'all' | 'mine' | 'shared';
 type SortKey = 'date' | 'owner' | 'description' | 'category' | 'expenseType' | 'paymentMethod' | 'amount';
 type Sort = { key: SortKey; dir: 'asc' | 'desc' };
-
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /** Matches the plain <Text size="md"> look exactly, so switching to edit mode causes no layout shift. */
 const inlineInputStyle: CSSProperties = {
@@ -95,6 +94,7 @@ export default function ExpensesLedger() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<Sort | null>(null);
   const [createOpen, createModal] = useDisclosure(false);
+  const [exportOpen, exportModal] = useDisclosure(false);
 
   const remove = useAppMutation(
     (id: string) => api.delete(`/gastos/${id}`),
@@ -234,6 +234,7 @@ export default function ExpensesLedger() {
               { value: 'shared', label: 'Divididos' },
             ]}
           />
+          <Button variant="default" onClick={exportModal.open}>Exportar dados</Button>
           <Button onClick={createModal.open}>Lançar gasto</Button>
         </Group>
       </Group>
@@ -378,6 +379,8 @@ export default function ExpensesLedger() {
       <Modal opened={createOpen} onClose={createModal.close} title="Lançar gasto" size="lg" centered>
         <ExpenseForm month={month} members={members} rules={rules} onClose={createModal.close} />
       </Modal>
+
+      <ExportExpensesModal opened={exportOpen} onClose={exportModal.close} />
     </Card>
   );
 }

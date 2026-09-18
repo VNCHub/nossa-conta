@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ExpenseType as ExpenseTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
-import type { ExpenseDTO } from '@shared/contracts';
+import type { ExpenseDTO, ExpensesExportDTO } from '@shared/contracts';
 import type { CategoryId, PaymentMethod, RecordSource } from '@shared/domain';
 import type { ExpenseCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
@@ -23,6 +23,41 @@ export class ExpensesService {
   ): Promise<ExpenseDTO[]> {
     const rows = await this.repo.list(familyId, filters);
     return rows.map(toDTO);
+  }
+
+  /**
+   * Only what's portable across families/environments — see ExportedExpenseDTO.
+   * `shared`/`participants`/`ruleId` never leave here: they're IDs that only
+   * mean something inside this family. No `id` either — it is only stable
+   * for one direct hop, and a chain of re-exports between environments would
+   * mint a new one at every stop, breaking dedup on the far end; the import
+   * side derives its own key from content instead (see expenseKeyOf).
+   */
+  async export(
+    familyId: string,
+    filters: { userId?: string; dateFrom?: string; dateTo?: string },
+  ): Promise<ExpensesExportDTO> {
+    if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
+      throw new BadRequestException('A data inicial não pode ser depois da data final.');
+    }
+    const rows = await this.repo.listForExport(familyId, filters);
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      // A gasto with no amount yet has nothing to back up — it's re-entered
+      // manually if still needed, same as any other incomplete lançamento.
+      expenses: rows
+        .map(toDTO)
+        .filter((e) => e.amount > 0)
+        .map((e) => ({
+          date: e.date,
+          description: e.description,
+          amount: e.amount,
+          category: e.category,
+          expenseType: e.expenseType,
+          paymentMethod: e.paymentMethod,
+        })),
+    };
   }
 
   async create(
@@ -160,7 +195,7 @@ const expenseTypeOf = (t: ExpenseTypeDb | null) =>
         ? 'optional'
         : 'oneOff';
 
-const toDbExpenseType = (t: string | null | undefined) =>
+export const toDbExpenseType = (t: string | null | undefined) =>
   t === 'fixed'
     ? ExpenseTypeDb.FIXED
     : t === 'optional'

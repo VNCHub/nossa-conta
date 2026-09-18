@@ -28,16 +28,20 @@ enum RuleType {
 
 enum BankProvider {
   NUBANK
+  /// Not a real bank — this app's own "Exportar dados" file, re-imported elsewhere.
+  INTERNAL
 }
 
 enum ImportDocumentType {
   ACCOUNT_STATEMENT
   INVOICE
+  INTERNAL_EXPORT
 }
 
 enum ImportFileFormat {
   CSV
   OFX
+  JSON
 }
 
 /// Where a record came from — kept even if the ImportedFile it points to is
