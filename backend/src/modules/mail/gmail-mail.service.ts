@@ -25,7 +25,16 @@ export class GmailMailService implements MailSender, OnModuleInit {
       );
       return;
     }
-    this.transport = createTransport({ service: 'gmail', auth: { user, pass } });
+    this.transport = createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+      // Some hosts block or silently drop outbound SMTP — without these, a
+      // blocked connection hangs forever instead of failing, and the request
+      // that awaits it never responds.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000,
+    });
   }
 
   async sendPasswordReset({
@@ -41,16 +50,24 @@ export class GmailMailService implements MailSender, OnModuleInit {
       this.logger.error(`Não foi possível enviar e-mail de redefinição para ${to}: transporte não configurado.`);
       return;
     }
-    await this.transport.sendMail({
-      from: `Nossa Conta <${this.config.get<string>('GMAIL_USER')}>`,
-      to,
-      subject: 'Redefinir sua senha — Nossa Conta',
-      html: `
-        <p>Oi, ${name}.</p>
-        <p>Alguém (esperamos que você) pediu pra redefinir a senha da sua conta no Nossa Conta.</p>
-        <p><a href="${resetUrl}">Clique aqui pra escolher uma nova senha</a>. O link expira em 1 hora.</p>
-        <p>Se não foi você, pode ignorar este e-mail — sua senha continua a mesma.</p>
-      `,
-    });
+    try {
+      await this.transport.sendMail({
+        from: `Nossa Conta <${this.config.get<string>('GMAIL_USER')}>`,
+        to,
+        subject: 'Redefinir sua senha — Nossa Conta',
+        html: `
+          <p>Oi, ${name}.</p>
+          <p>Alguém (esperamos que você) pediu pra redefinir a senha da sua conta no Nossa Conta.</p>
+          <p><a href="${resetUrl}">Clique aqui pra escolher uma nova senha</a>. O link expira em 1 hora.</p>
+          <p>Se não foi você, pode ignorar este e-mail — sua senha continua a mesma.</p>
+        `,
+      });
+    } catch (err) {
+      // Logged and re-thrown: AuthService swallows this so the HTTP response
+      // never reveals delivery failures (would leak which e-mails exist),
+      // but it must show up somewhere or a broken mail path is invisible.
+      this.logger.error(`Falha ao enviar e-mail de redefinição para ${to}: ${(err as Error).message}`);
+      throw err;
+    }
   }
 }
