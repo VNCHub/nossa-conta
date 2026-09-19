@@ -5,6 +5,11 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  /// migrate deploy only — a pooled connection (Neon's `-pooler` host) can hand
+  /// the advisory lock it takes across different physical backends mid-session,
+  /// which surfaces as a P1002 timeout under load. A direct connection keeps
+  /// the lock on one backend for the whole migration.
+  directUrl = env("DIRECT_URL")
 }
 
 enum IncomeType {

@@ -28,6 +28,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-nossa_conta}:${POSTGRES_PASSWORD:-nossa_conta_dev}@db:5432/${POSTGRES_DB:-nossa_conta}?schema=public
+      # Sem pooler em dev — mesmo valor de DATABASE_URL. Só importa em produção (Neon).
+      DIRECT_URL: postgresql://${POSTGRES_USER:-nossa_conta}:${POSTGRES_PASSWORD:-nossa_conta_dev}@db:5432/${POSTGRES_DB:-nossa_conta}?schema=public
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?defina JWT_ACCESS_SECRET no .env}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET no .env}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
