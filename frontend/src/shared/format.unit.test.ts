@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach, vi } from 'vitest';
-import { brl, pct, monthLabel, shiftMonth, currentMonth } from '@shared/format';
+import { brl, pct, monthLabel, monthLabelCompact, shiftMonth, currentMonth, recurringAppliesToMonth } from '@shared/format';
 
 // toLocaleString separates thousands with a non-breaking space; normalize it.
 const norm = (s: string) => s.replace(/ | /g, ' ');
@@ -45,6 +45,13 @@ describe('monthLabel', () => {
   });
 });
 
+describe('monthLabelCompact', () => {
+  it('spells the month with a slash instead of "de"', () => {
+    expect(monthLabelCompact('2026-09')).toBe('setembro/2026');
+    expect(monthLabelCompact('2026-01')).toBe('janeiro/2026');
+  });
+});
+
 describe('shiftMonth', () => {
   it('moves forward and backward within a year', () => {
     expect(shiftMonth('2026-09', 1)).toBe('2026-10');
@@ -72,5 +79,32 @@ describe('currentMonth', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 2, 15));
     expect(currentMonth()).toBe('2026-03');
+  });
+});
+
+describe('recurringAppliesToMonth', () => {
+  it('counts the declared month and every month after it, when open-ended', () => {
+    expect(recurringAppliesToMonth('2026-08', null, '2026-08')).toBe(true);
+    expect(recurringAppliesToMonth('2026-08', null, '2026-09')).toBe(true);
+  });
+
+  it('does not count a month before the declared one', () => {
+    expect(recurringAppliesToMonth('2026-09', null, '2026-08')).toBe(false);
+  });
+
+  it('does not count a month after "until"', () => {
+    expect(recurringAppliesToMonth('2026-06', '2026-08', '2026-08')).toBe(true);
+    expect(recurringAppliesToMonth('2026-06', '2026-08', '2026-09')).toBe(false);
+  });
+
+  it('a single-month recurring has since === until', () => {
+    expect(recurringAppliesToMonth('2026-08', '2026-08', '2026-08')).toBe(true);
+    expect(recurringAppliesToMonth('2026-08', '2026-08', '2026-07')).toBe(false);
+    expect(recurringAppliesToMonth('2026-08', '2026-08', '2026-09')).toBe(false);
+  });
+
+  it('treats a missing since/until as no bound on that side', () => {
+    expect(recurringAppliesToMonth(null, null, '2020-01')).toBe(true);
+    expect(recurringAppliesToMonth(undefined, undefined, '2020-01')).toBe(true);
   });
 });

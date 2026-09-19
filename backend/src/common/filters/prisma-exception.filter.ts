@@ -1,5 +1,6 @@
 import {
   ArgumentsHost,
+  BadRequestException,
   Catch,
   ConflictException,
   ExceptionFilter,
@@ -28,6 +29,14 @@ export class PrismaExceptionFilter extends BaseExceptionFilter {
         );
       case 'P2025':
         return super.catch(new NotFoundException('Registro não encontrado.'), host);
+      case 'P2004':
+        // A CHECK constraint (e.g. Income's since/until ordering) — a business
+        // rule violation the application layer should normally have already
+        // caught, not an unexpected bug, so it skips the report below.
+        return super.catch(
+          new BadRequestException('Isso deixaria o registro num estado inválido.'),
+          host,
+        );
       default:
         // Anything else here is a Prisma error nobody anticipated — a real bug.
         await this.errors

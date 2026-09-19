@@ -4,11 +4,13 @@
  * tested exhaustively in milliseconds, which is exactly what you want from the
  * part of the system that decides how much each person pays.
  */
+import { recurringAppliesToMonth } from '@shared/format';
 import type { SplitContext, IncomeCalc, ExpenseCalc, RuleCalc } from './types';
 
 /**
- * Recurring counts every month from its `since` month onward (it cannot have
- * applied to a month before it existed); one-off only in the month of its date.
+ * Recurring counts from its `since` month through its `until` month (open-ended
+ * if absent) — it cannot have applied outside that window; one-off only in the
+ * month of its date.
  */
 export function incomeForMonth(
   incomes: IncomeCalc[],
@@ -19,7 +21,7 @@ export function incomeForMonth(
     .filter((i) => i.userId === userId)
     .filter(
       (i) =>
-        (i.type === 'recurring' && (!i.since || i.since <= month)) ||
+        (i.type === 'recurring' && recurringAppliesToMonth(i.since, i.until, month)) ||
         (i.date ?? '').slice(0, 7) === month,
     )
     .reduce((s, i) => s + i.amountCents, 0);
@@ -32,7 +34,9 @@ export function recurringIncome(
   month: string,
 ): number {
   return incomes
-    .filter((i) => i.userId === userId && i.type === 'recurring' && (!i.since || i.since <= month))
+    .filter(
+      (i) => i.userId === userId && i.type === 'recurring' && recurringAppliesToMonth(i.since, i.until, month),
+    )
     .reduce((s, i) => s + i.amountCents, 0);
 }
 

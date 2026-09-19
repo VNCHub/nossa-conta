@@ -16,6 +16,7 @@ import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.fi
 import { ErrorLoggingFilter } from '../src/common/filters/error-logging.filter';
 import { ErrorsService } from '../src/modules/errors/errors.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { computeFingerprint } from '../src/domain/observability/fingerprint';
 
 describe('Error observability (e2e)', () => {
   let app: INestApplication;
@@ -97,6 +98,17 @@ describe('Error observability (e2e)', () => {
     const stackA = `TypeError: ${title}\n    at getUserId (/app/backend/src/modules/x.ts:10:5)`;
     const stackB = `TypeError: ${title}\n    at getUserId (/app/backend/src/modules/x.ts:11:5)`; // line shifted
 
+    // The fingerprint normalizes away the timestamp on purpose (that's what
+    // groups real occurrences of the same bug across different requests) —
+    // which means every run of this test lands on the exact same fingerprint
+    // as the last one. Left alone, the second run onward would just bump
+    // eventsCount on the first run's issue without ever touching its title,
+    // so `matches` below would never find *this* run's title again. Clean up
+    // the issue this fingerprint owns before asserting, so each run starts
+    // from the same empty state the first run had.
+    const fingerprint = computeFingerprint('frontend', title, stackA);
+    await prisma.errorIssue.deleteMany({ where: { fingerprint } });
+
     await http().post('/erros').send({ title, stack: stackA }).expect(204);
     await http().post('/erros').send({ title, stack: stackB }).expect(204);
 
@@ -116,6 +128,8 @@ describe('Error observability (e2e)', () => {
     expect(detail.issue.id).toBe(matches[0].id);
     expect(detail.events.items).toHaveLength(2);
     expect(detail.events.items[0].stack).toEqual(expect.any(String));
+
+    await prisma.errorIssue.deleteMany({ where: { fingerprint } });
   });
 
   it('a real business 404 is never logged as an issue', async () => {

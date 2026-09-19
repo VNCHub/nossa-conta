@@ -36,7 +36,7 @@ import { brl } from '@shared/format';
 import { api } from '../../api/client';
 import { keys, useExpenses, useMembers, useAppMutation, useRules } from '../../api/hooks';
 import { useAuth } from '../../auth/AuthContext';
-import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty } from '../../components/ui';
+import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty, TrashIcon } from '../../components/ui';
 import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
 import { iso } from './date';
@@ -459,18 +459,6 @@ function SearchIcon() {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7" />
       <path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
     </svg>
   );
 }

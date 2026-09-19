@@ -55,6 +55,26 @@ describe('incomes', () => {
     expect(recurringIncome(sinceOctober, 'u1', '2026-09')).toBe(0);
     expect(recurringIncome(sinceOctober, 'u1', '2026-10')).toBe(500000);
   });
+
+  it('a recurring income with an "until" stops counting after that month', () => {
+    const endedInAugust: IncomeCalc[] = [
+      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-06', until: '2026-08' },
+    ];
+    expect(incomeForMonth(endedInAugust, 'u1', '2026-07')).toBe(500000);
+    expect(incomeForMonth(endedInAugust, 'u1', '2026-08')).toBe(500000);
+    expect(incomeForMonth(endedInAugust, 'u1', '2026-09')).toBe(0);
+    expect(recurringIncome(endedInAugust, 'u1', '2026-08')).toBe(500000);
+    expect(recurringIncome(endedInAugust, 'u1', '2026-09')).toBe(0);
+  });
+
+  it('a single-month recurring (since === until) only counts that one month', () => {
+    const augustOnly: IncomeCalc[] = [
+      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-08', until: '2026-08' },
+    ];
+    expect(incomeForMonth(augustOnly, 'u1', '2026-07')).toBe(0);
+    expect(incomeForMonth(augustOnly, 'u1', '2026-08')).toBe(500000);
+    expect(incomeForMonth(augustOnly, 'u1', '2026-09')).toBe(0);
+  });
 });
 
 describe('individualFixedExpenses', () => {
