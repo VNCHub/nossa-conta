@@ -8,12 +8,14 @@ export interface IncomeCalc {
   /** YYYY-MM-DD — only present on a one-off income */
   date?: string | null;
   /**
-   * YYYY-MM a recurring income starts counting from (its creation month) — it
-   * must not retroactively appear in months before it was entered. Absent
+   * YYYY-MM a recurring income starts counting from — declared explicitly
+   * when it's entered, not derived from when the row was created. Absent
    * means no lower bound (a one-off income does not need one: `date` already
    * pins it to a single month).
    */
   since?: string | null;
+  /** YYYY-MM a recurring income stops counting after — absent means still ongoing. */
+  until?: string | null;
 }
 
 export interface ExpenseCalc {

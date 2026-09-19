@@ -8,12 +8,13 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
-import { INCOME_TYPES, type IncomeType } from '@shared/domain';
+import { INCOME_TYPES, MONTH_REGEX, type IncomeType } from '@shared/domain';
 
 export class CreateIncomeDto {
   @IsIn(INCOME_TYPES as unknown as string[])
@@ -35,6 +36,16 @@ export class CreateIncomeDto {
   @Min(1)
   @Max(31)
   dayOfMonth?: number;
+
+  /** The month it starts counting from — defaults to the current month if omitted. */
+  @ValidateIf((o: CreateIncomeDto) => o.type === 'recurring' && o.since !== undefined)
+  @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
+  since?: string;
+
+  /** The last month it counts for — omitted means open-ended (keeps repeating). */
+  @ValidateIf((o: CreateIncomeDto) => o.type === 'recurring' && o.until !== undefined)
+  @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
+  until?: string;
 
   @ValidateIf((o: CreateIncomeDto) => o.type === 'oneOff')
   @IsISO8601({ strict: true }, { message: 'Informe a data no formato AAAA-MM-DD.' })
@@ -60,6 +71,16 @@ export class UpdateIncomeDto {
   @Min(1)
   @Max(31)
   dayOfMonth?: number;
+
+  /** `null` explicitly reopens it (clears a previously set since/until) — distinct from omitting the field. */
+  @IsOptional()
+  @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
+  since?: string | null;
+
+  /** Setting this ends the recurrence after that month, without touching earlier months; `null` reopens it. */
+  @IsOptional()
+  @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
+  until?: string | null;
 
   @IsOptional()
   @IsISO8601({ strict: true })

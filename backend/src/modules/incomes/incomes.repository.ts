@@ -45,19 +45,17 @@ export class IncomesRepository {
 
   /**
    * Earliest month any income represents: a one-off's own `date`, or a
-   * recurring income's `createdAt` (the month it started, since it has no
-   * `date` of its own).
+   * recurring income's declared `since`.
    */
   async earliestMonth(familyId: string): Promise<string | null> {
     const groups = await this.prisma.income.groupBy({
       by: ['type'],
       where: { user: { familyId } },
-      _min: { createdAt: true, date: true },
+      _min: { since: true, date: true },
     });
     const months = groups
-      .map((g) => (g.type === 'RECURRING' ? g._min.createdAt : g._min.date))
-      .filter((d): d is Date => d !== null)
-      .map((d) => d.toISOString().slice(0, 7));
+      .map((g) => (g.type === 'RECURRING' ? g._min.since : g._min.date?.toISOString().slice(0, 7)))
+      .filter((m): m is string => m != null);
     return months.length ? months.sort()[0] : null;
   }
 }
