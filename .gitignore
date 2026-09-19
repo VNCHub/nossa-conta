@@ -10,3 +10,9 @@ coverage/
 backend/prisma/*.db
 *.tsbuildinfo
 backend/storage/
+.neon
+.claude/
+/neon.ts
+/package.json
+/package-lock.json
+/skills-lock.json
