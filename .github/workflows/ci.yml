@@ -41,6 +41,8 @@ jobs:
           --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://nossa_conta:nossa_conta_dev@localhost:5432/nossa_conta?schema=public
+      # No pooler in front of the CI Postgres service — same value as DATABASE_URL, see docker-compose.yml.
+      DIRECT_URL: postgresql://nossa_conta:nossa_conta_dev@localhost:5432/nossa_conta?schema=public
       JWT_ACCESS_SECRET: ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret
     steps:
