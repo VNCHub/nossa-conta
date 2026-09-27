@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Card, Grid, SimpleGrid, Text, Title } from '@mantine/core';
+import type { CategoryId } from '@shared/domain';
 import { brl, monthLabel, pct } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
-import { useStatement } from '../api/hooks';
+import { useMembers, useRules, useStatement } from '../api/hooks';
+import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
 import { Donut } from '../components/Donut';
 import { PageHeader, Loading, Categories, Metric, Empty } from '../components/ui';
 import { useMonth } from '../useMonth';
@@ -10,6 +13,9 @@ export default function MyDashboard() {
   const [month] = useMonth();
   const { user } = useAuth();
   const statement = useStatement(month);
+  const members = useMembers();
+  const rules = useRules();
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
 
   if (!statement.data || !user) {
     return statement.error ? <Empty>{statement.error.message}</Empty> : <Loading />;
@@ -62,10 +68,21 @@ export default function MyDashboard() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
             <Title order={3} mb="sm">Onde o dinheiro foi</Title>
-            <Categories amounts={d.categories} />
+            <Categories amounts={d.categories} onSelect={setSelectedCategory} />
           </Card>
         </Grid.Col>
       </Grid>
+
+      {selectedCategory && (
+        <CategoryExpensesModal
+          categoryId={selectedCategory}
+          lines={calc.lines}
+          userId={user.id}
+          members={members.data ?? []}
+          rules={rules.data ?? []}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
 
       <Card>
         <Title order={3} mb="xs">Seu acerto em {monthLabel(month)}</Title>
