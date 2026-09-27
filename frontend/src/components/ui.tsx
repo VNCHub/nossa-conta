@@ -11,7 +11,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { CATEGORIES, categoryOf } from '@shared/domain';
+import { CATEGORIES, categoryOf, type CategoryId } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
 
 export interface Member {
@@ -67,7 +67,14 @@ export function MonthNav({
   );
 }
 
-export function Categories({ amounts }: { amounts: Record<string, number> }) {
+export function Categories({
+  amounts,
+  onSelect,
+}: {
+  amounts: Record<string, number>;
+  /** Present only where a category can drill down into its expenses. */
+  onSelect?: (categoryId: CategoryId) => void;
+}) {
   const total = Object.values(amounts).reduce((s, v) => s + v, 0);
   const items = CATEGORIES.map((c) => ({ ...c, v: amounts[c.id] || 0 }))
     .filter((c) => c.v > 0)
@@ -78,7 +85,25 @@ export function Categories({ amounts }: { amounts: Record<string, number> }) {
   return (
     <Stack gap="xs">
       {items.map((c) => (
-        <Group key={c.id} gap="sm" wrap="nowrap">
+        <Group
+          key={c.id}
+          gap="sm"
+          wrap="nowrap"
+          role={onSelect ? 'button' : undefined}
+          tabIndex={onSelect ? 0 : undefined}
+          onClick={onSelect ? () => onSelect(c.id) : undefined}
+          onKeyDown={
+            onSelect
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(c.id);
+                  }
+                }
+              : undefined
+          }
+          style={onSelect ? { cursor: 'pointer' } : undefined}
+        >
           <Group gap={7} w={110} wrap="nowrap" style={{ flexShrink: 0 }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: c.color, flexShrink: 0 }} />
             <Text size="md">{c.name}</Text>
