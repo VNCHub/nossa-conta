@@ -26,9 +26,13 @@ import { PageHeader, Loading, Metric, Empty, TrashIcon } from '../components/ui'
 import { notifyError, notifySuccess, confirmDelete, confirmChoice } from '../feedback';
 import { useMonth } from '../useMonth';
 
-const iso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const monthIso = (d: Date) => iso(d).slice(0, 7);
+// Mantine 9 date pickers hand back a Date on initial mount but a
+// `YYYY-MM-DD` string once the user actually picks a day — accept both.
+const iso = (d: Date | string) =>
+  typeof d === 'string'
+    ? d.slice(0, 10)
+    : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const monthIso = (d: Date | string) => iso(d).slice(0, 7);
 
 export default function Income() {
   const [month] = useMonth();
@@ -253,9 +257,9 @@ function IncomeForm({
       description: '',
       amount: '' as string | number,
       dayOfMonth: 5 as string | number,
-      since: new Date(`${month}-15T12:00:00`),
+      since: new Date(`${month}-15T12:00:00`) as Date | string,
       repeats: false,
-      date: new Date(`${month}-15T12:00:00`),
+      date: new Date(`${month}-15T12:00:00`) as Date | string,
     },
     validate: {
       description: (v) => (v.trim() ? null : 'Descreva a entrada.'),
