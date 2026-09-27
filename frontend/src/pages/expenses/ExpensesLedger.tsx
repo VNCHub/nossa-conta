@@ -858,7 +858,7 @@ function ExpenseForm({
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: {
-      date: new Date(`${month}-15T12:00:00`),
+      date: new Date(`${month}-15T12:00:00`) as Date | string,
       paymentMethod: null as PaymentMethod | null,
       category: null as CategoryId | null,
       expenseType: null as ExpenseType | null,
