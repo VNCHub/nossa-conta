@@ -34,13 +34,17 @@ export default function Shell() {
       // needs its 60px on mobile to open the nav.
       header={{ height: isAdminScreen ? { base: 60, sm: 0 } : 60 }}
       navbar={{ width: 236, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-      padding="lg"
+      padding={{ base: 'sm', sm: 'lg' }}
     >
       <AppShell.Header bg="var(--gf-card)">
-        <Group h="100%" px="md" justify="space-between">
-          <Group gap="sm">
+        <Group h="100%" px="md" justify="space-between" wrap="nowrap" className="safe-x">
+          <Group gap="sm" wrap="nowrap">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
-            <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
+            {/* With the month selector present there is no room for the title on
+                a 360px screen; the drawer already shows the brand. */}
+            {isAdminScreen && (
+              <Text ff="'Newsreader', Georgia, serif" fz={20} hiddenFrom="sm">Nossa Conta</Text>
+            )}
           </Group>
           {!isAdminScreen && (
             <MonthNav
@@ -53,7 +57,7 @@ export default function Shell() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar bg="var(--gf-ink)" p="md" style={{ border: 'none' }}>
+      <AppShell.Navbar bg="var(--gf-ink)" p="md" className="safe-nav" style={{ border: 'none' }}>
         <AppShell.Section>
           <Text ff="'Newsreader', Georgia, serif" fz={20} c="#fff" lh={1.2}>
             Nossa Conta
@@ -111,18 +115,18 @@ export default function Shell() {
             {user && <Avatar user={user} />}
             <Text c="#fff" size="md">{user?.name}</Text>
           </Group>
-          <Stack gap={4}>
-            <UnstyledButton component={RouterLink} to="/perfil" onClick={close}>
+          <Stack gap={0}>
+            <UnstyledButton component={RouterLink} to="/perfil" onClick={close} className="rail-tap">
               <Text c="#B9CCC5" size="sm" td="underline">Meu perfil</Text>
             </UnstyledButton>
-            <UnstyledButton onClick={() => void signOut()}>
+            <UnstyledButton onClick={() => void signOut()} className="rail-tap">
               <Text c="#B9CCC5" size="sm" td="underline">Sair da conta</Text>
             </UnstyledButton>
           </Stack>
         </AppShell.Section>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main className="safe-main">
         <div style={{ maxWidth: 1320, marginInline: 'auto' }}>
           <Outlet />
         </div>

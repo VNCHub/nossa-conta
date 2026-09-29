@@ -20,7 +20,7 @@ export function Donut({
   const total = fixed + optional + oneOff;
 
   return (
-    <Group gap="xl" wrap="wrap">
+    <Group gap="lg" wrap="wrap">
       {total > 0 ? (
         <DonutChart
           data={[

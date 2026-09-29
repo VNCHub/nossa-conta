@@ -53,3 +53,46 @@ body {
   color: #fff !important;
   font-weight: 600;
 }
+
+/* Mobile: touch targets, notch-safe edges and a title that fits 360px. */
+.rail-tap {
+  display: block;
+  padding-block: 8px;
+}
+.safe-x {
+  padding-left: max(var(--mantine-spacing-md), env(safe-area-inset-left));
+  padding-right: max(var(--mantine-spacing-md), env(safe-area-inset-right));
+}
+/* AppShell.Main: a fixed padding-left would override the navbar offset Mantine
+   reserves on desktop, so the left inset is only applied below the breakpoint. */
+.safe-main {
+  padding-right: max(var(--app-shell-padding), env(safe-area-inset-right));
+  padding-bottom: calc(var(--app-shell-padding) + env(safe-area-inset-bottom));
+}
+@media (max-width: 48em) {
+  .safe-main {
+    padding-left: max(var(--app-shell-padding), env(safe-area-inset-left));
+  }
+}
+.safe-nav {
+  padding-bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom));
+}
+@media (max-width: 48em) {
+  .page-title {
+    font-size: 26px;
+  }
+  .rail-link {
+    min-height: 44px;
+  }
+}
+@media (pointer: coarse), (max-width: 48em) {
+  .mantine-ActionIcon-root,
+  .mantine-Burger-root,
+  .mantine-PasswordInput-visibilityToggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .mantine-Tabs-tab {
+    min-height: 44px;
+  }
+}

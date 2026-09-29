@@ -15,7 +15,7 @@ import {
   Title,
 } from '@mantine/core';
 import { DatePickerInput, MonthPickerInput } from '@mantine/dates';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import type { IncomeDTO } from '@shared/contracts';
 import type { IncomeType } from '@shared/domain';
@@ -39,6 +39,7 @@ export default function Income() {
   const incomes = useIncomes();
   const invalidate = [keys.incomes, keys.statement(month)];
   const [createOpen, createModal] = useDisclosure(false);
+  const isMobile = useMediaQuery('(max-width: 48em)');
 
   const create = useAppMutation(
     (body: Record<string, unknown>) => api.post<IncomeDTO>('/entradas', body),
@@ -114,11 +115,11 @@ export default function Income() {
         title="Minhas entradas"
         description="Recorrentes valem todo mês, dentro do período declarado. Pontuais entram só no mês da data."
         action={
-          <Group wrap="nowrap">
-            <Card>
+          <Group wrap="wrap" gap="sm" style={{ flex: '1 1 auto' }}>
+            <Card style={{ flex: '1 1 200px' }}>
               <Metric label={`Total em ${monthLabel(month)}`} value={brl(total)} />
             </Card>
-            <Button onClick={createModal.open}>Lançar entrada</Button>
+            <Button onClick={createModal.open} size="md" w={{ base: '100%', sm: 'auto' }} style={{ flexShrink: 0 }}>Lançar entrada</Button>
           </Group>
         }
       />
@@ -164,7 +165,7 @@ export default function Income() {
         </Grid.Col>
       </Grid>
 
-      <Modal opened={createOpen} onClose={createModal.close} title="Lançar entrada" size="lg" centered>
+      <Modal opened={createOpen} onClose={createModal.close} title="Lançar entrada" size="lg" centered fullScreen={isMobile}>
         <IncomeForm month={month} onSubmit={(body) => create.mutate(body)} loading={create.isPending} onClose={createModal.close} />
       </Modal>
     </>
@@ -187,7 +188,7 @@ function RecurringRow({
       style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Text>{item.description}</Text>
+        <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
         <Group gap={6} mt={6}>
           <Badge variant="light" size="sm" tt="none">todo dia {item.dayOfMonth}</Badge>
           {item.since && (
@@ -202,9 +203,9 @@ function RecurringRow({
           )}
         </Group>
       </div>
-      <Text className="num" fw={600}>{brl(item.amount)}</Text>
+      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}>{brl(item.amount)}</Text>
       <ActionIcon
-        variant="subtle" color="brick" aria-label={`Remover ${item.description}`}
+        variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onDelete}
       >
         <TrashIcon />
@@ -220,12 +221,12 @@ function OneOffRow({ item, isLast, onRemove }: { item: IncomeDTO; isLast: boolea
       style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Text>{item.description}</Text>
+        <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
         <Text size="sm" c="dimmed">{(item.date ?? '').split('-').reverse().join('/')}</Text>
       </div>
-      <Text className="num" fw={600}>{brl(item.amount)}</Text>
+      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}>{brl(item.amount)}</Text>
       <ActionIcon
-        variant="subtle" color="brick" aria-label={`Remover ${item.description}`}
+        variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onRemove}
       >
         <TrashIcon />
@@ -281,6 +282,12 @@ function IncomeForm({
 
   const type = form.getValues().type;
 
+  // iOS Safari zooms the whole page in on focus when an input's font is under
+  // 16px — jarring on a touchscreen form. 16px here keeps zoom-on-focus off.
+  // minHeight 44px keeps every field a comfortable touch target.
+  const noZoomStyles = { input: { fontSize: '16px', minHeight: 44 } };
+  const pickerType = useMediaQuery('(max-width: 48em)') ? 'modal' : 'popover';
+
   return (
     <form onSubmit={submit}>
       <Grid gap="md" align="flex-end">
@@ -291,18 +298,21 @@ function IncomeForm({
               { value: 'recurring', label: 'Recorrente' },
               { value: 'oneOff', label: 'Pontual' },
             ]}
+            styles={noZoomStyles}
             key={form.key('type')} {...form.getInputProps('type')}
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6 }}>
           <NumberInput
             label="Valor" prefix="R$ " decimalScale={2} decimalSeparator="," thousandSeparator="."
-            min={0} placeholder="0,00" key={form.key('amount')} {...form.getInputProps('amount')}
+            min={0} placeholder="0,00" inputMode="decimal" styles={noZoomStyles}
+            key={form.key('amount')} {...form.getInputProps('amount')}
           />
         </Grid.Col>
         <Grid.Col span={12}>
           <TextInput
             label="Descrição" placeholder="Salário, freela, aluguel recebido…"
+            styles={noZoomStyles}
             key={form.key('description')} {...form.getInputProps('description')}
           />
         </Grid.Col>
@@ -310,32 +320,41 @@ function IncomeForm({
         {type === 'recurring' ? (
           <>
             <Grid.Col span={{ base: 12, sm: 4 }}>
-              <NumberInput label="Dia do mês" min={1} max={31} key={form.key('dayOfMonth')} {...form.getInputProps('dayOfMonth')} />
+              <NumberInput
+                label="Dia do mês" min={1} max={31} inputMode="numeric" styles={noZoomStyles}
+                key={form.key('dayOfMonth')} {...form.getInputProps('dayOfMonth')}
+              />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 4 }}>
               <MonthPickerInput
-                label="Vale a partir de" valueFormat="MM/YYYY"
+                label="Vale a partir de" valueFormat="MM/YYYY" dropdownType={pickerType} styles={noZoomStyles}
                 key={form.key('since')} {...form.getInputProps('since')}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 4 }}>
+              {/* mt aligns the checkbox with the labels beside it in the 3-up
+                  desktop row; on mobile the fields stack, so that offset would
+                  just leave a dead gap above it. */}
               <Checkbox
-                mt={28}
-                label="Repetir nos meses seguintes"
+                mt={{ base: 4, sm: 28 }}
+                size="md" label="Repetir nos meses seguintes"
                 key={form.key('repeats')} {...form.getInputProps('repeats', { type: 'checkbox' })}
               />
             </Grid.Col>
           </>
         ) : (
           <Grid.Col span={{ base: 12, sm: 6 }}>
-            <DatePickerInput label="Data" valueFormat="DD/MM/YYYY" key={form.key('date')} {...form.getInputProps('date')} />
+            <DatePickerInput
+              label="Data" valueFormat="DD/MM/YYYY" dropdownType={pickerType} styles={noZoomStyles}
+              key={form.key('date')} {...form.getInputProps('date')}
+            />
           </Grid.Col>
         )}
       </Grid>
 
-      <Group justify="flex-end" mt="lg">
-        <Button variant="default" onClick={onClose}>Cancelar</Button>
-        <Button type="submit" loading={loading}>Adicionar</Button>
+      <Group justify="flex-end" mt="lg" grow preventGrowOverflow={false}>
+        <Button variant="default" size="md" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" size="md" loading={loading}>Adicionar</Button>
       </Group>
     </form>
   );

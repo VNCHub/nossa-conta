@@ -5,6 +5,14 @@ import { useUpdateProfile } from '../api/hooks';
 import { PageHeader } from '../components/ui';
 import { notifyError, notifySuccess } from '../feedback';
 
+// iOS Safari zooms the whole page in when a focused input's font-size is
+// below 16px — the theme's default sizes are 13.5–14.5px, so every field on
+// this screen needs the override to stay usable on a phone.
+const noZoomInputStyles = { input: { fontSize: 16, minHeight: 44 } };
+
+// Mantine's "md" button is 42px tall; 44px is the minimum comfortable touch target.
+const touchButtonStyles = { root: { minHeight: 44 } };
+
 export default function Profile() {
   const { user, reloadUser } = useAuth();
   const updateProfile = useUpdateProfile();
@@ -54,39 +62,64 @@ export default function Profile() {
     <Stack gap="xl">
       <PageHeader title="Meu perfil" description="Seus dados de conta." />
 
-      <Card component="form" onSubmit={submitName} maw={420}>
+      <Card component="form" onSubmit={submitName} maw={420} w="100%">
         <Stack gap="md">
-          <TextInput label="Nome" key={nameForm.key('name')} {...nameForm.getInputProps('name')} />
-          <TextInput label="E-mail" value={user?.email ?? ''} disabled />
-          <Button type="submit" loading={updateProfile.isPending} fullWidth>
+          <TextInput
+            label="Nome"
+            size="md"
+            autoComplete="name"
+            autoCapitalize="words"
+            styles={noZoomInputStyles}
+            key={nameForm.key('name')}
+            {...nameForm.getInputProps('name')}
+          />
+          <TextInput
+            label="E-mail"
+            description="Não pode ser alterado"
+            size="md"
+            styles={noZoomInputStyles}
+            value={user?.email ?? ''}
+            disabled
+          />
+          <Button type="submit" size="md" loading={updateProfile.isPending} styles={touchButtonStyles} fullWidth>
             Salvar nome
           </Button>
         </Stack>
       </Card>
 
-      <Divider maw={420} label="Trocar senha" labelPosition="left" />
+      <Divider maw={420} w="100%" label="Trocar senha" labelPosition="left" />
 
-      <Card component="form" onSubmit={submitPassword} maw={420}>
+      <Card component="form" onSubmit={submitPassword} maw={420} w="100%">
         <Stack gap="md">
+          {/* Hidden username so mobile password managers associate the saved
+              credential with "Senha atual" and offer to fill it in — typing a
+              real password on a phone keyboard is the worst part of this form. */}
+          <input type="text" name="email" autoComplete="username" value={user?.email ?? ''} readOnly hidden />
           <PasswordInput
             label="Senha atual"
+            size="md"
             autoComplete="current-password"
+            styles={noZoomInputStyles}
             key={passwordForm.key('currentPassword')}
             {...passwordForm.getInputProps('currentPassword')}
           />
           <PasswordInput
             label="Nova senha"
+            size="md"
             autoComplete="new-password"
+            styles={noZoomInputStyles}
             key={passwordForm.key('newPassword')}
             {...passwordForm.getInputProps('newPassword')}
           />
           <PasswordInput
             label="Confirme a nova senha"
+            size="md"
             autoComplete="new-password"
+            styles={noZoomInputStyles}
             key={passwordForm.key('confirm')}
             {...passwordForm.getInputProps('confirm')}
           />
-          <Button type="submit" loading={updateProfile.isPending} fullWidth>
+          <Button type="submit" size="md" loading={updateProfile.isPending} styles={touchButtonStyles} fullWidth>
             Salvar senha
           </Button>
         </Stack>

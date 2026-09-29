@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Button, Group, Modal, SegmentedControl, Stack, Text } from '@mantine/core';
+import { Button, Group, Modal, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { useMediaQuery } from '@mantine/hooks';
 import type { ExpensesExportDTO } from '@shared/contracts';
 import { ApiError, api } from '../../api/client';
 import { notifyError, notifySuccess } from '../../feedback';
@@ -25,6 +26,7 @@ function downloadJson(data: unknown, filename: string) {
 }
 
 export function ExportExpensesModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const [scope, setScope] = useState<Scope>('meus');
   const [start, setStart] = useState<Date | null>(null);
   const [end, setEnd] = useState<Date | null>(null);
@@ -60,12 +62,13 @@ export function ExportExpensesModal({ opened, onClose }: { opened: boolean; onCl
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Exportar dados" size="md" centered>
+    <Modal opened={opened} onClose={onClose} title="Exportar dados" size="md" centered fullScreen={isMobile}>
       <Stack gap="md">
         <div>
           <Text size="sm" fw={500} c="dimmed" mb={6}>Gastos</Text>
           <SegmentedControl
             fullWidth
+            size="md"
             value={scope}
             onChange={(v) => setScope(v as Scope)}
             data={[
@@ -75,24 +78,26 @@ export function ExportExpensesModal({ opened, onClose }: { opened: boolean; onCl
           />
         </div>
 
-        <Group grow>
+        <SimpleGrid cols={{ base: 1, xs: 2 }} spacing="md">
           <DatePickerInput
+            dropdownType={isMobile ? 'modal' : 'popover'} styles={{ input: { fontSize: 16 } }}
             label="Data inicial" placeholder="Desde o início" valueFormat="DD/MM/YYYY"
             clearable value={start} onChange={(v) => setStart(toDate(v))}
           />
           <DatePickerInput
+            dropdownType={isMobile ? 'modal' : 'popover'} styles={{ input: { fontSize: 16 } }}
             label="Data final" placeholder="Até hoje" valueFormat="DD/MM/YYYY"
             clearable value={end} onChange={(v) => setEnd(toDate(v))}
           />
-        </Group>
+        </SimpleGrid>
 
         <Text size="xs" c="dimmed">
           Gera um arquivo .json com os gastos no período escolhido — para reimportar depois em outro ambiente, use a opção "Interno" na aba Importações.
         </Text>
 
-        <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={onClose}>Cancelar</Button>
-          <Button onClick={submit} loading={loading}>Exportar</Button>
+        <Group justify="flex-end" grow={isMobile ?? false} mt="md">
+          <Button h={isMobile ? 44 : undefined} variant="default" onClick={onClose}>Cancelar</Button>
+          <Button h={isMobile ? 44 : undefined} onClick={submit} loading={loading}>Exportar</Button>
         </Group>
       </Stack>
     </Modal>

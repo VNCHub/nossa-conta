@@ -1,4 +1,4 @@
-import { Card, Grid, Group, Progress, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Box, Card, Flex, Grid, Group, Progress, Stack, Text, Title } from '@mantine/core';
 import { brl, monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
@@ -47,20 +47,26 @@ export default function FamilyDashboard() {
         {calc.transfers.length === 0 ? (
           <p className="settlement" style={{ color: '#fff' }}>Ninguém deve nada a ninguém.</p>
         ) : (
-          <Stack gap="xs">
+          // No mobile a fonte editorial (30px/23px) quebra linha com mais
+          // frequência; um gap maior evita que duas transferências pareçam um
+          // parágrafo só.
+          <Flex direction="column" gap={{ base: 'sm', xs: 'xs' }}>
             {calc.transfers.map((t, i) => (
               <p className="settlement" key={i} style={{ color: '#fff' }}>
                 {nameOf(t.from)} paga <span style={{ color: '#F0C355' }}>{brl(t.amount)}</span> para {nameOf(t.to)}
               </p>
             ))}
-          </Stack>
+          </Flex>
         )}
       </Card>
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
-        <Card><Metric label="Entrou na casa" value={brl(totalIncome)} /></Card>
-        <Card><Metric label="Gasto total" value={brl(calc.monthTotal)} /></Card>
-        <Card>
+      {/* Duas colunas no mobile: Entrou/Gasto lado a lado e Sobrou em largura
+          total, em vez de três cards empilhados ocupando uma tela inteira. */}
+      <Grid gap={{ base: 'xs', sm: 'md' }} mb="lg">
+        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Entrou na casa" value={brl(totalIncome)} /></Card></Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Gasto total" value={brl(calc.monthTotal)} /></Card></Grid.Col>
+        <Grid.Col span={{ base: 12, sm: 4 }}>
+        <Card h="100%">
           <Metric
             label="Sobrou"
             value={brl(leftOver)}
@@ -68,7 +74,8 @@ export default function FamilyDashboard() {
             detail={`${totalIncome ? pct(leftOver / totalIncome) : '0%'} do que entrou`}
           />
         </Card>
-      </SimpleGrid>
+        </Grid.Col>
+      </Grid>
 
       <Card mb="lg">
         <Title order={3} mb="sm">Quem recebeu e quem gastou</Title>
@@ -78,25 +85,40 @@ export default function FamilyDashboard() {
             if (!d) return null;
             const balance = calc.balance[u.id] ?? 0;
             return (
-              <Group
-                key={u.id} wrap="nowrap" py="sm" align="flex-start"
+              <Flex
+                key={u.id}
+                direction={{ base: 'column', xs: 'row' }}
+                gap={{ base: 4, xs: 'md' }}
+                wrap="nowrap"
+                py="sm"
                 style={i < members.length - 1 ? { borderBottom: '1px solid #EEF1EC' } : undefined}
               >
-                <Avatar user={u} lg />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text fw={600}>{u.name}</Text>
-                  <Text size="sm" c="dimmed">
-                    entrada {brl(d.income)} · saiu do bolso {brl(d.paid)}
+                <Group wrap="nowrap" gap="sm" align="flex-start" style={{ flex: 1, minWidth: 0 }}>
+                  <Avatar user={u} lg />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600}>{u.name}</Text>
+                    {/* Uma linha por dado no mobile: o "·" quebrava no meio de um valor. */}
+                    <Flex direction={{ base: 'column', xs: 'row' }} columnGap="xs" c="dimmed" fz="sm">
+                      <span>entrada {brl(d.income)}</span>
+                      <span>
+                        <Box component="span" visibleFrom="xs">· </Box>saiu do bolso {brl(d.paid)}
+                      </span>
+                    </Flex>
+                    <Progress value={(d.share / maxShare) * 100} color={u.color} size="sm" radius="sm" mt={6} />
+                  </div>
+                </Group>
+                {/* Empilhado no mobile, o bloco fica alinhado à esquerda, abaixo do
+                    nome — alinhar à direita aqui deixaria os números "soltos"
+                    na ponta oposta da tela, quebrando a leitura de cima para baixo. */}
+                <Box ta={{ base: 'left', xs: 'right' }} pl={{ base: 52, xs: 0 }}>
+                  <Text className="num" fw={600}>
+                    <Text span size="sm" c="dimmed" fw={400} hiddenFrom="xs">cota </Text>{brl(d.share)}
                   </Text>
-                  <Progress value={(d.share / maxShare) * 100} color={u.color} size="sm" radius="sm" mt={6} />
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <Text className="num" fw={600}>{brl(d.share)}</Text>
                   <Text className="num" size="sm" c={balance >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
                     {balance >= 0 ? 'a receber ' : 'a pagar '}{brl(Math.abs(balance))}
                   </Text>
-                </div>
-              </Group>
+                </Box>
+              </Flex>
             );
           })}
         </Stack>
