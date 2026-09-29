@@ -41,7 +41,7 @@ export function MonthNav({
   max?: string;
 }) {
   return (
-    <Group gap="xs">
+    <Group gap="xs" wrap="nowrap">
       <ActionIcon
         variant="default"
         size="lg"
@@ -51,7 +51,7 @@ export function MonthNav({
       >
         ←
       </ActionIcon>
-      <Text className="num" fw={600} ta="center" tt="capitalize" w={140}>
+      <Text className="num" fw={600} ta="center" tt="capitalize" w={140} maw="34vw" miw={104} truncate>
         {monthLabel(month)}
       </Text>
       <ActionIcon
@@ -178,9 +178,9 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <Group justify="space-between" align="center" wrap="wrap" mb="lg">
+    <Group justify="space-between" align="center" wrap="wrap" mb="lg" gap="sm">
       <div>
-        <Title order={1}>{title}</Title>
+        <Title order={1} className="page-title">{title}</Title>
         {description && <Text c="dimmed" size="md" mt={4}>{description}</Text>}
       </div>
       {action}

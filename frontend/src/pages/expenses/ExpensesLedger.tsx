@@ -22,7 +22,7 @@ import {
 } from '@mantine/core';
 import { DatePicker, DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import type { ExpenseDTO, MemberDTO, RuleDTO } from '@shared/contracts';
 import {
   CATEGORIES,
@@ -45,11 +45,23 @@ import { ExportExpensesModal } from './ExportExpensesModal';
 type Filter = 'all' | 'mine' | 'shared';
 type SortKey = 'date' | 'owner' | 'description' | 'category' | 'expenseType' | 'paymentMethod' | 'amount';
 type Sort = { key: SortKey; dir: 'asc' | 'desc' };
+type PatchOverrides = Partial<{
+  date: string;
+  paymentMethod: PaymentMethod | null;
+  category: CategoryId | null;
+  expenseType: ExpenseType | null;
+  description: string;
+  amount: number;
+  shared: boolean;
+  participants: string[];
+  ruleId: string | null;
+}>;
 
 /** Matches the plain <Text size="md"> look exactly, so switching to edit mode causes no layout shift. */
 const inlineInputStyle: CSSProperties = {
   font: 'inherit',
-  fontSize: 'var(--mantine-font-size-md)',
+  // 16px, not the theme's md: below that iOS Safari zooms the page on focus.
+  fontSize: 16,
   color: 'inherit',
   background: 'transparent',
   border: 'none',
@@ -58,6 +70,18 @@ const inlineInputStyle: CSSProperties = {
   padding: 0,
   width: '100%',
 };
+
+/**
+ * Tap-target floor for the click-to-edit triggers: 44px on phones (thumb
+ * accuracy), natural size on desktop where the table rows are already 64px.
+ */
+const touchTarget = {
+  mih: { base: 44, sm: 'auto' },
+  style: { display: 'flex', alignItems: 'center', cursor: 'pointer' },
+} as const;
+
+/** Inputs must render at 16px on phones or iOS Safari zooms in on focus. */
+const inputStyles = { input: { fontSize: 16 } };
 
 const firstName = (name: string) => name.split(' ')[0];
 
@@ -95,6 +119,7 @@ export default function ExpensesLedger() {
   const [sort, setSort] = useState<Sort | null>(null);
   const [createOpen, createModal] = useDisclosure(false);
   const [exportOpen, exportModal] = useDisclosure(false);
+  const isMobile = useMediaQuery('(max-width: 48em)');
 
   const remove = useAppMutation(
     (id: string) => api.delete(`/gastos/${id}`),
@@ -121,20 +146,7 @@ export default function ExpensesLedger() {
     return expenses.error ? <Empty>{expenses.error.message}</Empty> : <Loading />;
   }
 
-  const patchField = (
-    e: ExpenseDTO,
-    overrides: Partial<{
-      date: string;
-      paymentMethod: PaymentMethod | null;
-      category: CategoryId | null;
-      expenseType: ExpenseType | null;
-      description: string;
-      amount: number;
-      shared: boolean;
-      participants: string[];
-      ruleId: string | null;
-    }>,
-  ) => {
+  const patchField = (e: ExpenseDTO, overrides: PatchOverrides) => {
     const merged = {
       date: e.date,
       paymentMethod: e.paymentMethod,
@@ -213,6 +225,19 @@ export default function ExpensesLedger() {
       return null;
     });
 
+  const sortOptions = [
+    { value: 'default', label: 'Pendentes primeiro' },
+    { value: 'date:asc', label: 'Data (mais antiga)' },
+    { value: 'date:desc', label: 'Data (mais recente)' },
+    { value: 'amount:desc', label: 'Maior valor' },
+    { value: 'amount:asc', label: 'Menor valor' },
+  ];
+  const onPickSort = (v: string | null) => {
+    if (!v || v === 'default') return setSort(null);
+    const [key, dir] = v.split(':');
+    setSort({ key: key as SortKey, dir: dir as 'asc' | 'desc' });
+  };
+
   const askDelete = (e: ExpenseDTO) =>
     confirmDelete({
       title: 'Excluir gasto',
@@ -222,7 +247,26 @@ export default function ExpensesLedger() {
 
   return (
     <Card>
-      <Group justify="space-between" mb="md" wrap="wrap">
+      <Stack hiddenFrom="sm" gap="sm" mb="md">
+        <Title order={3} fz={20}>Lançamentos</Title>
+        <SegmentedControl
+          fullWidth
+          size="md"
+          value={filter}
+          onChange={(v) => setFilter(v as Filter)}
+          data={[
+            { value: 'all', label: 'Todos' },
+            { value: 'mine', label: 'Meus' },
+            { value: 'shared', label: 'Divididos' },
+          ]}
+        />
+        <Group grow gap="sm">
+          <Button size="md" variant="default" onClick={exportModal.open}>Exportar</Button>
+          <Button size="md" onClick={createModal.open}>Lançar gasto</Button>
+        </Group>
+      </Stack>
+
+      <Group justify="space-between" mb="md" wrap="wrap" visibleFrom="sm">
         <Title order={3} fz={20}>Lançamentos</Title>
         <Group gap="sm" wrap="wrap">
           <SegmentedControl
@@ -241,10 +285,24 @@ export default function ExpensesLedger() {
 
       <TextInput
         mb="md"
-        placeholder="Buscar por quem pagou, descrição, categoria, tipo, pagamento ou valor…"
+        size={isMobile ? 'md' : undefined}
+        styles={inputStyles}
+        placeholder={isMobile ? 'Buscar gastos…' : 'Buscar por quem pagou, descrição, categoria, tipo, pagamento ou valor…'}
         value={search}
         onChange={(e) => setSearch(e.currentTarget.value)}
         leftSection={<SearchIcon />}
+      />
+
+      <Select
+        hiddenFrom="sm"
+        mb="md"
+        size="md"
+        aria-label="Ordenar lançamentos"
+        styles={inputStyles}
+        allowDeselect={false}
+        data={sortOptions}
+        value={sort ? `${sort.key}:${sort.dir}` : 'default'}
+        onChange={onPickSort}
       />
 
       {sorted.length === 0 ? (
@@ -254,7 +312,8 @@ export default function ExpensesLedger() {
             : 'Nenhum gasto neste filtro.'}
         </Empty>
       ) : (
-        <Table.ScrollContainer minWidth={980}>
+        <>
+        <Table.ScrollContainer minWidth={980} visibleFrom="sm">
           <Table
             highlightOnHover verticalSpacing="sm" withRowBorders={false}
             styles={{ td: { height: 64, verticalAlign: 'middle' } }}
@@ -374,9 +433,28 @@ export default function ExpensesLedger() {
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
+
+        <Stack hiddenFrom="sm" gap="sm">
+          {sorted.map((e) => (
+            <MobileExpenseCard
+              key={e.id}
+              expense={e}
+              owner={memberOf(e.userId)}
+              members={members}
+              rules={rules}
+              canEdit={e.userId === user?.id}
+              onPatch={(overrides) => patchField(e, overrides)}
+              onDelete={() => askDelete(e)}
+            />
+          ))}
+        </Stack>
+        </>
       )}
 
-      <Modal opened={createOpen} onClose={createModal.close} title="Lançar gasto" size="lg" centered>
+      <Modal
+        opened={createOpen} onClose={createModal.close} title="Lançar gasto"
+        size="lg" centered fullScreen={isMobile}
+      >
         <ExpenseForm month={month} members={members} rules={rules} onClose={createModal.close} />
       </Modal>
 
@@ -451,6 +529,98 @@ function PaymentMethodChip({ method, clickable }: { method: PaymentMethod; click
     >
       {method}
     </Badge>
+  );
+}
+
+/**
+ * Mobile replacement for one table row — same editable fields (click opens
+ * the same popovers as the desktop table), stacked into a card instead of
+ * spread across nine columns that would otherwise force sideways scrolling.
+ */
+function MobileExpenseCard({
+  expense: e,
+  owner,
+  members,
+  rules,
+  canEdit,
+  onPatch,
+  onDelete,
+}: {
+  expense: ExpenseDTO;
+  owner?: MemberDTO;
+  members: MemberDTO[];
+  rules: RuleDTO[];
+  canEdit: boolean;
+  onPatch: (overrides: PatchOverrides) => void;
+  onDelete: () => void;
+}) {
+  const rowBg = e.complete ? 'var(--mantine-color-petrol-1)' : 'var(--mantine-color-brick-1)';
+
+  return (
+    <Card p="sm" radius="md" style={{ backgroundColor: rowBg }}>
+      <Group justify="space-between" align="center" wrap="nowrap" mb={6}>
+        <Group gap={7} wrap="nowrap">
+          {owner && <Avatar user={owner} />}
+          <Text size="md">{owner ? firstName(owner.name) : '—'}</Text>
+        </Group>
+        <Group gap={4} wrap="nowrap">
+          <EditableDate value={e.date} canEdit={canEdit} onSave={(v) => onPatch({ date: v })} />
+          {canEdit && (
+            <ActionIcon
+              variant="subtle" color="brick" size={44}
+              aria-label={`Excluir ${e.description || 'gasto'}`}
+              onClick={onDelete}
+            >
+              <TrashIcon />
+            </ActionIcon>
+          )}
+        </Group>
+      </Group>
+
+      <div style={{ marginBottom: 8 }}>
+        <EditableText
+          value={e.description}
+          placeholder="Sem descrição"
+          canEdit={canEdit}
+          onSave={(v) => onPatch({ description: v })}
+        />
+      </div>
+
+      <Group gap="xs" mb={10} wrap="wrap">
+        <EditableBadge
+          value={e.category}
+          options={CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
+          canEdit={canEdit}
+          onSave={(v) => onPatch({ category: v as CategoryId | null })}
+          render={(v, clickable) => <CategoryChip id={v} clickable={clickable} />}
+        />
+        <EditableBadge
+          value={e.expenseType}
+          options={[
+            { value: 'fixed', label: 'Fixo' },
+            { value: 'optional', label: 'Opcional' },
+            { value: 'oneOff', label: 'Pontual' },
+          ]}
+          canEdit={canEdit}
+          onSave={(v) => onPatch({ expenseType: v as ExpenseType | null })}
+          render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional' | 'oneOff'} clickable={clickable} />}
+        />
+        <EditableBadge
+          value={e.paymentMethod}
+          options={PAYMENT_METHODS.map((p) => ({ value: p, label: p }))}
+          canEdit={canEdit}
+          onSave={(v) => onPatch({ paymentMethod: v as PaymentMethod | null })}
+          render={(v, clickable) => <PaymentMethodChip method={v as PaymentMethod} clickable={clickable} />}
+        />
+      </Group>
+
+      <Group justify="space-between" align="flex-end" wrap="nowrap" gap="sm">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <DivisaoEditor expense={e} members={members} rules={rules} canEdit={canEdit} onSave={onPatch} />
+        </div>
+        <EditableAmount value={e.amount} canEdit={canEdit} onSave={(v) => onPatch({ amount: v })} />
+      </Group>
+    </Card>
   );
 }
 
@@ -541,7 +711,7 @@ function EditableDate({
       opened={opened}
       onClose={() => setOpened(false)}
       target={
-        <UnstyledButton onClick={() => setOpened((o) => !o)} style={{ cursor: 'pointer' }}>
+        <UnstyledButton onClick={() => setOpened((o) => !o)} mih={touchTarget.mih} style={touchTarget.style}>
           <Text size="md">{display}</Text>
         </UnstyledButton>
       }
@@ -606,7 +776,11 @@ function EditableText({
   }
 
   return (
-    <UnstyledButton onClick={() => { setDraft(value); setEditing(true); }} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
+    <UnstyledButton
+      onClick={() => { setDraft(value); setEditing(true); }}
+      mih={touchTarget.mih}
+      style={{ ...touchTarget.style, width: '100%', textAlign: 'left' }}
+    >
       {value ? <Text size="md">{value}</Text> : <Text size="md" c="dimmed">{placeholder}</Text>}
     </UnstyledButton>
   );
@@ -662,7 +836,9 @@ function EditableAmount({
   return (
     <UnstyledButton
       onClick={() => { setDraft(String(value || '')); setEditing(true); }}
-      style={{ width: '100%', textAlign: 'right', cursor: 'pointer' }}
+      mih={touchTarget.mih}
+      miw={{ base: 44, sm: 'auto' }}
+      style={{ ...touchTarget.style, width: '100%', textAlign: 'right', justifyContent: 'flex-end' }}
     >
       {value > 0 ? (
         <Text size="md" fw={600} span>{brl(value)}</Text>
@@ -706,7 +882,7 @@ function EditableBadge({
       onClose={() => setOpened(false)}
       width={150}
       target={
-        <UnstyledButton onClick={() => setOpened((o) => !o)} style={{ cursor: 'pointer' }}>
+        <UnstyledButton onClick={() => setOpened((o) => !o)} mih={touchTarget.mih} style={touchTarget.style}>
           {value ? render(value, true) : <Text size="md" c="dimmed">A definir</Text>}
         </UnstyledButton>
       }
@@ -717,9 +893,10 @@ function EditableBadge({
             key={o.value}
             onClick={() => { setOpened(false); onSave(o.value); }}
             px="xs" py={6}
+            mih={touchTarget.mih}
             style={{
+              ...touchTarget.style,
               borderRadius: 6,
-              cursor: 'pointer',
               background: o.value === value ? 'var(--mantine-color-petrol-0)' : undefined,
             }}
           >
@@ -727,7 +904,7 @@ function EditableBadge({
           </UnstyledButton>
         ))}
         {value && (
-          <UnstyledButton onClick={() => { setOpened(false); onSave(null); }} px="xs" py={6} style={{ borderRadius: 6, cursor: 'pointer' }}>
+          <UnstyledButton onClick={() => { setOpened(false); onSave(null); }} px="xs" py={6} mih={touchTarget.mih} style={{ ...touchTarget.style, borderRadius: 6 }}>
             <Text size="sm" c="dimmed">Limpar</Text>
           </UnstyledButton>
         )}
@@ -754,6 +931,7 @@ function DivisaoEditor({
   canEdit: boolean;
   onSave: (patch: { shared: boolean; participants: string[]; ruleId: string | null }) => void;
 }) {
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const [opened, setOpened] = useState(false);
   const [shared, setShared] = useState(expense.shared);
   const [participants, setParticipants] = useState<string[]>(expense.participants);
@@ -799,7 +977,11 @@ function DivisaoEditor({
       onClose={() => setOpened(false)}
       width={280}
       target={
-        <UnstyledButton onClick={() => (opened ? setOpened(false) : open())} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
+        <UnstyledButton
+          onClick={() => (opened ? setOpened(false) : open())}
+          mih={touchTarget.mih}
+          style={{ ...touchTarget.style, width: '100%', textAlign: 'left' }}
+        >
           {view}
         </UnstyledButton>
       }
@@ -815,12 +997,13 @@ function DivisaoEditor({
             <Chip.Group multiple value={participants} onChange={setParticipants}>
               <Group gap="xs">
                 {members.map((m) => (
-                  <Chip key={m.id} value={m.id} size="xs" color="petrol" variant="outline">{m.name}</Chip>
+                  <Chip key={m.id} value={m.id} size={isMobile ? 'lg' : 'xs'} color="petrol" variant="outline">{m.name}</Chip>
                 ))}
               </Group>
             </Chip.Group>
             <Select
               placeholder="Rateio" clearable
+              styles={inputStyles}
               description={rule?.description}
               data={rules.map((r) => ({ value: r.id, label: r.name }))}
               value={ruleId}
@@ -829,8 +1012,8 @@ function DivisaoEditor({
           </>
         )}
         <Group justify="flex-end" gap="xs" mt={4}>
-          <Button variant="default" size="xs" onClick={() => setOpened(false)}>Cancelar</Button>
-          <Button size="xs" onClick={save}>Salvar</Button>
+          <Button variant="default" size={isMobile ? 'md' : 'xs'} h={isMobile ? 44 : undefined} onClick={() => setOpened(false)}>Cancelar</Button>
+          <Button size={isMobile ? 'md' : 'xs'} h={isMobile ? 44 : undefined} onClick={save}>Salvar</Button>
         </Group>
       </Stack>
     </ClickPopover>
@@ -854,6 +1037,10 @@ function ExpenseForm({
   onClose: () => void;
 }) {
   const { user } = useAuth();
+  const isMobile = useMediaQuery('(max-width: 48em)');
+  // Phones: bigger inputs (16px avoids iOS zoom) and date pickers as a centered modal, not a popover that clips.
+  const fieldProps = { size: isMobile ? 'md' : undefined, styles: inputStyles } as const;
+  const dropdownType = isMobile ? 'modal' : 'popover';
 
   const form = useForm({
     mode: 'uncontrolled',
@@ -907,12 +1094,14 @@ function ExpenseForm({
       <Grid gap="md">
         <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
           <DatePickerInput
+            {...fieldProps} dropdownType={dropdownType}
             label="Data" valueFormat="DD/MM/YYYY"
             key={form.key('date')} {...form.getInputProps('date')}
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
           <Select
+            {...fieldProps}
             label="Pagamento" placeholder="A definir" clearable
             data={[...PAYMENT_METHODS]}
             key={form.key('paymentMethod')} {...form.getInputProps('paymentMethod')}
@@ -920,6 +1109,7 @@ function ExpenseForm({
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
           <Select
+            {...fieldProps}
             label="Categoria" placeholder="A definir" clearable
             data={CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
             key={form.key('category')} {...form.getInputProps('category')}
@@ -927,6 +1117,7 @@ function ExpenseForm({
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
           <Select
+            {...fieldProps}
             label="Tipo" placeholder="A definir" clearable
             data={[
               { value: 'fixed', label: 'Fixo' },
@@ -939,12 +1130,14 @@ function ExpenseForm({
 
         <Grid.Col span={{ base: 12, md: 8 }}>
           <TextInput
+            {...fieldProps}
             label="Descrição" placeholder="Aluguel, mercado, cinema…"
             key={form.key('description')} {...form.getInputProps('description')}
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 6, md: 4 }}>
           <NumberInput
+            {...fieldProps} inputMode="decimal"
             label="Valor" prefix="R$ " decimalScale={2} decimalSeparator="," thousandSeparator="."
             min={0} placeholder="0,00" key={form.key('amount')} {...form.getInputProps('amount')}
           />
@@ -964,13 +1157,14 @@ function ExpenseForm({
               <Chip.Group multiple key={form.key('participants')} {...form.getInputProps('participants')}>
                 <Group gap="xs">
                   {members.map((m) => (
-                    <Chip key={m.id} value={m.id} color="petrol" variant="outline">{m.name}</Chip>
+                    <Chip key={m.id} value={m.id} size={isMobile ? 'lg' : 'md'} color="petrol" variant="outline">{m.name}</Chip>
                   ))}
                 </Group>
               </Chip.Group>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 6 }}>
               <Select
+                {...fieldProps}
                 label="Rateio" placeholder="A definir" clearable
                 description={chosenRule?.description}
                 data={rules.map((r) => ({ value: r.id, label: r.name }))}
@@ -981,9 +1175,9 @@ function ExpenseForm({
         )}
       </Grid>
 
-      <Group justify="flex-end" mt="lg">
-        <Button variant="default" onClick={onClose}>Cancelar</Button>
-        <Button type="submit" loading={save.isPending}>Adicionar gasto</Button>
+      <Group justify="flex-end" grow={isMobile ?? false} mt="lg">
+        <Button h={isMobile ? 44 : undefined} variant="default" onClick={onClose}>Cancelar</Button>
+        <Button h={isMobile ? 44 : undefined} type="submit" loading={save.isPending}>Adicionar gasto</Button>
       </Group>
     </form>
   );

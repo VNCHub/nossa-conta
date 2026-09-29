@@ -13,7 +13,7 @@ import {
   UnstyledButton,
 } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import type { ImportedFileDTO, ImportResultDTO } from '@shared/contracts';
 import {
   BANK_PROVIDERS,
@@ -33,6 +33,7 @@ const acceptedExtensionsFor = (source: ImportSourceId) =>
 export default function ExpensesImports() {
   const imports = useImports();
   const [modalOpen, modal] = useDisclosure(false);
+  const isMobile = useMediaQuery('(max-width: 48em)');
 
   if (!imports.data) {
     return imports.error ? <Empty>{imports.error.message}</Empty> : <Loading />;
@@ -42,33 +43,41 @@ export default function ExpensesImports() {
     <Card>
       <Group justify="space-between" mb="md" wrap="wrap">
         <Title order={3} fz={20}>Importações</Title>
-        <Button onClick={modal.open}>Nova importação</Button>
+        <Button onClick={modal.open} h={{ base: 44, sm: 'auto' }} w={{ base: '100%', sm: 'auto' }}>Nova importação</Button>
       </Group>
 
       {imports.data.length === 0 ? (
         <Empty>Nenhum arquivo importado ainda.</Empty>
       ) : (
-        <Table.ScrollContainer minWidth={860}>
-          <Table highlightOnHover verticalSpacing="sm">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th><Text fz={16} fw={600}>Arquivo</Text></Table.Th>
-                <Table.Th><Text fz={16} fw={600}>Banco</Text></Table.Th>
-                <Table.Th><Text fz={16} fw={600}>Tipo</Text></Table.Th>
-                <Table.Th><Text fz={16} fw={600}>Período</Text></Table.Th>
-                <Table.Th ta="right"><Text fz={16} fw={600}>Gastos</Text></Table.Th>
-                <Table.Th ta="right"><Text fz={16} fw={600}>Entradas</Text></Table.Th>
-                <Table.Th><Text fz={16} fw={600}>Importado em</Text></Table.Th>
-                <Table.Th><Text fz={16} fw={600}>Retenção</Text></Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {imports.data.map((f) => (
-                <ImportRow key={f.id} file={f} />
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <>
+          <Table.ScrollContainer minWidth={860} visibleFrom="sm">
+            <Table highlightOnHover verticalSpacing="sm">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th><Text fz={16} fw={600}>Arquivo</Text></Table.Th>
+                  <Table.Th><Text fz={16} fw={600}>Banco</Text></Table.Th>
+                  <Table.Th><Text fz={16} fw={600}>Tipo</Text></Table.Th>
+                  <Table.Th><Text fz={16} fw={600}>Período</Text></Table.Th>
+                  <Table.Th ta="right"><Text fz={16} fw={600}>Gastos</Text></Table.Th>
+                  <Table.Th ta="right"><Text fz={16} fw={600}>Entradas</Text></Table.Th>
+                  <Table.Th><Text fz={16} fw={600}>Importado em</Text></Table.Th>
+                  <Table.Th><Text fz={16} fw={600}>Retenção</Text></Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {imports.data.map((f) => (
+                  <ImportRow key={f.id} file={f} />
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+
+          <Stack hiddenFrom="sm" gap="sm">
+            {imports.data.map((f) => (
+              <MobileImportCard key={f.id} file={f} />
+            ))}
+          </Stack>
+        </>
       )}
 
       <Modal
@@ -78,9 +87,44 @@ export default function ExpensesImports() {
         size="lg"
         centered
         closeOnClickOutside={false}
+        fullScreen={isMobile}
       >
         <ImportWizard onClose={modal.close} />
       </Modal>
+    </Card>
+  );
+}
+
+/** Mobile replacement for one table row of the imports history — same data, stacked. */
+function MobileImportCard({ file }: { file: ImportedFileDTO }) {
+  const bank = BANK_PROVIDERS.find((b) => b.id === file.bank);
+  const expired = new Date(file.expiresAt).getTime() <= Date.now();
+
+  return (
+    <Card p="sm" radius="md" withBorder>
+      <Group justify="space-between" align="flex-start" wrap="nowrap" mb={6}>
+        <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+          <Text size="md">{file.originalName}</Text>
+          <Text size="xs" c="dimmed" tt="uppercase">{file.fileFormat}</Text>
+        </div>
+        <Group gap={7} wrap="nowrap" style={{ flexShrink: 0 }}>
+          {file.bank === INTERNAL_SOURCE_ID ? <InternalLogo size={22} /> : <BankLogo size={22} />}
+          <Text size="md">{file.bank === INTERNAL_SOURCE_ID ? 'Nossa Conta' : bank?.name ?? file.bank}</Text>
+        </Group>
+      </Group>
+
+      <Text size="md" mb={2}>{IMPORT_DOCUMENT_TYPE_LABELS[file.documentType]}</Text>
+      <Text size="sm" c="dimmed" className="num" mb={8}>{brDate(file.periodStart)} – {brDate(file.periodEnd)}</Text>
+
+      <Group justify="space-between" wrap="wrap" mb={8}>
+        <Text size="md" fw={600} className="num">{file.expensesCount} gasto{file.expensesCount === 1 ? '' : 's'}</Text>
+        <Text size="md" fw={600} className="num">{file.incomesCount} entrada{file.incomesCount === 1 ? '' : 's'}</Text>
+      </Group>
+
+      <Text size="sm" c="dimmed">Importado em {brDateTime(file.createdAt)}</Text>
+      <Text size="sm" c="dimmed">
+        {expired ? 'Excluído' : `Disponível até ${brDate(file.expiresAt)}`}
+      </Text>
     </Card>
   );
 }
@@ -125,6 +169,7 @@ type WizardStep = 'select' | 'loading';
  * always has the same shape.
  */
 function ImportWizard({ onClose }: { onClose: () => void }) {
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const [step, setStep] = useState<WizardStep>('select');
   const [bank, setBank] = useState<ImportSourceId>(BANK_PROVIDERS[0].id);
   const [files, setFiles] = useState<File[]>([]);
@@ -188,6 +233,7 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
               key={b.id}
               onClick={() => { setBank(b.id); setFiles([]); }}
               p="sm"
+              mih={44}
               style={{
                 borderRadius: 8,
                 border: `1.5px solid ${b.id === bank ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
@@ -203,6 +249,7 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
           <UnstyledButton
             onClick={() => { setBank(INTERNAL_SOURCE_ID); setFiles([]); }}
             p="sm"
+            mih={44}
             style={{
               borderRadius: 8,
               border: `1.5px solid ${isInternal ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
@@ -223,7 +270,11 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
         </Text>
         <Dropzone onDrop={addFiles} multiple={!isInternal}>
           <Stack align="center" gap={4} py="md">
-            <Text size="sm">Arraste {isInternal ? 'o arquivo' : 'os arquivos'} aqui ou clique para escolher</Text>
+            <Text size="sm">
+              {isMobile
+                ? `Toque para escolher ${isInternal ? 'o arquivo' : 'os arquivos'}`
+                : `Arraste ${isInternal ? 'o arquivo' : 'os arquivos'} aqui ou clique para escolher`}
+            </Text>
             <Text size="xs" c="dimmed">
               {isInternal
                 ? 'O .json baixado em "Exportar dados"'
@@ -238,7 +289,7 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
           {files.map((f, i) => (
             <Group key={`${f.name}-${i}`} justify="space-between" wrap="nowrap">
               <Text size="sm" truncate>{f.name}</Text>
-              <ActionIcon variant="subtle" color="brick" size="sm" aria-label={`Remover ${f.name}`} onClick={() => removeFile(i)}>
+              <ActionIcon variant="subtle" color="brick" size={44} aria-label={`Remover ${f.name}`} onClick={() => removeFile(i)}>
                 ×
               </ActionIcon>
             </Group>
@@ -246,9 +297,9 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
         </Stack>
       )}
 
-      <Group justify="flex-end" mt="md">
-        <Button variant="default" onClick={onClose}>Cancelar</Button>
-        <Button disabled={files.length === 0} onClick={submit}>Enviar importação</Button>
+      <Group justify="flex-end" grow={isMobile ?? false} mt="md">
+        <Button h={isMobile ? 44 : undefined} variant="default" onClick={onClose}>Cancelar</Button>
+        <Button h={isMobile ? 44 : undefined} disabled={files.length === 0} onClick={submit}>Enviar importação</Button>
       </Group>
     </Stack>
   );

@@ -53,7 +53,7 @@ export default function MyDashboard() {
         </Card>
       </SimpleGrid>
 
-      <Grid gap="lg" mb="lg">
+      <Grid gap={{ base: "md", sm: "lg" }} mb="lg">
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
             <Title order={3} mb="lg">Tipo de gasto</Title>

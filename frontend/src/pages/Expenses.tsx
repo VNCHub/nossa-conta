@@ -33,7 +33,7 @@ export default function Expenses() {
       />
 
       <Tabs defaultValue="lancamentos" keepMounted={false}>
-        <Tabs.List mb="md">
+        <Tabs.List mb="md" grow>
           <Tabs.Tab value="lancamentos">Lançamentos</Tabs.Tab>
           <Tabs.Tab value="importacoes">Importações</Tabs.Tab>
         </Tabs.List>

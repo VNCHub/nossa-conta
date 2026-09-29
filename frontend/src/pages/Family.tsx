@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CopyButton,
+  Flex,
   Grid,
   Group,
   List,
@@ -21,7 +22,7 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FamilyDTO, MemberDTO, RuleDTO } from '@shared/contracts';
 import { RULE_TYPES, type RuleType } from '@shared/domain';
@@ -51,6 +52,10 @@ const RULE_FORMULA: Partial<Record<RuleType, string>> = {
     'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos individuais: livre = entrada recorrente − gastos fixos individuais do mês (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto.',
 };
 
+// iOS Safari zooms the whole page in on focus when an input's font is under
+// 16px — jarring on a touchscreen. 16px here keeps zoom-on-focus off.
+const noZoomStyles = { input: { fontSize: '16px', minHeight: 44 } };
+
 function InfoIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -72,6 +77,8 @@ export default function Family() {
   const invalidate = [keys.rules, keys.statement(month)];
 
   const [createOpen, createModal] = useDisclosure(false);
+  // Full-screen modal on phones: the keyboard leaves little room for a centered one.
+  const isMobile = useMediaQuery('(max-width: 48em)');
 
   const del = useAppMutation((id: string) => api.delete(`/regras/${id}`), invalidate, {
     onSuccess: () => notifySuccess('Regra excluída.'),
@@ -240,9 +247,9 @@ export default function Family() {
       />
 
       <Tabs defaultValue="geral" keepMounted={false}>
-        <Tabs.List mb="lg">
-          <Tabs.Tab value="geral">Informações gerais</Tabs.Tab>
-          <Tabs.Tab value="rateios">Rateios</Tabs.Tab>
+        <Tabs.List mb="lg" grow>
+          <Tabs.Tab value="geral" mih={44}>Informações gerais</Tabs.Tab>
+          <Tabs.Tab value="rateios" mih={44}>Rateios</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="geral">
@@ -252,21 +259,30 @@ export default function Family() {
                 <Title order={3} mb="sm">Membros</Title>
                 <Stack gap={0}>
                   {members.map((m, i) => (
-                    <Group
-                      key={m.id} wrap="nowrap" py="sm"
+                    // Nome, e-mail e o badge/botão de ação brigavam pelo mesmo espaço numa
+                    // linha só e o nome/e-mail acabava truncado demais no celular — abaixo
+                    // de "xs" a ação desce para uma segunda linha em vez de espremer o texto.
+                    <Flex
+                      key={m.id}
+                      direction={{ base: 'column', xs: 'row' }}
+                      align={{ base: 'flex-start', xs: 'center' }}
+                      gap={{ base: 6, xs: 'md' }}
+                      py="sm"
                       style={i < members.length - 1 ? { borderBottom: '1px solid #EEF1EC' } : undefined}
                     >
-                      <Avatar user={m} lg />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Text fw={600}>{m.name}{m.id === user.id ? ' (você)' : ''}</Text>
-                        <Text size="sm" c="dimmed" truncate>{m.email}</Text>
-                      </div>
+                      <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0, width: '100%' }}>
+                        <Avatar user={m} lg />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text fw={600}>{m.name}{m.id === user.id ? ' (você)' : ''}</Text>
+                          <Text size="sm" c="dimmed" truncate>{m.email}</Text>
+                        </div>
+                      </Group>
                       {family.createdById === m.id ? (
                         <Badge variant="light" color="gray" tt="none" fw={500}>Criou a família</Badge>
                       ) : (
                         isCreator && (
                           <Button
-                            size="xs" variant="light" color="brick"
+                            size="md" variant="light" color="brick" mih={44}
                             loading={removeMember.isPending}
                             onClick={() => askRemoveMember(m)}
                           >
@@ -274,7 +290,7 @@ export default function Family() {
                           </Button>
                         )
                       )}
-                    </Group>
+                    </Flex>
                   ))}
                 </Stack>
               </Card>
@@ -287,14 +303,14 @@ export default function Family() {
                   Quem tiver esse código entra na família ao criar a conta e passa a ver estes lançamentos.
                 </Text>
                 <Group gap="sm" wrap="wrap">
-                  <Paper bg="#EDF0EB" px="lg" py="sm" radius="lg">
-                    <Text className="num" fz={22} fw={600} style={{ letterSpacing: '0.06em' }}>
+                  <Paper bg="#EDF0EB" px="lg" py="sm" radius="lg" style={{ flex: '1 1 auto', textAlign: 'center' }}>
+                    <Text className="num" fz={22} fw={600} style={{ letterSpacing: '0.06em', overflowWrap: 'anywhere' }}>
                       {family.inviteCode}
                     </Text>
                   </Paper>
                   <CopyButton value={family.inviteCode} timeout={1800}>
                     {({ copied, copy }) => (
-                      <Button variant="default" onClick={copy}>
+                      <Button variant="default" mih={44} w={{ base: '100%', xs: 'auto' }} onClick={copy}>
                         {copied ? 'Código copiado' : 'Copiar código'}
                       </Button>
                     )}
@@ -315,14 +331,14 @@ export default function Family() {
             </Text>
             <Group gap="sm" wrap="wrap">
               <Button
-                variant="light" color="brick"
+                variant="light" color="brick" mih={44} w={{ base: '100%', xs: 'auto' }}
                 loading={leave.isPending}
                 onClick={askLeave}
               >
                 Sair da família
               </Button>
               {isCreator && (
-                <Button color="brick" loading={dissolve.isPending} onClick={askDissolve}>
+                <Button color="brick" mih={44} w={{ base: '100%', xs: 'auto' }} loading={dissolve.isPending} onClick={askDissolve}>
                   Desfazer a família
                 </Button>
               )}
@@ -339,7 +355,7 @@ export default function Family() {
                   São essas opções que aparecem no campo “Rateio” de cada gasto dividido.
                 </Text>
               </div>
-              <Button onClick={createModal.open}>Criar regra</Button>
+              <Button mih={44} w={{ base: '100%', xs: 'auto' }} onClick={createModal.open}>Criar regra</Button>
             </Group>
 
             <Stack gap="md">
@@ -350,9 +366,12 @@ export default function Family() {
                       <Group gap={6} align="center">
                         <Text fw={600} fz="lg">{r.name}</Text>
                         {RULE_FORMULA[r.type] && (
-                          <Tooltip label={RULE_FORMULA[r.type]} multiline w={300} withArrow>
+                          <Tooltip
+                            label={RULE_FORMULA[r.type]} multiline w="min(300px, 80vw)" withArrow
+                            events={{ hover: true, focus: true, touch: true }}
+                          >
                             <ActionIcon
-                              variant="subtle" color="gray" size="sm"
+                              variant="subtle" color="gray" size={40} m={-8}
                               aria-label={`Como a regra "${r.name}" calcula a cota`}
                             >
                               <InfoIcon />
@@ -362,12 +381,12 @@ export default function Family() {
                       </Group>
                       <Text size="sm" c="dimmed">{r.description}</Text>
                     </div>
-                    <Group gap="xs">
+                    <Group gap="xs" wrap="wrap">
                       <Badge variant="light" color="gray" tt="none" fw={500}>
                         {r.inUse ?? 0} gasto(s) usando
                       </Badge>
                       {(r.inUse ?? 0) === 0 && rules.data.length > 1 && (
-                        <Button size="xs" variant="light" color="brick" onClick={() => askDelete(r)}>
+                        <Button size="md" variant="light" color="brick" mih={44} onClick={() => askDelete(r)}>
                           Excluir
                         </Button>
                       )}
@@ -378,10 +397,12 @@ export default function Family() {
                     <>
                       <Grid gap="sm">
                         {members.map((m) => (
-                          <Grid.Col key={m.id} span={{ base: 6, md: 3 }}>
+                          <Grid.Col key={m.id} span={{ base: 12, xs: 6, md: 3 }}>
                             <NumberInput
                               label={`${m.name} (%)`} min={0} max={100} suffix="%"
                               defaultValue={r.weights?.[m.id] ?? 0}
+                              styles={noZoomStyles}
+                              inputMode="numeric" hideControls enterKeyHint="done"
                               onBlur={(e) => changeWeight(r, m.id, Number(e.currentTarget.value.replace('%', '')) || 0)}
                             />
                           </Grid.Col>
@@ -404,13 +425,15 @@ export default function Family() {
                           const forMonth = r.measurements?.[month] ?? {};
                           const sum = Object.values(forMonth).reduce((s, v) => s + v, 0);
                           return (
-                            <Grid.Col key={m.id} span={{ base: 6, md: 3 }}>
+                            <Grid.Col key={m.id} span={{ base: 12, xs: 6, md: 3 }}>
                               <NumberInput
                                 label={`${m.name} (${r.unit})`} min={0} placeholder="0"
                                 key={`${r.id}-${m.id}-${month}-${forMonth[m.id] ?? ''}`}
                                 defaultValue={forMonth[m.id] ?? ''}
                                 description={sum ? pct((forMonth[m.id] ?? 0) / sum) : 'sem medição'}
                                 inputWrapperOrder={['label', 'input', 'description']}
+                                styles={noZoomStyles}
+                                inputMode="decimal" hideControls enterKeyHint="done"
                                 onBlur={(e) => changeMeasurement(r, m.id, Number(e.currentTarget.value) || 0)}
                               />
                             </Grid.Col>
@@ -435,6 +458,7 @@ export default function Family() {
             onClose={createModal.close}
             title="Criar regra de rateio"
             centered
+            fullScreen={!!isMobile}
           >
             <CreateRuleForm onClose={createModal.close} />
           </Modal>
@@ -483,22 +507,25 @@ function CreateRuleForm({ onClose }: { onClose: () => void }) {
       <Stack gap="md">
         <TextInput
           label="Nome" placeholder="Ex.: Mercado por pessoa em casa" data-autofocus
+          styles={noZoomStyles}
           {...form.getInputProps('name')}
         />
         <Select
           label="Base do cálculo" allowDeselect={false}
           data={RULE_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))}
+          styles={noZoomStyles}
           {...form.getInputProps('type')}
         />
         {form.getValues().type === 'meter' && (
           <TextInput
             label="Unidade medida" placeholder="km, dias, litros…"
+            styles={noZoomStyles}
             {...form.getInputProps('unit')}
           />
         )}
-        <Group justify="flex-end" mt="xs">
-          <Button variant="default" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={create.isPending}>Criar regra</Button>
+        <Group justify="flex-end" mt="xs" grow preventGrowOverflow={false}>
+          <Button variant="default" mih={44} onClick={onClose}>Cancelar</Button>
+          <Button type="submit" mih={44} loading={create.isPending}>Criar regra</Button>
         </Group>
       </Stack>
     </form>
@@ -533,7 +560,7 @@ function EditableFamilyName({ family, canEdit }: { family: FamilyDTO; canEdit: b
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         {family.name}
         <ActionIcon
-          variant="subtle" color="gray" size="sm"
+          variant="subtle" color="gray" size={40}
           aria-label="Editar nome da família"
           onClick={() => {
             setValue(family.name);
