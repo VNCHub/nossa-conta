@@ -39,8 +39,6 @@ const FILTER_OPTIONS = [
   { value: 'mine', label: 'Meus' },
 ];
 
-const firstName = (name: string) => name.split(' ')[0];
-
 export default function ExpensesImports() {
   const imports = useImports();
   const { user } = useAuth();
@@ -59,8 +57,7 @@ export default function ExpensesImports() {
   // Only "Todos" mixes people's files, so only there is it worth saying whose each one is.
   const importerOf = (f: ImportedFileDTO) => {
     if (filter !== 'all') return undefined;
-    const member = members?.find((m) => m.id === f.importedBy);
-    return member ? firstName(member.name) : '—';
+    return members?.find((m) => m.id === f.importedBy)?.name ?? '—';
   };
 
   return (
