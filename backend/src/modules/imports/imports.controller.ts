@@ -44,6 +44,6 @@ export class ImportsController {
     @Body() dto: ImportFilesDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.imports.importFiles(user.familyId!, user.id, dto.bank, files ?? []);
+    return this.imports.importFiles(user.familyId!, user.id, user.roles, dto.bank, files ?? []);
   }
 }

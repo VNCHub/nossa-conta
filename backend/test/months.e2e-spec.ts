@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
+import { RoleName } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -162,6 +163,9 @@ describe('Month finalization (e2e)', () => {
   it('rejects an import with any row in a finalized month', async () => {
     const { owner } = await makeFamily('Casa Importa');
     await finalize(owner).expect(201);
+    // The internal import is admin-only; roles are read from the database on every request.
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: RoleName.ADMIN } });
+    await prisma.userRole.create({ data: { userId: owner.userId, roleId: adminRole.id } });
 
     const file = {
       version: 1,
