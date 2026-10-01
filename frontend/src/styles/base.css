@@ -15,11 +15,52 @@
   --gf-credit: #2e7d63;
   --gf-debit: #a8332a;
   --gf-mustard: #d9a21b;
+  /* The brand's deep green (navigation rail, dark cards). Not --gf-ink: ink
+     flips to a light color in dark mode, these surfaces stay green. */
+  --gf-deep: #12332c;
+  --gf-line-soft: #eef1ec;
+  --gf-tint: #edf0eb;
+  --gf-tint-soft: #f6f8f5;
+  /* Tinted states: ok (complete, finalized), bad (incomplete), warn. */
+  --gf-ok-bg: var(--mantine-color-petrol-1);
+  --gf-ok-on: var(--mantine-color-petrol-8);
+  --gf-ok-soft: var(--mantine-color-petrol-0);
+  --gf-bad-bg: var(--mantine-color-brick-1);
+  --gf-bad-on: var(--mantine-color-brick-8);
+  --gf-danger: var(--mantine-color-brick-7);
+  --gf-warn-bg: var(--mantine-color-mustard-0);
+  --gf-warn-line: var(--mantine-color-mustard-2);
+  --gf-warn-on: var(--mantine-color-mustard-9);
   /* The surface a value sits on and the ink that reads on it. Surfaces that
      are not a white card (dark card, tinted rows) redefine both. */
   --gf-surface: var(--gf-card);
   --gf-on: var(--gf-ink);
   --gf-mask-mix: 16%;
+}
+
+/* Dark mode: same tokens, redefined. Mantine sets the attribute on <html>. */
+:root[data-mantine-color-scheme='dark'] {
+  --gf-paper: #121b18;
+  --gf-card: #18241f;
+  --gf-ink: #e3eae6;
+  --gf-ink-soft: #a7b5af;
+  --gf-ink-faint: #74857e;
+  --gf-line: #2c3b36;
+  --gf-credit: #5fbf9b;
+  --gf-debit: #e58a80;
+  --gf-mustard: #e4be57;
+  --gf-line-soft: #24322d;
+  --gf-tint: #1f2c28;
+  --gf-tint-soft: #1c2925;
+  --gf-ok-bg: #1b3730;
+  --gf-ok-on: #cde3da;
+  --gf-ok-soft: #172d27;
+  --gf-bad-bg: #3a2522;
+  --gf-bad-on: #f1c9c4;
+  --gf-danger: #e58a80;
+  --gf-warn-bg: #2b2616;
+  --gf-warn-line: #5e4a1a;
+  --gf-warn-on: #ebce7f;
 }
 
 body {

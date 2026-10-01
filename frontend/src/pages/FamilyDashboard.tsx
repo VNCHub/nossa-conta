@@ -85,7 +85,7 @@ export default function FamilyDashboard() {
           const ratio = d.income > 0 ? d.paid / d.income : null;
           const tier = incomeTier(ratio);
           return (
-            <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
+            <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid var(--gf-line-soft)' } : undefined}>
               <Flex direction={{ base: 'column', xs: 'row' }} gap={{ base: 4, xs: 'md' }} wrap="nowrap">
                 <Group wrap="nowrap" gap="sm" align="flex-start" style={{ flex: 1, minWidth: 0 }}>
                   <Avatar user={u} lg />
@@ -113,7 +113,7 @@ export default function FamilyDashboard() {
                   os três quartos (onde mudam as etiquetas) se leem sem régua. */}
               <Flex gap={4} mt="sm">
                 {[0, 1, 2, 3].map((q) => (
-                  <Box key={q} h={22} bg="#EEF1EC" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
+                  <Box key={q} h={22} bg="var(--gf-line-soft)" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
                     <Box h="100%" bg={u.color} w={`${Math.min(Math.max((ratio ?? 0) * 4 - q, 0), 1) * 100}%`} />
                   </Box>
                 ))}

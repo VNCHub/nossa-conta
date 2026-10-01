@@ -268,7 +268,7 @@ export default function Family() {
                       align={{ base: 'flex-start', xs: 'center' }}
                       gap={{ base: 6, xs: 'md' }}
                       py="sm"
-                      style={i < members.length - 1 ? { borderBottom: '1px solid #EEF1EC' } : undefined}
+                      style={i < members.length - 1 ? { borderBottom: '1px solid var(--gf-line-soft)' } : undefined}
                     >
                       <Group wrap="nowrap" gap="sm" style={{ flex: 1, minWidth: 0, width: '100%' }}>
                         <Avatar user={m} lg />
@@ -303,7 +303,7 @@ export default function Family() {
                   Quem tiver esse código entra na família ao criar a conta e passa a ver estes lançamentos.
                 </Text>
                 <Group gap="sm" wrap="wrap">
-                  <Paper bg="#EDF0EB" px="lg" py="sm" radius="lg" style={{ flex: '1 1 auto', textAlign: 'center' }}>
+                  <Paper bg="var(--gf-tint)" px="lg" py="sm" radius="lg" style={{ flex: '1 1 auto', textAlign: 'center' }}>
                     <Text className="num" fz={22} fw={600} style={{ letterSpacing: '0.06em', overflowWrap: 'anywhere' }}>
                       {family.inviteCode}
                     </Text>

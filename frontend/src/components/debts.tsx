@@ -102,7 +102,7 @@ export function DebtCard({
     });
 
   return (
-    <Paper withBorder radius="lg" p="md" bg={settled ? '#FAFBF9' : undefined}>
+    <Paper withBorder radius="lg" p="md" bg={settled ? 'var(--gf-tint-soft)' : undefined}>
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
         <div style={{ minWidth: 0, flex: '1 1 260px' }}>
           <DebtFlow debt={debt} members={members} />
@@ -141,7 +141,7 @@ export function DebtCard({
         )}
         <Group gap="xs">
           {involved && (
-            <Button size="xs" variant="default" color="brick" c="brick.7" onClick={askDelete} loading={remove.isPending}>
+            <Button size="xs" variant="default" color="brick" c="var(--gf-danger)" onClick={askDelete} loading={remove.isPending}>
               Excluir
             </Button>
           )}
@@ -218,7 +218,7 @@ function DebtRow({
 /** The dark shell the dashboards' debts cards share. */
 function DebtsCardShell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card mb="lg" padding="md" bg="var(--gf-ink)" style={DARK_CARD}>
+    <Card mb="lg" padding="md" bg="var(--gf-deep)" style={DARK_CARD}>
       <Group justify="space-between" mb={8}>
         <Title order={3} c="#fff">{title}</Title>
         <Text component={Link} to="/dividas" size="sm" td="underline" c="#A9C7BD">Ver todas</Text>
@@ -379,7 +379,7 @@ function PayDebtForm({ debt, members, onClose }: { debt: DebtDTO; members: Membe
   return (
     <form onSubmit={submit}>
       <Stack gap="md">
-        <Card withBorder p="sm" bg="#F6F8F5">
+        <Card withBorder p="sm" bg="var(--gf-tint-soft)">
           <DebtFlow debt={debt} members={members} />
           <Text size="sm" c="dimmed" mt={6}>
             {debt.description} · falta <b className="num"><Money value={debt.remaining} /></b> de <Money value={debt.amount} />

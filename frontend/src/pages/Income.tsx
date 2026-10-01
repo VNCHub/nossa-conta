@@ -195,7 +195,7 @@ function RecurringRow({
   return (
     <Group
       wrap="nowrap" py="sm" align="flex-start"
-      style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
+      style={!isLast ? { borderBottom: '1px solid var(--gf-line-soft)' } : undefined}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
@@ -239,7 +239,7 @@ function OneOffRow({
   return (
     <Group
       wrap="nowrap" py="sm"
-      style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
+      style={!isLast ? { borderBottom: '1px solid var(--gf-line-soft)' } : undefined}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>

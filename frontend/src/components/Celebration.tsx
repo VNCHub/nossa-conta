@@ -43,7 +43,7 @@ export function Celebration({ title }: { title: string }) {
 
   return (
     <>
-      <UnstyledButton onClick={celebrate} w="100%" mb="lg" p="lg" bg="var(--gf-ink)" style={{ ...DARK_CARD, borderRadius: 'var(--mantine-radius-xl)', display: 'block' }}>
+      <UnstyledButton onClick={celebrate} w="100%" mb="lg" p="lg" bg="var(--gf-deep)" style={{ ...DARK_CARD, borderRadius: 'var(--mantine-radius-xl)', display: 'block' }}>
         <Title order={3} c="#fff" fz={22}>{title}</Title>
         <Text size="sm" c="#A9C7BD" mt={6}>Toque aqui para comemorar.</Text>
       </UnstyledButton>

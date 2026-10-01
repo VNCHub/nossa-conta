@@ -4,7 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { currentMonth } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useFamily } from '../api/hooks';
-import { Avatar, HideValuesToggle, MonthNav } from './ui';
+import { Avatar, ColorSchemeToggle, HideValuesToggle, MonthNav } from './ui';
 import { useMonth } from '../useMonth';
 
 const SCREENS = [
@@ -60,7 +60,7 @@ export default function Shell() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar bg="var(--gf-ink)" p="md" className="safe-nav" style={{ border: 'none' }}>
+      <AppShell.Navbar bg="var(--gf-deep)" p="md" className="safe-nav" style={{ border: 'none' }}>
         <AppShell.Section>
           <Group justify="space-between" align="flex-start" wrap="nowrap" gap="xs">
             <div>
@@ -71,7 +71,12 @@ export default function Shell() {
                 {family?.name ?? '—'}
               </Text>
             </div>
-            <HideValuesToggle onDark visibleFrom="sm" />
+            {/* The theme switch stays in the rail on mobile too: a header that
+                already fits the month selector has no room for a third button. */}
+            <Group gap={2} wrap="nowrap">
+              <ColorSchemeToggle onDark />
+              <HideValuesToggle onDark visibleFrom="sm" />
+            </Group>
           </Group>
         </AppShell.Section>
 

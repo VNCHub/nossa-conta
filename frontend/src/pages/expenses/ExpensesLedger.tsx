@@ -95,8 +95,8 @@ const firstName = (name: string) => name.split(' ')[0];
 /** Tinted rows are their own surface: a hidden amount takes the row's tint, not the card's white. */
 const rowSurface = (complete: boolean) =>
   ({
-    '--gf-surface': complete ? 'var(--mantine-color-petrol-1)' : 'var(--mantine-color-brick-1)',
-    '--gf-on': complete ? 'var(--mantine-color-petrol-8)' : 'var(--mantine-color-brick-8)',
+    '--gf-surface': complete ? 'var(--gf-ok-bg)' : 'var(--gf-bad-bg)',
+    '--gf-on': complete ? 'var(--gf-ok-on)' : 'var(--gf-bad-on)',
   }) as CSSProperties;
 
 const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
@@ -355,8 +355,8 @@ export default function ExpensesLedger() {
                 // so only the table's four actual corners (first/last cell of the first/last
                 // row) get rounded — everything else stays square, like a single card.
                 const rowBg = e.complete
-                  ? 'var(--mantine-color-petrol-1)'
-                  : 'var(--mantine-color-brick-1)';
+                  ? 'var(--gf-ok-bg)'
+                  : 'var(--gf-bad-bg)';
                 const firstCell = {
                   backgroundColor: rowBg,
                   ...(isFirst ? { borderTopLeftRadius: 8 } : {}),
@@ -521,8 +521,8 @@ function SortTh({
 
 /** Two side-by-side arrows, one up one down — the active direction lights up. */
 function SortIcon({ active }: { active: 'asc' | 'desc' | null }) {
-  const upColor = active === 'asc' ? 'var(--mantine-color-petrol-6)' : 'var(--gf-ink-faint)';
-  const downColor = active === 'desc' ? 'var(--mantine-color-petrol-6)' : 'var(--gf-ink-faint)';
+  const upColor = active === 'asc' ? 'var(--mantine-color-petrol-text)' : 'var(--gf-ink-faint)';
+  const downColor = active === 'desc' ? 'var(--mantine-color-petrol-text)' : 'var(--gf-ink-faint)';
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
       <path d="M8 18V6" stroke={upColor} strokeWidth="2.2" strokeLinecap="round" />
@@ -575,7 +575,7 @@ function MobileExpenseCard({
   onPatch: (overrides: PatchOverrides) => void;
   onDelete: () => void;
 }) {
-  const rowBg = e.complete ? 'var(--mantine-color-petrol-1)' : 'var(--mantine-color-brick-1)';
+  const rowBg = e.complete ? 'var(--gf-ok-bg)' : 'var(--gf-bad-bg)';
 
   return (
     <Card p="sm" radius="md" style={{ backgroundColor: rowBg, ...rowSurface(e.complete) }}>
@@ -918,7 +918,7 @@ function EditableBadge({
             style={{
               ...touchTarget.style,
               borderRadius: 6,
-              background: o.value === value ? 'var(--mantine-color-petrol-0)' : undefined,
+              background: o.value === value ? 'var(--gf-ok-soft)' : undefined,
             }}
           >
             <Text size="sm">{o.label}</Text>

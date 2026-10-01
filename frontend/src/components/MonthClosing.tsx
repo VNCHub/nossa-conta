@@ -72,7 +72,7 @@ export function MyMonthCard({ month }: { month: string }) {
     <Card
       mb="lg"
       // An open month is the call to action; once finalized it settles back into a plain card.
-      style={finalizedAt ? undefined : { borderColor: 'var(--gf-credit)', boxShadow: '0 0 0 3px var(--mantine-color-petrol-0)' }}
+      style={finalizedAt ? undefined : { borderColor: 'var(--gf-credit)', boxShadow: '0 0 0 3px var(--gf-ok-soft)' }}
     >
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
         <div>
@@ -96,8 +96,8 @@ export function MyMonthCard({ month }: { month: string }) {
         )}
       </Group>
       {closed ? (
-        <Paper mt="sm" p="xs" radius="md" style={{ background: 'var(--mantine-color-mustard-0)', border: '1px solid var(--mantine-color-mustard-2)' }}>
-          <Text size="sm" c="mustard.9">
+        <Paper mt="sm" p="xs" radius="md" style={{ background: 'var(--gf-warn-bg)', border: '1px solid var(--gf-warn-line)' }}>
+          <Text size="sm" c="var(--gf-warn-on)">
             O acerto da família já foi fechado. Para reabrir seus lançamentos, alguém precisa antes reabrir o mês no Painel da família.
           </Text>
         </Paper>
@@ -147,7 +147,7 @@ export function FamilyClosingCard({ month }: { month: string }) {
       });
 
     return (
-      <Card mb="lg" bg="var(--mantine-color-petrol-0)" style={{ borderColor: 'var(--mantine-color-petrol-1)' }}>
+      <Card mb="lg" bg="var(--gf-ok-soft)" style={{ borderColor: 'var(--gf-ok-bg)' }}>
         <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
           <div>
             <Eyebrow>{`Fechamento de ${monthLabel(month)}`}</Eyebrow>
@@ -155,7 +155,7 @@ export function FamilyClosingCard({ month }: { month: string }) {
               Acerto fechado em {finalizedOn(closed.closedAt)} por {nameOf(closed.closedById)}
             </Title>
           </div>
-          <Button variant="default" c="brick.7" onClick={askReopen} loading={reopen.isPending}>
+          <Button variant="default" c="var(--gf-danger)" onClick={askReopen} loading={reopen.isPending}>
             Reabrir mês
           </Button>
         </Group>
@@ -203,7 +203,7 @@ export function FamilyClosingCard({ month }: { month: string }) {
   return (
     <Card
       mb="lg"
-      style={ready ? { borderColor: 'var(--gf-credit)', boxShadow: '0 0 0 3px var(--mantine-color-petrol-0)' } : undefined}
+      style={ready ? { borderColor: 'var(--gf-credit)', boxShadow: '0 0 0 3px var(--gf-ok-soft)' } : undefined}
     >
       <Eyebrow>{`Fechamento de ${monthLabel(month)}`}</Eyebrow>
       <Title order={3} mt={4} mb="md">
@@ -254,9 +254,9 @@ export function MonthLockedBanner({ month, kind }: { month: string; kind: 'expen
   return (
     <Paper
       mb="md" p="sm" radius="md"
-      style={{ background: 'var(--mantine-color-mustard-0)', border: '1px solid var(--mantine-color-mustard-2)' }}
+      style={{ background: 'var(--gf-warn-bg)', border: '1px solid var(--gf-warn-line)' }}
     >
-      <Text size="sm" c="mustard.9">
+      <Text size="sm" c="var(--gf-warn-on)">
         <b>Você finalizou {monthLabel(month)}.</b> {what} Para mudar, reabra seus lançamentos no Meu
         painel.
       </Text>

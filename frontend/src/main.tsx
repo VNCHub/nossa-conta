@@ -37,7 +37,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider theme={theme} defaultColorScheme="light">
+    <MantineProvider theme={theme} defaultColorScheme="auto">
       <DatesProvider settings={{ locale: 'pt-br', firstDayOfWeek: 0 }}>
         <Notifications position="top-right" />
         <BrowserRouter>

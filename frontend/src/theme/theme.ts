@@ -22,10 +22,18 @@ const brick: MantineColorsTuple = [
   '#BE4D40', '#A8332A', '#8E2A23', '#75221C', '#5C1A16',
 ];
 
+// Mantine's dark mode draws from `dark` (0 = text, 2 = dimmed, 4 = borders,
+// 6 = inputs, 7 = body). The stock one is blue-gray; this one leans to the
+// brand's green so the dark surfaces read as the same product.
+const dark: MantineColorsTuple = [
+  '#E3EAE6', '#BAC6C1', '#93A39C', '#6C7D76', '#34453F',
+  '#2A3934', '#1E2B27', '#121B18', '#0D1412', '#080D0B',
+];
+
 export const theme = createTheme({
   primaryColor: 'petrol',
   primaryShade: 6,
-  colors: { petrol, mustard, brick },
+  colors: { petrol, mustard, brick, dark },
 
   fontFamily: "'Archivo', system-ui, -apple-system, sans-serif",
   fontFamilyMonospace: "'Archivo', ui-monospace, monospace",
@@ -43,7 +51,8 @@ export const theme = createTheme({
   radius: { sm: '7px', md: '8px', lg: '12px', xl: '14px' },
 
   // Prototype tokens exposed as CSS variables, so our own CSS and any of our
-  // components consume the same palette Mantine uses.
+  // components consume the same palette Mantine uses. These are the light
+  // values; base.css redefines them for dark mode.
   other: {
     paper: '#F1F3EF',
     card: '#FFFFFF',

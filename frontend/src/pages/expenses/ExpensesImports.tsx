@@ -237,7 +237,7 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
               style={{
                 borderRadius: 8,
                 border: `1.5px solid ${b.id === bank ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
-                background: b.id === bank ? 'var(--mantine-color-petrol-0)' : undefined,
+                background: b.id === bank ? 'var(--gf-ok-soft)' : undefined,
               }}
             >
               <Group gap={8}>
@@ -253,7 +253,7 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
             style={{
               borderRadius: 8,
               border: `1.5px solid ${isInternal ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
-              background: isInternal ? 'var(--mantine-color-petrol-0)' : undefined,
+              background: isInternal ? 'var(--gf-ok-soft)' : undefined,
             }}
           >
             <Group gap={8}>

@@ -11,6 +11,8 @@ import {
   Stack,
   Text,
   Title,
+  useComputedColorScheme,
+  useMantineColorScheme,
 } from '@mantine/core';
 import { CATEGORIES, categoryOf, type CategoryId, type ExpenseType } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
@@ -21,9 +23,9 @@ import { useValuesHidden } from '../hideValues';
  * not darker — so the card redefines what `.money-mask` tints itself from.
  */
 export const DARK_CARD = {
-  borderColor: 'var(--gf-ink)',
+  borderColor: 'var(--gf-deep)',
   color: '#fff',
-  '--gf-surface': 'var(--gf-ink)',
+  '--gf-surface': 'var(--gf-deep)',
   '--gf-on': '#fff',
   '--gf-mask-mix': '26%',
 } as CSSProperties;
@@ -88,6 +90,43 @@ export function HideValuesToggle({ onDark, ...rest }: { onDark?: boolean } & Omi
       {...rest}
     >
       <EyeIcon off={hidden} />
+    </ActionIcon>
+  );
+}
+
+const MoonIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+  </svg>
+);
+
+/**
+ * Light/dark switch. Until it is pressed the app follows the system setting;
+ * after that the choice sticks (Mantine keeps it in localStorage).
+ */
+export function ColorSchemeToggle({ onDark, ...rest }: { onDark?: boolean } & Omit<ActionIconProps, 'children'>) {
+  const { setColorScheme } = useMantineColorScheme();
+  const isDark = useComputedColorScheme('light') === 'dark';
+  const label = isDark ? 'Usar tema claro' : 'Usar tema escuro';
+  return (
+    <ActionIcon
+      variant={onDark ? 'subtle' : 'default'}
+      color={onDark ? '#2A5B4F' : undefined}
+      c={onDark ? '#B9CCC5' : undefined}
+      size="lg"
+      aria-label={label}
+      title={label}
+      onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
+      {...rest}
+    >
+      {isDark ? <SunIcon /> : <MoonIcon />}
     </ActionIcon>
   );
 }
