@@ -81,8 +81,10 @@ export default function FamilyDashboard() {
         {members.map((u, i) => {
           const d = calc.byUser[u.id];
           if (!d) return null;
-          const balance = calc.balance[u.id] ?? 0;
           const ratio = d.income > 0 ? d.paid / d.income : null;
+          // The bar measures the quota, not what was paid: after the split, that is
+          // what the house actually cost this person out of what came in.
+          const shareRatio = d.income > 0 ? d.share / d.income : 0;
           const tier = incomeTier(ratio);
           return (
             <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
@@ -104,17 +106,14 @@ export default function FamilyDashboard() {
                   <Text className="num" fw={600}>
                     <Text span size="sm" c="dimmed" fw={400}>cota </Text><Money value={d.share} />
                   </Text>
-                  <Text className="num" size="sm" c={balance >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
-                    {balance >= 0 ? 'a receber ' : 'a pagar '}<Money value={Math.abs(balance)} />
-                  </Text>
                 </Box>
               </Flex>
-              {/* Quatro quartos da entrada: cada bloco enche por vez, então a metade e
-                  os três quartos (onde mudam as etiquetas) se leem sem régua. */}
+              {/* Quatro quartos da entrada: cada bloco enche por vez com a cota, então
+                  a metade e os três quartos se leem sem régua. */}
               <Flex gap={4} mt="sm">
                 {[0, 1, 2, 3].map((q) => (
                   <Box key={q} h={22} bg="#EEF1EC" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
-                    <Box h="100%" bg={u.color} w={`${Math.min(Math.max((ratio ?? 0) * 4 - q, 0), 1) * 100}%`} />
+                    <Box h="100%" bg={u.color} w={`${Math.min(Math.max(shareRatio * 4 - q, 0), 1) * 100}%`} />
                   </Box>
                 ))}
               </Flex>
