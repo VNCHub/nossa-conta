@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMembers, useRules, useStatement } from '../api/hooks';
 import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
 import { Donut } from '../components/Donut';
+import { MyMonthCard } from '../components/MonthClosing';
 import { PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -37,6 +38,8 @@ export default function MyDashboard() {
         title="Meu painel"
         description="Sua cota real: gastos individuais mais a sua parte do que foi dividido."
       />
+
+      <MyMonthCard month={month} />
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
         <Card><Metric label="Entrou" value={<Money value={d.income} />} /></Card>

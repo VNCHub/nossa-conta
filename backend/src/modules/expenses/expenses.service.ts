@@ -8,6 +8,7 @@ import { ExpensesRepository, type ExpenseWithShares } from './expenses.repositor
 import { UpdateExpenseDto, CreateExpenseDto } from './dto/expenses.dto';
 import { UsersRepository } from '../users/users.repository';
 import { RulesRepository } from '../rules/rules.repository';
+import { MonthLocksService } from '../months/month-locks.service';
 
 @Injectable()
 export class ExpensesService {
@@ -15,6 +16,7 @@ export class ExpensesService {
     private readonly repo: ExpensesRepository,
     private readonly users: UsersRepository,
     private readonly rules: RulesRepository,
+    private readonly locks: MonthLocksService,
   ) {}
 
   async list(
@@ -67,6 +69,7 @@ export class ExpensesService {
   ): Promise<ExpenseDTO> {
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
     const date = dto.date ?? isoToday();
+    await this.locks.assertOpen(familyId, userId, [date.slice(0, 7)]);
     const row = await this.repo.create(
       {
         userId,
@@ -95,6 +98,9 @@ export class ExpensesService {
     const existing = await this.requireOwn(familyId, userId, id);
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
     const date = dto.date ?? existing.date.toISOString().slice(0, 10);
+    // Both ends: moving an expense out of a finalized month changes it as much
+    // as moving one in.
+    await this.locks.assertOpen(familyId, userId, [existing.month, date.slice(0, 7)]);
 
     const row = await this.repo.update(
       id,
@@ -115,7 +121,8 @@ export class ExpensesService {
   }
 
   async remove(familyId: string, userId: string, id: string): Promise<void> {
-    await this.requireOwn(familyId, userId, id);
+    const existing = await this.requireOwn(familyId, userId, id);
+    await this.locks.assertOpen(familyId, userId, [existing.month]);
     await this.repo.remove(id);
   }
 

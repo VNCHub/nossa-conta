@@ -3,6 +3,7 @@ import { Box, Card, Flex, Grid, Group, Progress, Stack, Text, Title } from '@man
 import { monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
+import { FamilyClosingCard } from '../components/MonthClosing';
 import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -42,6 +43,8 @@ export default function FamilyDashboard() {
         title={family.name}
         description={`Consolidado de ${members.length} ${members.length === 1 ? 'pessoa' : 'pessoas'} em ${monthLabel(month)}.`}
       />
+
+      <FamilyClosingCard month={month} />
 
       <Card
         bg="var(--gf-ink)"

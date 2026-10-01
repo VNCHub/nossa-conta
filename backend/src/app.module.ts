@@ -13,6 +13,7 @@ import { ImportsModule } from './modules/imports/imports.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ErrorsModule } from './modules/errors/errors.module';
+import { MonthsModule } from './modules/months/months.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ErrorsModule } from './modules/errors/errors.module';
     RolesModule,
     AdminModule,
     ErrorsModule,
+    MonthsModule,
   ],
   controllers: [HealthController],
 })

@@ -27,6 +27,8 @@ import { expenseKeyOf, parseInternalExport, type InternalExpenseEntry } from '..
 import { toDbExpenseType } from '../expenses/expenses.service';
 import { ImportsRepository, type ImportedFileWithCounts } from './imports.repository';
 import { ImportsStorage } from './imports.storage';
+import { MonthLocksService } from '../months/month-locks.service';
+import { monthLabel } from '@shared/format';
 
 const ACCEPTED_EXTENSIONS = ['.csv', '.ofx'];
 
@@ -38,6 +40,7 @@ export class ImportsService {
     private readonly repo: ImportsRepository,
     private readonly storage: ImportsStorage,
     private readonly config: ConfigService,
+    private readonly locks: MonthLocksService,
   ) {}
 
   async list(familyId: string): Promise<ImportedFileDTO[]> {
@@ -114,6 +117,12 @@ export class ImportsService {
     }
 
     const mapped = mapToRecords(transactions, documentType, bank);
+
+    const lockMessage = await this.lockedMonthsMessage(familyId, userId, [
+      ...mapped.expenses.map((e) => e.date),
+      ...mapped.incomes.map((i) => i.date),
+    ]);
+    if (lockMessage) return { fileName, status: 'error', message: lockMessage };
 
     const storagePath = await this.storage.save(file.buffer, format);
     try {
@@ -198,6 +207,9 @@ export class ImportsService {
     }
 
     const dates = entries.map((e) => e.date).sort();
+
+    const lockMessage = await this.lockedMonthsMessage(familyId, userId, dates);
+    if (lockMessage) return { fileName, status: 'error', message: lockMessage };
     const period = { start: dates[0], end: dates[dates.length - 1] };
 
     const storagePath = await this.storage.save(file.buffer, 'json');
@@ -239,6 +251,23 @@ export class ImportsService {
       this.logger.error(`Failed to save import ${fileName}: ${(err as Error).message}`);
       return { fileName, status: 'error', message: 'Não foi possível salvar a importação.' };
     }
+  }
+
+  /**
+   * A file is all-or-nothing, so one row in a finalized month rejects the whole
+   * file — silently dropping those rows would leave the month looking complete
+   * while part of the statement never made it in.
+   */
+  private async lockedMonthsMessage(
+    familyId: string,
+    userId: string,
+    dates: string[],
+  ): Promise<string | null> {
+    const finalized = new Set(await this.locks.monthsFinalizedBy(familyId, userId));
+    const hit = [...new Set(dates.map((d) => d.slice(0, 7)))].filter((m) => finalized.has(m)).sort();
+    return hit.length
+      ? `O arquivo tem lançamentos de ${hit.map(monthLabel).join(', ')}, que você já finalizou. Reabra seus lançamentos no Meu painel para importar.`
+      : null;
   }
 
   private expiresAt(): Date {

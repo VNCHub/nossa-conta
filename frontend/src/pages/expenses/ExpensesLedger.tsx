@@ -39,6 +39,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty, Money, TrashIcon } from '../../components/ui';
 import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
+import { MonthLockedBanner, useMyMonthLocked } from '../../components/MonthClosing';
 import { iso } from './date';
 import { ExportExpensesModal } from './ExportExpensesModal';
 
@@ -117,6 +118,8 @@ const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
 
 export default function ExpensesLedger() {
   const [month] = useMonth();
+  // The server enforces the freeze; this only keeps the UI from offering what would be refused.
+  const locked = useMyMonthLocked(month);
   const { user } = useAuth();
   const { data: members } = useMembers();
   const { data: rules } = useRules();
@@ -254,6 +257,7 @@ export default function ExpensesLedger() {
 
   return (
     <Card>
+      {locked && <MonthLockedBanner month={month} kind="expenses" />}
       <Stack hiddenFrom="sm" gap="sm" mb="md">
         <Title order={3} fz={20}>Lançamentos</Title>
         <SegmentedControl
@@ -269,7 +273,7 @@ export default function ExpensesLedger() {
         />
         <Group grow gap="sm">
           <Button size="md" variant="default" onClick={exportModal.open}>Exportar</Button>
-          <Button size="md" onClick={createModal.open}>Lançar gasto</Button>
+          <Button size="md" onClick={createModal.open} disabled={locked}>Lançar gasto</Button>
         </Group>
       </Stack>
 
@@ -286,7 +290,7 @@ export default function ExpensesLedger() {
             ]}
           />
           <Button variant="default" onClick={exportModal.open}>Exportar dados</Button>
-          <Button onClick={createModal.open}>Lançar gasto</Button>
+          <Button onClick={createModal.open} disabled={locked}>Lançar gasto</Button>
         </Group>
       </Group>
 
@@ -360,7 +364,7 @@ export default function ExpensesLedger() {
                   ...(isLast ? { borderBottomRightRadius: 8 } : {}),
                 };
                 const midCell = { backgroundColor: rowBg, ...rowSurface(e.complete) };
-                const canEdit = e.userId === user?.id;
+                const canEdit = e.userId === user?.id && !locked;
                 return (
                   <Table.Tr key={e.id}>
                     <Table.Td className="num" style={firstCell}>
@@ -449,7 +453,7 @@ export default function ExpensesLedger() {
               owner={memberOf(e.userId)}
               members={members}
               rules={rules}
-              canEdit={e.userId === user?.id}
+              canEdit={e.userId === user?.id && !locked}
               onPatch={(overrides) => patchField(e, overrides)}
               onDelete={() => askDelete(e)}
             />

@@ -82,6 +82,7 @@ model User {
   importedFiles    ImportedFile[]
   roles            UserRole[]
   passwordResetTokens PasswordResetToken[]
+  monthFinalizations  MonthFinalization[]
 
   @@index([familyId])
 }
@@ -171,6 +172,7 @@ model Family {
   expenses      Expense[]
   rules         SplitRule[]
   importedFiles ImportedFile[]
+  finalizations MonthFinalization[]
 }
 
 model Income {
@@ -339,4 +341,23 @@ model ImportedFile {
 
   @@unique([familyId, fingerprint])
   @@index([familyId, createdAt])
+}
+
+/// A member saying "I'm done logging this month". While it exists, that
+/// member's expenses and incomes for the month are frozen; the family can only
+/// close the month's settlement once every member has one.
+model MonthFinalization {
+  id          String   @id @default(cuid())
+  /// YYYY-MM
+  month       String   @db.VarChar(7)
+  finalizedAt DateTime @default(now())
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId, month])
+  @@index([familyId, month])
 }

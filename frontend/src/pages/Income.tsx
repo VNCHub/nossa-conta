@@ -25,6 +25,7 @@ import { keys, useIncomes, useAppMutation } from '../api/hooks';
 import { PageHeader, Loading, Metric, Empty, Money, TrashIcon } from '../components/ui';
 import { notifyError, notifySuccess, confirmDelete, confirmChoice } from '../feedback';
 import { useMonth } from '../useMonth';
+import { MonthLockedBanner, useMyMonthLocked } from '../components/MonthClosing';
 
 // Mantine 9 date pickers hand back a Date on initial mount but a
 // `YYYY-MM-DD` string once the user actually picks a day — accept both.
@@ -36,6 +37,8 @@ const monthIso = (d: Date | string) => iso(d).slice(0, 7);
 
 export default function Income() {
   const [month] = useMonth();
+  // Any write here (new entry, removing one, ending a recurrence from this month) touches this month.
+  const locked = useMyMonthLocked(month);
   const incomes = useIncomes();
   const invalidate = [keys.incomes, keys.statement(month)];
   const [createOpen, createModal] = useDisclosure(false);
@@ -119,10 +122,12 @@ export default function Income() {
             <Card style={{ flex: '1 1 200px' }}>
               <Metric label={`Total em ${monthLabel(month)}`} value={<Money value={total} />} />
             </Card>
-            <Button onClick={createModal.open} size="md" w={{ base: '100%', sm: 'auto' }} style={{ flexShrink: 0 }}>Lançar entrada</Button>
+            <Button onClick={createModal.open} disabled={locked} size="md" w={{ base: '100%', sm: 'auto' }} style={{ flexShrink: 0 }}>Lançar entrada</Button>
           </Group>
         }
       />
+
+      {locked && <MonthLockedBanner month={month} kind="incomes" />}
 
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 6 }}>
@@ -138,6 +143,7 @@ export default function Income() {
                     item={item}
                     isLast={i === activeRecurring.length - 1}
                     onDelete={() => askRemoveRecurring(item)}
+                    disabled={locked}
                   />
                 ))}
               </Stack>
@@ -157,6 +163,7 @@ export default function Income() {
                     item={item}
                     isLast={i === oneOffs.length - 1}
                     onRemove={() => askRemoveOneOff(item)}
+                    disabled={locked}
                   />
                 ))}
               </Stack>
@@ -177,10 +184,12 @@ function RecurringRow({
   item,
   isLast,
   onDelete,
+  disabled,
 }: {
   item: IncomeDTO;
   isLast: boolean;
   onDelete: () => void;
+  disabled: boolean;
 }) {
   return (
     <Group
@@ -207,6 +216,7 @@ function RecurringRow({
       <ActionIcon
         variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onDelete}
+        disabled={disabled}
       >
         <TrashIcon />
       </ActionIcon>
@@ -214,7 +224,17 @@ function RecurringRow({
   );
 }
 
-function OneOffRow({ item, isLast, onRemove }: { item: IncomeDTO; isLast: boolean; onRemove: () => void }) {
+function OneOffRow({
+  item,
+  isLast,
+  onRemove,
+  disabled,
+}: {
+  item: IncomeDTO;
+  isLast: boolean;
+  onRemove: () => void;
+  disabled: boolean;
+}) {
   return (
     <Group
       wrap="nowrap" py="sm"
@@ -228,6 +248,7 @@ function OneOffRow({ item, isLast, onRemove }: { item: IncomeDTO; isLast: boolea
       <ActionIcon
         variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onRemove}
+        disabled={disabled}
       >
         <TrashIcon />
       </ActionIcon>

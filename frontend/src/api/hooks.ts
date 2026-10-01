@@ -18,6 +18,7 @@ import type {
   ErrorIssueDTO,
   ErrorIssueDetailDTO,
   SessionDTO,
+  MonthStatusDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -29,6 +30,7 @@ export const keys = {
   expenses: (month: string) => ['expenses', month] as const,
   statement: (month: string) => ['statement', month] as const,
   imports: ['imports'] as const,
+  month: (month: string) => ['month', month] as const,
   adminOverview: ['admin', 'overview'] as const,
   adminUsers: (page: number) => ['admin', 'users', page] as const,
   errorIssues: (page: number) => ['errors', 'issues', page] as const,
@@ -61,6 +63,18 @@ export const useStatement = (month: string) =>
     queryKey: keys.statement(month),
     queryFn: () => api.get<StatementDTO>(`/relatorios/consolidado?mes=${month}`),
   });
+
+export const useMonthStatus = (month: string) =>
+  useQuery({
+    queryKey: keys.month(month),
+    queryFn: () => api.get<MonthStatusDTO>(`/meses/${month}`),
+  });
+
+export const useFinalizeMonth = (month: string) =>
+  useAppMutation(() => api.post<MonthStatusDTO>(`/meses/${month}/finalizacao`), [keys.month(month)]);
+
+export const useReopenMyMonth = (month: string) =>
+  useAppMutation(() => api.delete<MonthStatusDTO>(`/meses/${month}/finalizacao`), [keys.month(month)]);
 
 export const useImports = () =>
   useQuery({

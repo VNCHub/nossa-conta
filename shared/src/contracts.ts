@@ -113,6 +113,13 @@ export interface StatementDTO {
   monthTotal: number;
 }
 
+/** Output of GET /meses/:mes — where the month stands on its way to being closed. */
+export interface MonthStatusDTO {
+  month: string;
+  /** userId → ISO timestamp the member finalized their entries; members absent here have not. */
+  finalized: Record<string, string>;
+}
+
 export interface SessionDTO {
   accessToken: string;
   user: MemberDTO & { familyId: string | null; roles: AppRole[] };
