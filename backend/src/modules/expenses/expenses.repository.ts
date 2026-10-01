@@ -35,6 +35,10 @@ export class ExpensesRepository {
           gte: filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00Z`) : undefined,
           lte: filters.dateTo ? new Date(`${filters.dateTo}T23:59:59Z`) : undefined,
         },
+        // A debt payment only means something inside this family — never portable.
+        // Spelled out with the null case: a bare NOT on a nullable column would
+        // also drop every expense whose type hasn't been filled in yet.
+        OR: [{ expenseType: null }, { expenseType: { not: 'DEBT' } }],
       },
       include: WITH_SHARES,
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],

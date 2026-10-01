@@ -21,6 +21,7 @@ type IncomeRow = {
   date: Date | null;
   source: RecordSourceDb;
   importedFileId: string | null;
+  debtPaymentId: string | null;
 };
 
 @Injectable()
@@ -75,6 +76,7 @@ export class IncomesService {
     dto: UpdateIncomeDto,
   ): Promise<IncomeDTO> {
     const current = await this.requireOwn(familyId, userId, id);
+    assertNotDebtReceipt(current);
     const recurring = current.type === IncomeTypeDb.RECURRING;
 
     // Two ways to drop just one month without a gap in the middle: end the
@@ -119,6 +121,7 @@ export class IncomesService {
 
   async remove(familyId: string, userId: string, id: string): Promise<void> {
     const current = await this.requireOwn(familyId, userId, id);
+    assertNotDebtReceipt(current);
     await this.assertLockedMonthsUntouched(familyId, userId, shapeOf(current), null);
     await this.repo.remove(id);
   }
@@ -162,6 +165,7 @@ export class IncomesService {
       date: i.date ? i.date.toISOString().slice(0, 10) : null,
       since: i.since,
       until: i.until,
+      debtReceipt: i.debtPaymentId !== null,
     }));
   }
 
@@ -218,5 +222,15 @@ function toDTO(i: IncomeRow): IncomeDTO {
     date: i.date ? i.date.toISOString().slice(0, 10) : null,
     source: i.source === RecordSourceDb.IMPORT ? 'import' : 'manual',
     importedFileId: i.importedFileId,
+    debtPaymentId: i.debtPaymentId,
   };
+}
+
+/** Its counterpart is the payer's expense — only undoing that payment removes it. */
+function assertNotDebtReceipt(i: { debtPaymentId: string | null }) {
+  if (i.debtPaymentId) {
+    throw new BadRequestException(
+      'Esta entrada é o recebimento de uma dívida. Ela só muda se quem pagou excluir o pagamento.',
+    );
+  }
 }

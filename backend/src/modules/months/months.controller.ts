@@ -27,4 +27,15 @@ export class MonthsController {
   reopen(@CurrentUser() user: AuthenticatedUser, @Param() p: MonthParam) {
     return this.months.reopen(user.familyId!, user.id, p.mes);
   }
+
+  /** Close the family's settlement: each transfer becomes a debt. */
+  @Post(':mes/fechamento')
+  close(@CurrentUser() user: AuthenticatedUser, @Param() p: MonthParam) {
+    return this.months.close(user.familyId!, user.id, p.mes);
+  }
+
+  @Delete(':mes/fechamento')
+  reopenClosing(@CurrentUser() user: AuthenticatedUser, @Param() p: MonthParam) {
+    return this.months.reopenClosing(user.familyId!, p.mes);
+  }
 }

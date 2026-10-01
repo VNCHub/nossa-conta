@@ -8,6 +8,7 @@ import { RulesModule } from '../rules/rules.module';
 
 @Module({
   imports: [UsersModule, IncomesModule, ExpensesModule, RulesModule],
+  exports: [ReportsService],
   controllers: [ReportsController],
   providers: [ReportsService],
 })

@@ -55,6 +55,8 @@ export class ReportsService {
             optional: toReais(u.optionalCents),
             oneOff: toReais(u.oneOffCents),
             income: toReais(u.incomeCents),
+            debtPaid: toReais(u.debtPaidCents),
+            debtReceived: toReais(u.debtReceivedCents),
             categories: Object.fromEntries(
               Object.entries(u.categoryCents).map(([c, v]) => [c, toReais(v)]),
             ),

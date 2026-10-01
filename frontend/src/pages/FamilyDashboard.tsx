@@ -4,6 +4,7 @@ import { monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
 import { FamilyClosingCard } from '../components/MonthClosing';
+import { FamilyDebtsCard } from '../components/debts';
 import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -85,6 +86,8 @@ export default function FamilyDashboard() {
         </Card>
         </Grid.Col>
       </Grid>
+
+      <FamilyDebtsCard />
 
       <Card mb="lg">
         <Title order={3} mb="sm">Quem recebeu e quem gastou</Title>

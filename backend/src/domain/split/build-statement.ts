@@ -22,6 +22,8 @@ const emptySummary = (incomeCents: number): UserSummaryCalc => ({
   oneOffCents: 0,
   incomeCents,
   categoryCents: {},
+  debtPaidCents: 0,
+  debtReceivedCents: 0,
 });
 
 export function buildStatement(input: {
@@ -31,7 +33,13 @@ export function buildStatement(input: {
   rules: RuleCalc[];
   month: string;
 }): StatementCalc {
-  const { members, incomes, expenses, rules, month } = input;
+  const { members, rules, month } = input;
+  // Debt payments are members settling with each other, not the household
+  // spending or earning: counting them would let a repaid loan raise someone's
+  // income weight, or show the family "spending" money that only changed hands.
+  // They are set aside before anything else sees them.
+  const expenses = input.expenses.filter((e) => e.expenseType !== 'debt');
+  const incomes = input.incomes.filter((i) => !i.debtReceipt);
   const forMonth = expenses.filter((e) => e.month === month);
   const ctx: SplitContext = { rules, incomes, expenses, month };
 
@@ -69,6 +77,17 @@ export function buildStatement(input: {
 
     return { ...e, shares, shareCents };
   });
+
+  for (const e of input.expenses) {
+    if (e.expenseType === 'debt' && e.month === month && byUser[e.userId]) {
+      byUser[e.userId].debtPaidCents += e.amountCents;
+    }
+  }
+  for (const i of input.incomes) {
+    if (i.debtReceipt && byUser[i.userId]) {
+      byUser[i.userId].debtReceivedCents += incomeForMonth([i], i.userId, month);
+    }
+  }
 
   return {
     month,

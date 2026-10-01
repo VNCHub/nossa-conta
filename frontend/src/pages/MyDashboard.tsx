@@ -7,6 +7,7 @@ import { useMembers, useRules, useStatement } from '../api/hooks';
 import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
 import { Donut } from '../components/Donut';
 import { MyMonthCard } from '../components/MonthClosing';
+import { MyDebtsCard } from '../components/debts';
 import { PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -26,7 +27,10 @@ export default function MyDashboard() {
   const d = calc.byUser[user.id];
   if (!d) return <Empty>Sem dados seus neste mês.</Empty>;
 
-  const leftOver = d.income - d.share;
+  // Personal view: debt payments count here — it was this person's money that
+  // came in or went out — even though the family's numbers leave them out.
+  const income = d.income + d.debtReceived;
+  const leftOver = income - d.share - d.debtPaid;
   const myBalance = calc.balance[user.id] ?? 0;
   const nonFixedTotal = d.optional + d.oneOff;
   const nonFixedShare =
@@ -40,18 +44,34 @@ export default function MyDashboard() {
       />
 
       <MyMonthCard month={month} />
+      <MyDebtsCard userId={user.id} />
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
-        <Card><Metric label="Entrou" value={<Money value={d.income} />} /></Card>
         <Card>
-          <Metric label="Sua cota de gastos" value={<Money value={d.share} />} detail={<>saiu do seu bolso: <Money value={d.paid} /></>} />
+          <Metric
+            label="Entrou"
+            value={<Money value={income} />}
+            detail={d.debtReceived > 0 ? <>inclui <Money value={d.debtReceived} /> recebidos de dívidas</> : undefined}
+          />
+        </Card>
+        <Card>
+          <Metric
+            label="Sua cota de gastos"
+            value={<Money value={d.share} />}
+            detail={
+              <>
+                saiu do seu bolso: <Money value={d.paid + d.debtPaid} />
+                {d.debtPaid > 0 && <> (inclui <Money value={d.debtPaid} /> pagos em dívidas)</>}
+              </>
+            }
+          />
         </Card>
         <Card>
           <Metric
             label="Sobrou"
             value={<Money value={leftOver} />}
             color={leftOver >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}
-            detail={`${d.income ? pct(leftOver / d.income) : '0%'} da sua entrada`}
+            detail={`${income ? pct(leftOver / income) : '0%'} da sua entrada${d.debtPaid || d.debtReceived ? ', contando as dívidas' : ''}`}
           />
         </Card>
       </SimpleGrid>

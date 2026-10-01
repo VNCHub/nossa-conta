@@ -163,7 +163,8 @@ export default function Income() {
                     item={item}
                     isLast={i === oneOffs.length - 1}
                     onRemove={() => askRemoveOneOff(item)}
-                    disabled={locked}
+                    // A debt receipt only goes away with the payer's payment.
+                    disabled={locked || !!item.debtPaymentId}
                   />
                 ))}
               </Stack>
@@ -242,7 +243,12 @@ function OneOffRow({
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
-        <Text size="sm" c="dimmed">{(item.date ?? '').split('-').reverse().join('/')}</Text>
+        <Group gap={6} mt={2}>
+          <Text size="sm" c="dimmed">{(item.date ?? '').split('-').reverse().join('/')}</Text>
+          {item.debtPaymentId && (
+            <Badge color="indigo" variant="light" size="sm" tt="none">Recebimento de dívida</Badge>
+          )}
+        </Group>
       </div>
       <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
       <ActionIcon
