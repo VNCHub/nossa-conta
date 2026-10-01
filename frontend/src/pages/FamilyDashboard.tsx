@@ -8,9 +8,9 @@ import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '.
 import { useMonth } from '../useMonth';
 
 /**
- * The label compares what left each person's pocket with what came in — not the
- * quota — so it answers "how much of their income did the house take", which is
- * the part the family cannot see from the settlement.
+ * The label compares the quota — what the house cost each person after the split —
+ * with what came in, so it answers "how much of their income did the house take".
+ * It reads the same ratio as the bar, so the two never disagree.
  */
 const incomeTier = (ratio: number | null) => {
   if (ratio === null) return { label: 'sem entrada no mês', color: 'gray' };
@@ -81,9 +81,9 @@ export default function FamilyDashboard() {
         {members.map((u, i) => {
           const d = calc.byUser[u.id];
           if (!d) return null;
-          const balance = calc.balance[u.id] ?? 0;
-          const ratio = d.income > 0 ? d.paid / d.income : null;
+          const ratio = d.income > 0 ? d.share / d.income : null;
           const tier = incomeTier(ratio);
+          const memberLeftOver = d.income - d.share;
           return (
             <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
               <Flex direction={{ base: 'column', xs: 'row' }} gap={{ base: 4, xs: 'md' }} wrap="nowrap">
@@ -94,23 +94,24 @@ export default function FamilyDashboard() {
                       <Text fw={600}>{u.name}</Text>
                       <Badge color={tier.color} variant="light" tt="none">{tier.label}</Badge>
                     </Group>
-                    <Text size="sm" c="dimmed">saiu do bolso <Money value={d.paid} /> de <Money value={d.income} /> que entrou</Text>
+                    <Text size="sm" c="dimmed">
+                      {/* Cada rótulo quebra junto com o seu valor no celular. */}
+                      <span style={{ whiteSpace: 'nowrap' }}>gastou: <Money value={d.share} /></span>{' | '}
+                      <span style={{ whiteSpace: 'nowrap' }}>recebeu: <Money value={d.income} /></span>
+                    </Text>
                   </div>
                 </Group>
                 {/* Empilhado no mobile, o bloco fica alinhado à esquerda, abaixo do
                     nome — alinhar à direita aqui deixaria os números "soltos"
                     na ponta oposta da tela, quebrando a leitura de cima para baixo. */}
                 <Box ta={{ base: 'left', xs: 'right' }} pl={{ base: 52, xs: 0 }}>
-                  <Text className="num" fw={600}>
-                    <Text span size="sm" c="dimmed" fw={400}>cota </Text><Money value={d.share} />
-                  </Text>
-                  <Text className="num" size="sm" c={balance >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
-                    {balance >= 0 ? 'a receber ' : 'a pagar '}<Money value={Math.abs(balance)} />
+                  <Text className="num" fw={600} c={memberLeftOver >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
+                    <Text span size="sm" c="dimmed" fw={400}>sobrou </Text><Money value={memberLeftOver} />
                   </Text>
                 </Box>
               </Flex>
-              {/* Quatro quartos da entrada: cada bloco enche por vez, então a metade e
-                  os três quartos (onde mudam as etiquetas) se leem sem régua. */}
+              {/* Quatro quartos da entrada: cada bloco enche por vez com a cota, então
+                  a metade e os três quartos se leem sem régua. */}
               <Flex gap={4} mt="sm">
                 {[0, 1, 2, 3].map((q) => (
                   <Box key={q} h={22} bg="#EEF1EC" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
