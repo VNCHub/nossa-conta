@@ -4,7 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { currentMonth } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useFamily } from '../api/hooks';
-import { Avatar, MonthNav } from './ui';
+import { Avatar, HideValuesToggle, MonthNav } from './ui';
 import { useMonth } from '../useMonth';
 
 const SCREENS = [
@@ -40,6 +40,8 @@ export default function Shell() {
         <Group h="100%" px="md" justify="space-between" wrap="nowrap" className="safe-x">
           <Group gap="sm" wrap="nowrap">
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menu" />
+            {/* On mobile the rail is a closed drawer: the switch stays one tap away up here. */}
+            <HideValuesToggle hiddenFrom="sm" />
             {/* With the month selector present there is no room for the title on
                 a 360px screen; the drawer already shows the brand. */}
             {isAdminScreen && (
@@ -59,12 +61,17 @@ export default function Shell() {
 
       <AppShell.Navbar bg="var(--gf-ink)" p="md" className="safe-nav" style={{ border: 'none' }}>
         <AppShell.Section>
-          <Text ff="'Newsreader', Georgia, serif" fz={20} c="#fff" lh={1.2}>
-            Nossa Conta
-          </Text>
-          <Text fz="xs" c="#8FAFA4" mt={4} style={{ letterSpacing: '0.04em' }}>
-            {family?.name ?? '—'}
-          </Text>
+          <Group justify="space-between" align="flex-start" wrap="nowrap" gap="xs">
+            <div>
+              <Text ff="'Newsreader', Georgia, serif" fz={20} c="#fff" lh={1.2}>
+                Nossa Conta
+              </Text>
+              <Text fz="xs" c="#8FAFA4" mt={4} style={{ letterSpacing: '0.04em' }}>
+                {family?.name ?? '—'}
+              </Text>
+            </div>
+            <HideValuesToggle onDark visibleFrom="sm" />
+          </Group>
         </AppShell.Section>
 
         <AppShell.Section grow component={ScrollArea} mt="lg">

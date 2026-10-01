@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Card, Grid, SimpleGrid, Text, Title } from '@mantine/core';
 import type { CategoryId } from '@shared/domain';
-import { brl, monthLabel, pct } from '@shared/format';
+import { monthLabel, pct } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useMembers, useRules, useStatement } from '../api/hooks';
 import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
 import { Donut } from '../components/Donut';
-import { PageHeader, Loading, Categories, Metric, Empty } from '../components/ui';
+import { PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
 export default function MyDashboard() {
@@ -39,14 +39,14 @@ export default function MyDashboard() {
       />
 
       <SimpleGrid cols={{ base: 1, sm: 3 }} mb="lg">
-        <Card><Metric label="Entrou" value={brl(d.income)} /></Card>
+        <Card><Metric label="Entrou" value={<Money value={d.income} />} /></Card>
         <Card>
-          <Metric label="Sua cota de gastos" value={brl(d.share)} detail={`saiu do seu bolso: ${brl(d.paid)}`} />
+          <Metric label="Sua cota de gastos" value={<Money value={d.share} />} detail={<>saiu do seu bolso: <Money value={d.paid} /></>} />
         </Card>
         <Card>
           <Metric
             label="Sobrou"
-            value={brl(leftOver)}
+            value={<Money value={leftOver} />}
             color={leftOver >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}
             detail={`${d.income ? pct(leftOver / d.income) : '0%'} da sua entrada`}
           />
@@ -92,13 +92,13 @@ export default function MyDashboard() {
           <p className="settlement">
             Você tem{' '}
             <span style={{ color: myBalance > 0 ? 'var(--gf-credit)' : 'var(--gf-debit)' }}>
-              {brl(Math.abs(myBalance))}
+              <Money value={Math.abs(myBalance)} />
             </span>{' '}
             {myBalance > 0 ? 'a receber.' : 'a pagar.'}
           </p>
         )}
         <Text size="sm" c="dimmed" mt="sm">
-          Diferença entre o que saiu do seu bolso ({brl(d.paid)}) e a sua cota ({brl(d.share)}).
+          Diferença entre o que saiu do seu bolso (<Money value={d.paid} />) e a sua cota (<Money value={d.share} />).
         </Text>
       </Card>
     </>

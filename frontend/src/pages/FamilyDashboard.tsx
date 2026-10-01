@@ -1,8 +1,9 @@
+import type { CSSProperties } from 'react';
 import { Box, Card, Flex, Grid, Group, Progress, Stack, Text, Title } from '@mantine/core';
-import { brl, monthLabel, pct } from '@shared/format';
+import { monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
-import { Avatar, PageHeader, Loading, Categories, Metric, Empty } from '../components/ui';
+import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
 export default function FamilyDashboard() {
@@ -42,7 +43,12 @@ export default function FamilyDashboard() {
         description={`Consolidado de ${members.length} ${members.length === 1 ? 'pessoa' : 'pessoas'} em ${monthLabel(month)}.`}
       />
 
-      <Card bg="var(--gf-ink)" style={{ borderColor: 'var(--gf-ink)' }} mb="lg">
+      <Card
+        bg="var(--gf-ink)"
+        mb="lg"
+        // Dark surface: hidden values need a bar lighter than the card, not darker.
+        style={{ borderColor: 'var(--gf-ink)', '--gf-surface': 'var(--gf-ink)', '--gf-on': '#fff', '--gf-mask-mix': '26%' } as CSSProperties}
+      >
         <Text size="sm" c="#8FAFA4" mb="sm">Acerto do mês</Text>
         {calc.transfers.length === 0 ? (
           <p className="settlement" style={{ color: '#fff' }}>Ninguém deve nada a ninguém.</p>
@@ -53,7 +59,7 @@ export default function FamilyDashboard() {
           <Flex direction="column" gap={{ base: 'sm', xs: 'xs' }}>
             {calc.transfers.map((t, i) => (
               <p className="settlement" key={i} style={{ color: '#fff' }}>
-                {nameOf(t.from)} paga <span style={{ color: '#F0C355' }}>{brl(t.amount)}</span> para {nameOf(t.to)}
+                {nameOf(t.from)} paga <span style={{ color: '#F0C355' }}><Money value={t.amount} /></span> para {nameOf(t.to)}
               </p>
             ))}
           </Flex>
@@ -63,13 +69,13 @@ export default function FamilyDashboard() {
       {/* Duas colunas no mobile: Entrou/Gasto lado a lado e Sobrou em largura
           total, em vez de três cards empilhados ocupando uma tela inteira. */}
       <Grid gap={{ base: 'xs', sm: 'md' }} mb="lg">
-        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Entrou na casa" value={brl(totalIncome)} /></Card></Grid.Col>
-        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Gasto total" value={brl(calc.monthTotal)} /></Card></Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Entrou na casa" value={<Money value={totalIncome} />} /></Card></Grid.Col>
+        <Grid.Col span={{ base: 6, sm: 4 }}><Card h="100%"><Metric label="Gasto total" value={<Money value={calc.monthTotal} />} /></Card></Grid.Col>
         <Grid.Col span={{ base: 12, sm: 4 }}>
         <Card h="100%">
           <Metric
             label="Sobrou"
-            value={brl(leftOver)}
+            value={<Money value={leftOver} />}
             color={leftOver >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}
             detail={`${totalIncome ? pct(leftOver / totalIncome) : '0%'} do que entrou`}
           />
@@ -99,9 +105,9 @@ export default function FamilyDashboard() {
                     <Text fw={600}>{u.name}</Text>
                     {/* Uma linha por dado no mobile: o "·" quebrava no meio de um valor. */}
                     <Flex direction={{ base: 'column', xs: 'row' }} columnGap="xs" c="dimmed" fz="sm">
-                      <span>entrada {brl(d.income)}</span>
+                      <span>entrada <Money value={d.income} /></span>
                       <span>
-                        <Box component="span" visibleFrom="xs">· </Box>saiu do bolso {brl(d.paid)}
+                        <Box component="span" visibleFrom="xs">· </Box>saiu do bolso <Money value={d.paid} />
                       </span>
                     </Flex>
                     <Progress value={(d.share / maxShare) * 100} color={u.color} size="sm" radius="sm" mt={6} />
@@ -112,10 +118,10 @@ export default function FamilyDashboard() {
                     na ponta oposta da tela, quebrando a leitura de cima para baixo. */}
                 <Box ta={{ base: 'left', xs: 'right' }} pl={{ base: 52, xs: 0 }}>
                   <Text className="num" fw={600}>
-                    <Text span size="sm" c="dimmed" fw={400} hiddenFrom="xs">cota </Text>{brl(d.share)}
+                    <Text span size="sm" c="dimmed" fw={400} hiddenFrom="xs">cota </Text><Money value={d.share} />
                   </Text>
                   <Text className="num" size="sm" c={balance >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
-                    {balance >= 0 ? 'a receber ' : 'a pagar '}{brl(Math.abs(balance))}
+                    {balance >= 0 ? 'a receber ' : 'a pagar '}<Money value={Math.abs(balance)} />
                   </Text>
                 </Box>
               </Flex>

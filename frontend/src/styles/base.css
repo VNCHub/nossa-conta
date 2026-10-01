@@ -15,6 +15,11 @@
   --gf-credit: #2e7d63;
   --gf-debit: #a8332a;
   --gf-mustard: #d9a21b;
+  /* The surface a value sits on and the ink that reads on it. Surfaces that
+     are not a white card (dark card, tinted rows) redefine both. */
+  --gf-surface: var(--gf-card);
+  --gf-on: var(--gf-ink);
+  --gf-mask-mix: 16%;
 }
 
 body {
@@ -26,6 +31,17 @@ body {
 /* Money values line up vertically in tables and lists. */
 .num {
   font-variant-numeric: tabular-nums;
+}
+
+/* "Hide values": a stamp of the surface itself. Fixed width, so a bar never
+   tells R$ 12,90 from R$ 12.400,00. */
+.money-mask {
+  display: inline-block;
+  vertical-align: -0.08em;
+  width: 4.6em;
+  height: 0.78em;
+  border-radius: 0.2em;
+  background: color-mix(in oklab, var(--gf-surface), var(--gf-on) var(--gf-mask-mix));
 }
 
 /* The month's settlement sentence is the screen's payoff: it gets editorial weight. */
