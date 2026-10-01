@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   ActionIcon,
   type ActionIconProps,
@@ -15,6 +15,18 @@ import {
 import { CATEGORIES, categoryOf, type CategoryId, type ExpenseType } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
 import { useValuesHidden } from '../hideValues';
+
+/**
+ * A dark card's surface and ink. Hidden values need a bar lighter than the card,
+ * not darker — so the card redefines what `.money-mask` tints itself from.
+ */
+export const DARK_CARD = {
+  borderColor: 'var(--gf-ink)',
+  color: '#fff',
+  '--gf-surface': 'var(--gf-ink)',
+  '--gf-on': '#fff',
+  '--gf-mask-mix': '26%',
+} as CSSProperties;
 
 export interface Member {
   id: string;

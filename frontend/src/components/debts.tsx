@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Badge,
   Button,
@@ -23,10 +23,11 @@ import { Link } from 'react-router-dom';
 import type { DebtDTO, MemberDTO } from '@shared/contracts';
 import { PAYMENT_METHODS } from '@shared/domain';
 import { brl, monthLabel, monthLabelCompact } from '@shared/format';
-import { useCreateDebt, useDebts, useDeleteDebt, useMembers, useMonthStatus, usePayDebt } from '../api/hooks';
+import { useCreateDebt, useDebts, useDeleteDebt, useMembers, usePayDebt } from '../api/hooks';
 import { confirmDelete, notifyError, notifySuccess } from '../feedback';
 import { iso } from '../pages/expenses/date';
-import { Avatar, Money } from './ui';
+import { Celebration } from './Celebration';
+import { Avatar, DARK_CARD, Money } from './ui';
 
 // iOS Safari zooms in on focus under 16px; 44px keeps fields easy to tap.
 const noZoomStyles = { input: { fontSize: '16px', minHeight: 44 } };
@@ -174,50 +175,56 @@ export function DebtCard({
   );
 }
 
-/** Compact line for the dashboards. */
-export function DebtLine({
+const DIVIDER = '1px solid #2C524A';
+
+/** One line of a dark dashboard card: who, what, and what is left to pay. */
+function DebtRow({
   debt,
   members,
   perspective,
+  amountColor,
   onPay,
 }: {
   debt: DebtDTO;
   members: MemberDTO[];
-  /** family: shows both people; receive / pay: shows only the other person */
+  /** family: shows both people; receive / pay: only the other one */
   perspective: 'family' | 'receive' | 'pay';
+  amountColor: string;
   onPay?: (d: DebtDTO) => void;
 }) {
-  const other = members.find((m) => m.id === (perspective === 'receive' ? debt.fromUserId : debt.toUserId));
+  const name = (id: string) => members.find((m) => m.id === id)?.name ?? 'Ex-membro';
+  const who =
+    perspective === 'family'
+      ? `${name(debt.fromUserId)} → ${name(debt.toUserId)}`
+      : name(perspective === 'receive' ? debt.fromUserId : debt.toUserId);
   return (
-    <Group justify="space-between" wrap="nowrap" gap="sm" py="xs" style={{ borderBottom: '1px solid #EEF1EC' }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        {perspective === 'family' ? (
-          <DebtFlow debt={debt} members={members} />
-        ) : (
-          <Group gap={6} wrap="nowrap">
-            {other && <Avatar user={other} />}
-            <Text fw={600} truncate>{other?.name ?? 'Ex-membro'}</Text>
-          </Group>
-        )}
-        <Group gap="xs" mt={4} wrap="wrap">
-          <Text size="sm" c="dimmed">{debt.description}</Text>
-          {perspective === 'family' && <OriginBadge debt={debt} />}
-        </Group>
-        <Progress value={paidPct(debt)} color="petrol" size="xs" radius="sm" mt={6} maw={200} />
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <Text
-          className="num" fw={600}
-          c={perspective === 'receive' ? 'var(--gf-credit)' : perspective === 'pay' ? 'var(--gf-debit)' : undefined}
-        >
-          <Money value={debt.remaining} />
-        </Text>
-        <Text size="xs" c="dimmed">de <Money value={debt.amount} /></Text>
+    <Group justify="space-between" wrap="nowrap" gap="sm" py={6} style={{ borderTop: DIVIDER }}>
+      <Text truncate style={{ minWidth: 0 }}>
+        {who} <Text span c="#A9C7BD">· {debt.description}</Text>
+      </Text>
+      <Group gap="sm" wrap="nowrap" style={{ flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          <Text ff="heading" fz={18} lh={1.2} c={amountColor} className="num"><Money value={debt.remaining} /></Text>
+          {debt.paid > 0 && <Text size="xs" c="#8FAFA4">de <Money value={debt.amount} /></Text>}
+        </div>
         {perspective === 'pay' && onPay && (
-          <Button size="xs" mt={4} onClick={() => onPay(debt)}>Pagar</Button>
+          <Button size="compact-sm" color="mustard" c="var(--gf-ink)" onClick={() => onPay(debt)}>Pagar</Button>
         )}
-      </div>
+      </Group>
     </Group>
+  );
+}
+
+/** The dark shell the dashboards' debts cards share. */
+function DebtsCardShell({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card mb="lg" padding="md" bg="var(--gf-ink)" style={DARK_CARD}>
+      <Group justify="space-between" mb={8}>
+        <Title order={3} c="#fff">{title}</Title>
+        <Text component={Link} to="/dividas" size="sm" td="underline" c="#A9C7BD">Ver todas</Text>
+      </Group>
+      {children}
+    </Card>
   );
 }
 
@@ -420,18 +427,13 @@ export function FamilyDebtsCard() {
   const { data: members } = useMembers();
   if (!debts.data || !members) return null;
   const open = debts.data.filter(isOpen);
+  if (open.length === 0) return <Celebration title="Tudo em dia! Ninguém deve nada a ninguém." />;
   return (
-    <Card mb="lg">
-      <Group justify="space-between" mb="xs">
-        <Title order={3}>Dívidas em aberto na família</Title>
-        <Text component={Link} to="/dividas" size="sm" td="underline" c="dimmed">Ver todas</Text>
-      </Group>
-      {open.length === 0 ? (
-        <Text size="sm" c="dimmed">Nenhuma dívida em aberto.</Text>
-      ) : (
-        open.map((d) => <DebtLine key={d.id} debt={d} members={members} perspective="family" />)
-      )}
-    </Card>
+    <DebtsCardShell title="Dívidas em aberto">
+      {open.map((d) => (
+        <DebtRow key={d.id} debt={d} members={members} perspective="family" amountColor="#F0C355" />
+      ))}
+    </DebtsCardShell>
   );
 }
 
@@ -445,53 +447,31 @@ export function MyDebtsCard({ userId }: { userId: string }) {
   const open = debts.data.filter(isOpen);
   const receive = open.filter((d) => d.toUserId === userId);
   const pay = open.filter((d) => d.fromUserId === userId);
+  if (!receive.length && !pay.length) return <Celebration title="Tudo em dia! Nenhuma dívida em aberto." />;
   const sum = (list: DebtDTO[]) => list.reduce((s, d) => s + d.remaining, 0);
 
-  const column = (title: string, list: DebtDTO[], perspective: 'receive' | 'pay', empty: string) => (
-    <div>
-      <Group justify="space-between" mb={4}>
-        <Text size="sm" c="dimmed">{title}</Text>
-        <Text className="num" fw={600} c={perspective === 'receive' ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
-          <Money value={sum(list)} />
-        </Text>
-      </Group>
-      {list.length === 0 ? (
-        <Text size="sm" c="dimmed">{empty}</Text>
-      ) : (
-        list.map((d) => <DebtLine key={d.id} debt={d} members={members} perspective={perspective} onPay={setPaying} />)
-      )}
-    </div>
-  );
+  const column = (title: string, list: DebtDTO[], perspective: 'receive' | 'pay') => {
+    const color = perspective === 'receive' ? '#8FD3B8' : '#F4A79F';
+    return (
+      <div>
+        <Text size="sm" c="#A9C7BD">{title}</Text>
+        <Text ff="heading" fz={18} lh={1.2} c={color} mb={2} className="num"><Money value={sum(list)} /></Text>
+        {list.map((d) => (
+          <DebtRow key={d.id} debt={d} members={members} perspective={perspective} amountColor={color} onPay={setPaying} />
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <Card mb="lg">
-      <Group justify="space-between" mb="sm">
-        <Title order={3}>Suas dívidas</Title>
-        <Text component={Link} to="/dividas" size="sm" td="underline" c="dimmed">Ver todas</Text>
-      </Group>
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-        {column('A receber', receive, 'receive', 'Ninguém te deve.')}
-        {column('A pagar', pay, 'pay', 'Você não deve nada.')}
-      </SimpleGrid>
+    <>
+      <DebtsCardShell title="Suas dívidas">
+        <SimpleGrid cols={{ base: 1, sm: receive.length && pay.length ? 2 : 1 }} spacing="lg">
+          {receive.length > 0 && column('A receber', receive, 'receive')}
+          {pay.length > 0 && column('A pagar', pay, 'pay')}
+        </SimpleGrid>
+      </DebtsCardShell>
       <PayDebtModal debt={paying} onClose={() => setPaying(null)} members={members} />
-    </Card>
+    </>
   );
 }
-
-/**
- * Once a month is closed its settlement lives on as debts, so "what's left of
- * the acerto" is their remaining balances. Only the debts *this month's*
- * closing generated count — never hand-entered debts or another month's
- * closing, or one month's acerto would show another's balance. Payments count
- * whenever they were made. Null while loading or while the month is still open
- * (the statement's transfers are the acerto then).
- */
-export function useClosedSettlement(month: string): { debts: DebtDTO[] } | null {
-  const status = useMonthStatus(month);
-  const debts = useDebts();
-  const closed = status.data?.closed;
-  if (!closed || !debts.data) return null;
-  return { debts: debts.data.filter((d) => closed.debtIds.includes(d.id)) };
-}
-
-export const allPaid = (debts: DebtDTO[]) => debts.length > 0 && debts.every((d) => !isOpen(d));

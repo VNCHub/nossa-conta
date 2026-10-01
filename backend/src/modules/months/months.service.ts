@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { MonthStatusDTO } from '@shared/contracts';
-import { currentMonth, monthLabel } from '@shared/format';
+import { currentMonth, monthLabel, monthLabelShort } from '@shared/format';
 import { UsersRepository } from '../users/users.repository';
 import { ReportsService } from '../reports/reports.service';
 import { MonthLocksRepository } from './month-locks.repository';
@@ -90,7 +90,7 @@ export class MonthsService {
         fromUserId: t.from,
         toUserId: t.to,
         amount: t.amount.toFixed(2),
-        description: `Acerto de ${monthLabel(month)}`,
+        description: `Acerto ${monthLabelShort(month)}`,
         date: today,
       })),
     );

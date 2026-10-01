@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Card, Grid, SimpleGrid, Text, Title } from '@mantine/core';
 import type { CategoryId } from '@shared/domain';
-import { monthLabel, pct } from '@shared/format';
+import { pct } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useMembers, useRules, useStatement } from '../api/hooks';
 import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
 import { Donut } from '../components/Donut';
 import { MyMonthCard } from '../components/MonthClosing';
-import { MyDebtsCard, allPaid, useClosedSettlement } from '../components/debts';
+import { MyDebtsCard } from '../components/debts';
 import { PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -18,7 +18,6 @@ export default function MyDashboard() {
   const members = useMembers();
   const rules = useRules();
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
-  const closedSettlement = useClosedSettlement(month);
 
   if (!statement.data || !user) {
     return statement.error ? <Empty>{statement.error.message}</Empty> : <Loading />;
@@ -32,13 +31,6 @@ export default function MyDashboard() {
   // came in or went out — even though the family's numbers leave them out.
   const income = d.income + d.debtReceived;
   const leftOver = income - d.share - d.debtPaid;
-  const myBalance = calc.balance[user.id] ?? 0;
-  // Closed month: the acerto is whatever is left of this member's closing debts.
-  // With none of them (nothing owed, or all deleted) the statement's balance tells it.
-  const closingDebts = closedSettlement?.debts.filter((x) => x.fromUserId === user.id || x.toUserId === user.id);
-  const mySettlement = closingDebts?.length ? closingDebts : null;
-  const toReceive = (mySettlement ?? []).filter((x) => x.toUserId === user.id).reduce((s, x) => s + x.remaining, 0);
-  const toPay = (mySettlement ?? []).filter((x) => x.fromUserId === user.id).reduce((s, x) => s + x.remaining, 0);
   const nonFixedTotal = d.optional + d.oneOff;
   const nonFixedShare =
     nonFixedTotal + d.fixed > 0 ? nonFixedTotal / (nonFixedTotal + d.fixed) : 0;
@@ -113,48 +105,6 @@ export default function MyDashboard() {
           onClose={() => setSelectedCategory(null)}
         />
       )}
-
-      <Card>
-        <Title order={3} mb="xs">Seu acerto em {monthLabel(month)}</Title>
-        {mySettlement ? (
-          allPaid(mySettlement) ? (
-            <p className="settlement">Seu acerto está quitado 🎉</p>
-          ) : (
-            <>
-              {toReceive > 0 && (
-                <p className="settlement">
-                  Você tem <span style={{ color: 'var(--gf-credit)' }}><Money value={toReceive} /></span> a receber.
-                </p>
-              )}
-              {toPay > 0 && (
-                <p className="settlement">
-                  Você tem <span style={{ color: 'var(--gf-debit)' }}><Money value={toPay} /></span> a pagar.
-                </p>
-              )}
-            </>
-          )
-        ) : Math.abs(myBalance) < 0.01 ? (
-          <Text c="dimmed" size="md">Você está quite com todo mundo neste mês.</Text>
-        ) : (
-          <p className="settlement">
-            Você tem{' '}
-            <span style={{ color: myBalance > 0 ? 'var(--gf-credit)' : 'var(--gf-debit)' }}>
-              <Money value={Math.abs(myBalance)} />
-            </span>{' '}
-            {myBalance > 0 ? 'a receber.' : 'a pagar.'}
-          </p>
-        )}
-        <Text size="sm" c="dimmed" mt="sm">
-          {mySettlement ? (
-            <>
-              O mês foi fechado: o acerto virou dívida. Já foi pago <Money value={mySettlement.reduce((s, x) => s + x.paid, 0)} />{' '}
-              de <Money value={mySettlement.reduce((s, x) => s + x.amount, 0)} />.
-            </>
-          ) : (
-            <>Diferença entre o que saiu do seu bolso (<Money value={d.paid} />) e a sua cota (<Money value={d.share} />).</>
-          )}
-        </Text>
-      </Card>
     </>
   );
 }

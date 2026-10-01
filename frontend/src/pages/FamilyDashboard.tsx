@@ -1,29 +1,38 @@
-import type { CSSProperties } from 'react';
-import { Box, Card, Flex, Grid, Group, Progress, Stack, Text, Title } from '@mantine/core';
+import { Badge, Box, Card, Flex, Grid, Group, Text, Title } from '@mantine/core';
 import { monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
 import { FamilyClosingCard } from '../components/MonthClosing';
-import { FamilyDebtsCard, allPaid, useClosedSettlement } from '../components/debts';
+import { FamilyDebtsCard } from '../components/debts';
 import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
+
+/**
+ * The label compares what left each person's pocket with what came in — not the
+ * quota — so it answers "how much of their income did the house take", which is
+ * the part the family cannot see from the settlement.
+ */
+const incomeTier = (ratio: number | null) => {
+  if (ratio === null) return { label: 'sem entrada no mês', color: 'gray' };
+  if (ratio < 0.5) return { label: 'sobra bastante', color: 'petrol' };
+  if (ratio < 0.75) return { label: 'folga confortável', color: 'petrol' };
+  if (ratio <= 1) return { label: 'apertando o cinto', color: 'mustard' };
+  return { label: 'gastou mais do que entrou', color: 'brick' };
+};
 
 export default function FamilyDashboard() {
   const [month] = useMonth();
   const { data: family } = useFamily();
   const { data: members } = useMembers();
   const statement = useStatement(month);
-  const closedSettlement = useClosedSettlement(month);
 
   if (!statement.data || !members || !family) {
     return statement.error ? <Empty>{statement.error.message}</Empty> : <Loading />;
   }
 
   const calc = statement.data;
-  const nameOf = (id: string) => members.find((m) => m.id === id)?.name ?? 'alguém';
 
   const totalIncome = members.reduce((s, u) => s + (calc.byUser[u.id]?.income ?? 0), 0);
-  const maxShare = Math.max(...members.map((u) => calc.byUser[u.id]?.share ?? 0), 1);
   const leftOver = totalIncome - calc.monthTotal;
 
   const familyCategories: Record<string, number> = {};
@@ -47,56 +56,7 @@ export default function FamilyDashboard() {
       />
 
       <FamilyClosingCard month={month} />
-
-      <Card
-        bg="var(--gf-ink)"
-        mb="lg"
-        // Dark surface: hidden values need a bar lighter than the card, not darker.
-        style={{ borderColor: 'var(--gf-ink)', '--gf-surface': 'var(--gf-ink)', '--gf-on': '#fff', '--gf-mask-mix': '26%' } as CSSProperties}
-      >
-        <Text size="sm" c="#8FAFA4" mb="sm">
-          Acerto do mês{closedSettlement ? ' · fechado, acompanhando os pagamentos' : ''}
-        </Text>
-        {closedSettlement ? (
-          allPaid(closedSettlement.debts) ? (
-            <p className="settlement" style={{ color: '#fff' }}>Acerto quitado 🎉</p>
-          ) : closedSettlement.debts.length === 0 ? (
-            <p className="settlement" style={{ color: '#fff' }}>Nada mais a acertar neste mês.</p>
-          ) : (
-            <Flex direction="column" gap={{ base: 'sm', xs: 'xs' }}>
-              {closedSettlement.debts.map((d) =>
-                d.remaining > 0 ? (
-                  <div key={d.id}>
-                    <p className="settlement" style={{ color: '#fff' }}>
-                      {nameOf(d.fromUserId)} paga <span style={{ color: '#F0C355' }}><Money value={d.remaining} /></span> para {nameOf(d.toUserId)}
-                    </p>
-                    {d.paid > 0 && (
-                      <Text size="sm" c="#8FAFA4">já pagou <Money value={d.paid} /> de <Money value={d.amount} /></Text>
-                    )}
-                  </div>
-                ) : (
-                  <p key={d.id} className="settlement" style={{ color: '#8FAFA4' }}>
-                    {nameOf(d.fromUserId)} pagou <Money value={d.amount} /> para {nameOf(d.toUserId)} ✓
-                  </p>
-                ),
-              )}
-            </Flex>
-          )
-        ) : calc.transfers.length === 0 ? (
-          <p className="settlement" style={{ color: '#fff' }}>Ninguém deve nada a ninguém.</p>
-        ) : (
-          // No mobile a fonte editorial (30px/23px) quebra linha com mais
-          // frequência; um gap maior evita que duas transferências pareçam um
-          // parágrafo só.
-          <Flex direction="column" gap={{ base: 'sm', xs: 'xs' }}>
-            {calc.transfers.map((t, i) => (
-              <p className="settlement" key={i} style={{ color: '#fff' }}>
-                {nameOf(t.from)} paga <span style={{ color: '#F0C355' }}><Money value={t.amount} /></span> para {nameOf(t.to)}
-              </p>
-            ))}
-          </Flex>
-        )}
-      </Card>
+      <FamilyDebtsCard />
 
       {/* Duas colunas no mobile: Entrou/Gasto lado a lado e Sobrou em largura
           total, em vez de três cards empilhados ocupando uma tela inteira. */}
@@ -115,36 +75,26 @@ export default function FamilyDashboard() {
         </Grid.Col>
       </Grid>
 
-      <FamilyDebtsCard />
-
       <Card mb="lg">
-        <Title order={3} mb="sm">Quem recebeu e quem gastou</Title>
-        <Stack gap={0}>
-          {members.map((u, i) => {
-            const d = calc.byUser[u.id];
-            if (!d) return null;
-            const balance = calc.balance[u.id] ?? 0;
-            return (
-              <Flex
-                key={u.id}
-                direction={{ base: 'column', xs: 'row' }}
-                gap={{ base: 4, xs: 'md' }}
-                wrap="nowrap"
-                py="sm"
-                style={i < members.length - 1 ? { borderBottom: '1px solid #EEF1EC' } : undefined}
-              >
+        <Title order={3}>Quem recebeu e quem gastou</Title>
+        <Text size="sm" c="dimmed" mb="xs">Quanto da entrada cada um deixou na casa este mês.</Text>
+        {members.map((u, i) => {
+          const d = calc.byUser[u.id];
+          if (!d) return null;
+          const balance = calc.balance[u.id] ?? 0;
+          const ratio = d.income > 0 ? d.paid / d.income : null;
+          const tier = incomeTier(ratio);
+          return (
+            <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
+              <Flex direction={{ base: 'column', xs: 'row' }} gap={{ base: 4, xs: 'md' }} wrap="nowrap">
                 <Group wrap="nowrap" gap="sm" align="flex-start" style={{ flex: 1, minWidth: 0 }}>
                   <Avatar user={u} lg />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Text fw={600}>{u.name}</Text>
-                    {/* Uma linha por dado no mobile: o "·" quebrava no meio de um valor. */}
-                    <Flex direction={{ base: 'column', xs: 'row' }} columnGap="xs" c="dimmed" fz="sm">
-                      <span>entrada <Money value={d.income} /></span>
-                      <span>
-                        <Box component="span" visibleFrom="xs">· </Box>saiu do bolso <Money value={d.paid} />
-                      </span>
-                    </Flex>
-                    <Progress value={(d.share / maxShare) * 100} color={u.color} size="sm" radius="sm" mt={6} />
+                    <Group gap="xs">
+                      <Text fw={600}>{u.name}</Text>
+                      <Badge color={tier.color} variant="light" tt="none">{tier.label}</Badge>
+                    </Group>
+                    <Text size="sm" c="dimmed">saiu do bolso <Money value={d.paid} /> de <Money value={d.income} /> que entrou</Text>
                   </div>
                 </Group>
                 {/* Empilhado no mobile, o bloco fica alinhado à esquerda, abaixo do
@@ -152,16 +102,29 @@ export default function FamilyDashboard() {
                     na ponta oposta da tela, quebrando a leitura de cima para baixo. */}
                 <Box ta={{ base: 'left', xs: 'right' }} pl={{ base: 52, xs: 0 }}>
                   <Text className="num" fw={600}>
-                    <Text span size="sm" c="dimmed" fw={400} hiddenFrom="xs">cota </Text><Money value={d.share} />
+                    <Text span size="sm" c="dimmed" fw={400}>cota </Text><Money value={d.share} />
                   </Text>
                   <Text className="num" size="sm" c={balance >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
                     {balance >= 0 ? 'a receber ' : 'a pagar '}<Money value={Math.abs(balance)} />
                   </Text>
                 </Box>
               </Flex>
-            );
-          })}
-        </Stack>
+              {/* Quatro quartos da entrada: cada bloco enche por vez, então a metade e
+                  os três quartos (onde mudam as etiquetas) se leem sem régua. */}
+              <Flex gap={4} mt="sm">
+                {[0, 1, 2, 3].map((q) => (
+                  <Box key={q} h={22} bg="#EEF1EC" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
+                    <Box h="100%" bg={u.color} w={`${Math.min(Math.max((ratio ?? 0) * 4 - q, 0), 1) * 100}%`} />
+                  </Box>
+                ))}
+              </Flex>
+              <Group justify="space-between" c="dimmed" fz="xs" mt={4}>
+                <span>R$ 0</span>
+                <Money value={d.income} />
+              </Group>
+            </Box>
+          );
+        })}
       </Card>
 
       <Grid gap="lg">

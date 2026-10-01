@@ -16,6 +16,13 @@ export const monthLabelCompact = (m: string) => {
   return `${MONTH_NAMES[+month - 1]}/${year}`;
 };
 
+/** Shortest form — "Ago/2026" — for where the month is only a detail, like a debt's description. */
+export const monthLabelShort = (m: string) => {
+  const [year, month] = m.split('-');
+  const name = MONTH_NAMES[+month - 1];
+  return `${name[0].toUpperCase()}${name.slice(1, 3)}/${year}`;
+};
+
 export const shiftMonth = (m: string, delta: number) => {
   const [year, month] = m.split('-').map(Number);
   const dt = new Date(year, month - 1 + delta, 1);
