@@ -8,9 +8,9 @@ import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '.
 import { useMonth } from '../useMonth';
 
 /**
- * The label compares what left each person's pocket with what came in — not the
- * quota — so it answers "how much of their income did the house take", which is
- * the part the family cannot see from the settlement.
+ * The label compares the quota — what the house cost each person after the split —
+ * with what came in, so it answers "how much of their income did the house take".
+ * It reads the same ratio as the bar, so the two never disagree.
  */
 const incomeTier = (ratio: number | null) => {
   if (ratio === null) return { label: 'sem entrada no mês', color: 'gray' };
@@ -81,10 +81,7 @@ export default function FamilyDashboard() {
         {members.map((u, i) => {
           const d = calc.byUser[u.id];
           if (!d) return null;
-          const ratio = d.income > 0 ? d.paid / d.income : null;
-          // The bar measures the quota, not what was paid: after the split, that is
-          // what the house actually cost this person out of what came in.
-          const shareRatio = d.income > 0 ? d.share / d.income : 0;
+          const ratio = d.income > 0 ? d.share / d.income : null;
           const tier = incomeTier(ratio);
           return (
             <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
@@ -113,7 +110,7 @@ export default function FamilyDashboard() {
               <Flex gap={4} mt="sm">
                 {[0, 1, 2, 3].map((q) => (
                   <Box key={q} h={22} bg="#EEF1EC" style={{ flex: 1, borderRadius: 6, overflow: 'hidden' }}>
-                    <Box h="100%" bg={u.color} w={`${Math.min(Math.max(shareRatio * 4 - q, 0), 1) * 100}%`} />
+                    <Box h="100%" bg={u.color} w={`${Math.min(Math.max((ratio ?? 0) * 4 - q, 0), 1) * 100}%`} />
                   </Box>
                 ))}
               </Flex>
