@@ -6,6 +6,7 @@ import {
   Group,
   Loader,
   Modal,
+  SegmentedControl,
   Stack,
   Table,
   Text,
@@ -22,7 +23,8 @@ import {
   type ImportSourceId,
 } from '@shared/domain';
 import { api } from '../../api/client';
-import { keys, useAppMutation, useImports } from '../../api/hooks';
+import { keys, useAppMutation, useImports, useMembers } from '../../api/hooks';
+import { useAuth } from '../../auth/AuthContext';
 import { Empty, Loading } from '../../components/ui';
 import { notifyError, notifySuccess } from '../../feedback';
 
@@ -30,24 +32,65 @@ import { notifyError, notifySuccess } from '../../feedback';
 const acceptedExtensionsFor = (source: ImportSourceId) =>
   source === INTERNAL_SOURCE_ID ? ['.json'] : ['.csv', '.ofx'];
 
+type Filter = 'all' | 'mine';
+
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'Todos' },
+  { value: 'mine', label: 'Meus' },
+];
+
+const firstName = (name: string) => name.split(' ')[0];
+
 export default function ExpensesImports() {
   const imports = useImports();
+  const { user } = useAuth();
+  const { data: members } = useMembers();
+  const [filter, setFilter] = useState<Filter>('mine');
   const [modalOpen, modal] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 48em)');
+  // The server refuses the internal import for anyone else; this only keeps the UI from offering it.
+  const isAdmin = user?.roles.includes('admin') ?? false;
 
   if (!imports.data) {
     return imports.error ? <Empty>{imports.error.message}</Empty> : <Loading />;
   }
 
+  const visible = imports.data.filter((f) => filter === 'all' || f.importedBy === user?.id);
+  // Only "Todos" mixes people's files, so only there is it worth saying whose each one is.
+  const importerOf = (f: ImportedFileDTO) => {
+    if (filter !== 'all') return undefined;
+    const member = members?.find((m) => m.id === f.importedBy);
+    return member ? firstName(member.name) : '—';
+  };
+
   return (
     <Card>
-      <Group justify="space-between" mb="md" wrap="wrap">
+      <Stack hiddenFrom="sm" gap="sm" mb="md">
         <Title order={3} fz={20}>Importações</Title>
-        <Button onClick={modal.open} h={{ base: 44, sm: 'auto' }} w={{ base: '100%', sm: 'auto' }}>Nova importação</Button>
+        <SegmentedControl
+          fullWidth
+          size="md"
+          value={filter}
+          onChange={(v) => setFilter(v as Filter)}
+          data={FILTER_OPTIONS}
+        />
+        <Button size="md" onClick={modal.open}>Nova importação</Button>
+      </Stack>
+
+      <Group justify="space-between" mb="md" wrap="wrap" visibleFrom="sm">
+        <Title order={3} fz={20}>Importações</Title>
+        <Group gap="sm" wrap="wrap">
+          <SegmentedControl
+            value={filter}
+            onChange={(v) => setFilter(v as Filter)}
+            data={FILTER_OPTIONS}
+          />
+          <Button onClick={modal.open}>Nova importação</Button>
+        </Group>
       </Group>
 
-      {imports.data.length === 0 ? (
-        <Empty>Nenhum arquivo importado ainda.</Empty>
+      {visible.length === 0 ? (
+        <Empty>{filter === 'mine' ? 'Você ainda não importou nenhum arquivo.' : 'Nenhum arquivo importado ainda.'}</Empty>
       ) : (
         <>
           <Table.ScrollContainer minWidth={860} visibleFrom="sm">
@@ -60,21 +103,22 @@ export default function ExpensesImports() {
                   <Table.Th><Text fz={16} fw={600}>Período</Text></Table.Th>
                   <Table.Th ta="right"><Text fz={16} fw={600}>Gastos</Text></Table.Th>
                   <Table.Th ta="right"><Text fz={16} fw={600}>Entradas</Text></Table.Th>
+                  {filter === 'all' && <Table.Th><Text fz={16} fw={600}>Importado por</Text></Table.Th>}
                   <Table.Th><Text fz={16} fw={600}>Importado em</Text></Table.Th>
                   <Table.Th><Text fz={16} fw={600}>Retenção</Text></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {imports.data.map((f) => (
-                  <ImportRow key={f.id} file={f} />
+                {visible.map((f) => (
+                  <ImportRow key={f.id} file={f} importer={importerOf(f)} />
                 ))}
               </Table.Tbody>
             </Table>
           </Table.ScrollContainer>
 
           <Stack hiddenFrom="sm" gap="sm">
-            {imports.data.map((f) => (
-              <MobileImportCard key={f.id} file={f} />
+            {visible.map((f) => (
+              <MobileImportCard key={f.id} file={f} importer={importerOf(f)} />
             ))}
           </Stack>
         </>
@@ -89,14 +133,14 @@ export default function ExpensesImports() {
         closeOnClickOutside={false}
         fullScreen={isMobile}
       >
-        <ImportWizard onClose={modal.close} />
+        <ImportWizard onClose={modal.close} allowInternal={isAdmin} />
       </Modal>
     </Card>
   );
 }
 
 /** Mobile replacement for one table row of the imports history — same data, stacked. */
-function MobileImportCard({ file }: { file: ImportedFileDTO }) {
+function MobileImportCard({ file, importer }: { file: ImportedFileDTO; importer?: string }) {
   const bank = BANK_PROVIDERS.find((b) => b.id === file.bank);
   const expired = new Date(file.expiresAt).getTime() <= Date.now();
 
@@ -121,7 +165,9 @@ function MobileImportCard({ file }: { file: ImportedFileDTO }) {
         <Text size="md" fw={600} className="num">{file.incomesCount} entrada{file.incomesCount === 1 ? '' : 's'}</Text>
       </Group>
 
-      <Text size="sm" c="dimmed">Importado em {brDateTime(file.createdAt)}</Text>
+      <Text size="sm" c="dimmed">
+        Importado em {brDateTime(file.createdAt)}{importer !== undefined && ` por ${importer}`}
+      </Text>
       <Text size="sm" c="dimmed">
         {expired ? 'Excluído' : `Disponível até ${brDate(file.expiresAt)}`}
       </Text>
@@ -129,7 +175,8 @@ function MobileImportCard({ file }: { file: ImportedFileDTO }) {
   );
 }
 
-function ImportRow({ file }: { file: ImportedFileDTO }) {
+/** `importer` is set only in the "Todos" view, which is the one that shows the "Importado por" column. */
+function ImportRow({ file, importer }: { file: ImportedFileDTO; importer?: string }) {
   const bank = BANK_PROVIDERS.find((b) => b.id === file.bank);
   const expired = new Date(file.expiresAt).getTime() <= Date.now();
 
@@ -149,6 +196,7 @@ function ImportRow({ file }: { file: ImportedFileDTO }) {
       <Table.Td><Text size="sm" className="num">{brDate(file.periodStart)} – {brDate(file.periodEnd)}</Text></Table.Td>
       <Table.Td ta="right"><Text size="md" fw={600} className="num">{file.expensesCount}</Text></Table.Td>
       <Table.Td ta="right"><Text size="md" fw={600} className="num">{file.incomesCount}</Text></Table.Td>
+      {importer !== undefined && <Table.Td><Text size="md">{importer}</Text></Table.Td>}
       <Table.Td><Text size="sm">{brDateTime(file.createdAt)}</Text></Table.Td>
       <Table.Td>
         <Text size="sm" c="dimmed">
@@ -162,13 +210,13 @@ function ImportRow({ file }: { file: ImportedFileDTO }) {
 type WizardStep = 'select' | 'loading';
 
 /**
- * Origem (banco ou o "Interno" da própria Nossa Conta) + files, then a
+ * Origem (banco ou o "Interno" da própria Nossa Conta, admin only) + files, then a
  * loading state while the backend validates and processes each file — no
  * document-type step: the backend sniffs whether a bank file is an account
  * statement or an invoice, CSV or OFX, from its content; the internal export
  * always has the same shape.
  */
-function ImportWizard({ onClose }: { onClose: () => void }) {
+function ImportWizard({ onClose, allowInternal }: { onClose: () => void; allowInternal: boolean }) {
   const isMobile = useMediaQuery('(max-width: 48em)');
   const [step, setStep] = useState<WizardStep>('select');
   const [bank, setBank] = useState<ImportSourceId>(BANK_PROVIDERS[0].id);
@@ -246,21 +294,23 @@ function ImportWizard({ onClose }: { onClose: () => void }) {
               </Group>
             </UnstyledButton>
           ))}
-          <UnstyledButton
-            onClick={() => { setBank(INTERNAL_SOURCE_ID); setFiles([]); }}
-            p="sm"
-            mih={44}
-            style={{
-              borderRadius: 8,
-              border: `1.5px solid ${isInternal ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
-              background: isInternal ? 'var(--mantine-color-petrol-0)' : undefined,
-            }}
-          >
-            <Group gap={8}>
-              <InternalLogo size={26} />
-              <Text size="sm" fw={600}>Interno</Text>
-            </Group>
-          </UnstyledButton>
+          {allowInternal && (
+            <UnstyledButton
+              onClick={() => { setBank(INTERNAL_SOURCE_ID); setFiles([]); }}
+              p="sm"
+              mih={44}
+              style={{
+                borderRadius: 8,
+                border: `1.5px solid ${isInternal ? 'var(--mantine-color-petrol-6)' : 'var(--gf-line)'}`,
+                background: isInternal ? 'var(--mantine-color-petrol-0)' : undefined,
+              }}
+            >
+              <Group gap={8}>
+                <InternalLogo size={26} />
+                <Text size="sm" fw={600}>Interno</Text>
+              </Group>
+            </UnstyledButton>
+          )}
         </Group>
       </div>
 

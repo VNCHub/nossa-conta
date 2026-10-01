@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   BankProvider as BankProviderDb,
@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import type { ImportedFileDTO, ImportResultDTO } from '@shared/contracts';
 import type {
+  AppRole,
   BankId,
   ImportDocumentType,
   ImportFileFormat,
@@ -51,9 +52,15 @@ export class ImportsService {
   async importFiles(
     familyId: string,
     userId: string,
+    roles: AppRole[],
     source: ImportSourceId,
     files: Express.Multer.File[],
   ): Promise<ImportResultDTO[]> {
+    // The internal export moves gastos between environments — a platform
+    // operation, not something a family member does day to day.
+    if (source === 'internal' && !roles.includes('admin')) {
+      throw new ForbiddenException('Só o administrador pode fazer importações internas.');
+    }
     if (files.length === 0) {
       throw new BadRequestException('Envie pelo menos um arquivo.');
     }

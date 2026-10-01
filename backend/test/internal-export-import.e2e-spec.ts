@@ -12,6 +12,7 @@ import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
+import { RoleName } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -39,6 +40,18 @@ describe('Internal export/import (e2e)', () => {
       .send({ name: `Teste ${tag}`, email, password: 'senha123', ...body })
       .expect(201);
     return { token: session.accessToken, userId: session.user.id };
+  };
+
+  // The "Interno" import is admin-only. Roles are read from the database on
+  // every request, so granting it after register needs no new token.
+  const registerAdmin = async (
+    tag: string,
+    body: { familyName?: string; inviteCode?: string },
+  ): Promise<Session> => {
+    const s = await register(tag, body);
+    const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: RoleName.ADMIN } });
+    await prisma.userRole.create({ data: { userId: s.userId, roleId: adminRole.id } });
+    return s;
   };
 
   const auth = (s: Session) => (r: request.Test) => r.set('Authorization', `Bearer ${s.token}`);
@@ -148,7 +161,7 @@ describe('Internal export/import (e2e)', () => {
     });
     const { body: exported } = await auth(source)(http().get('/gastos/exportar')).expect(200);
 
-    const target = await register('target-a', { familyName: 'Casa Destino A' });
+    const target = await registerAdmin('target-a', { familyName: 'Casa Destino A' });
     const { body: results } = await importInternal(target, exported).expect(201);
 
     expect(results[0].status).toBe('success');
@@ -179,7 +192,7 @@ describe('Internal export/import (e2e)', () => {
     await createExpense(source, { date: '2026-08-03', description: 'Mercado', amount: 50, category: 'food', expenseType: 'optional', paymentMethod: 'Pix' });
     const { body: exported } = await auth(source)(http().get('/gastos/exportar')).expect(200);
 
-    const target = await register('target-b', { familyName: 'Casa Destino B' });
+    const target = await registerAdmin('target-b', { familyName: 'Casa Destino B' });
     await importInternal(target, exported).expect(201);
     const { body: resultsAgain } = await importInternal(target, exported).expect(201);
 
@@ -196,7 +209,7 @@ describe('Internal export/import (e2e)', () => {
     const { body: exportFromA } = await auth(houseA)(http().get('/gastos/exportar')).expect(200);
 
     // A -> B: the gasto lands in B with a brand-new id, unrelated to the one it had in A.
-    const houseB = await register('house-b-chain', { familyName: 'Casa B da Cadeia' });
+    const houseB = await registerAdmin('house-b-chain', { familyName: 'Casa B da Cadeia' });
     await importInternal(houseB, exportFromA).expect(201);
     const { body: exportFromB } = await auth(houseB)(http().get('/gastos/exportar')).expect(200);
 
@@ -204,7 +217,7 @@ describe('Internal export/import (e2e)', () => {
     // If dedup were keyed by the source row's id, these two files would carry different
     // ids for the same gasto (A's original id vs. the new one minted in B) and both would
     // land in C as separate rows.
-    const houseC = await register('house-c-chain', { familyName: 'Casa C da Cadeia' });
+    const houseC = await registerAdmin('house-c-chain', { familyName: 'Casa C da Cadeia' });
     await importInternal(houseC, exportFromA).expect(201);
     // A different file (different exportedAt, so a different file-level fingerprint) —
     // the file itself imports "successfully", but the one gasto inside it is recognized
@@ -220,9 +233,21 @@ describe('Internal export/import (e2e)', () => {
   });
 
   it('rejects a file that is not a recognized internal export', async () => {
-    const target = await register('target-c', { familyName: 'Casa Destino C' });
+    const target = await registerAdmin('target-c', { familyName: 'Casa Destino C' });
     const { body: results } = await importInternal(target, { foo: 'bar' }).expect(201);
     expect(results[0].status).toBe('error');
+  });
+
+  it('refuses the internal import for a member without the admin role', async () => {
+    const source = await register('source-d', { familyName: 'Casa Origem D' });
+    await createExpense(source, { date: '2026-08-01', description: 'Mercado', amount: 10, category: 'other', expenseType: 'oneOff', paymentMethod: 'Pix' });
+    const { body: exported } = await auth(source)(http().get('/gastos/exportar?escopo=meus')).expect(200);
+
+    const target = await register('target-d', { familyName: 'Casa Destino D' });
+    await importInternal(target, exported).expect(403);
+
+    const { body: history } = await auth(target)(http().get('/gastos/importacoes')).expect(200);
+    expect(history).toHaveLength(0);
   });
 
   it("family isolation: escopo=todos never reaches outside the caller's family", async () => {
