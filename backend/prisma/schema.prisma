@@ -21,6 +21,14 @@ enum ExpenseType {
   FIXED
   OPTIONAL
   ONE_OFF
+  /// Paying a debt to another member — money moving inside the family, kept
+  /// out of the split and of the family's totals.
+  DEBT
+}
+
+enum DebtOrigin {
+  MANUAL
+  MONTH_CLOSING
 }
 
 enum RuleType {
@@ -82,6 +90,10 @@ model User {
   importedFiles    ImportedFile[]
   roles            UserRole[]
   passwordResetTokens PasswordResetToken[]
+  monthFinalizations  MonthFinalization[]
+  monthClosings       MonthClosing[]
+  debtsOwed           Debt[] @relation("DebtPayer")
+  debtsOwedTo         Debt[] @relation("DebtReceiver")
 
   @@index([familyId])
 }
@@ -171,6 +183,9 @@ model Family {
   expenses      Expense[]
   rules         SplitRule[]
   importedFiles ImportedFile[]
+  finalizations MonthFinalization[]
+  closings      MonthClosing[]
+  debts         Debt[]
 }
 
 model Income {
@@ -197,6 +212,10 @@ model Income {
 
   importedFileId String?
   importedFile   ImportedFile? @relation(fields: [importedFileId], references: [id], onDelete: SetNull)
+  /// Set when this income is the receiving end of a debt payment: it lives and
+  /// dies with that expense, so the cascade removes it when the payment is undone.
+  debtPaymentId String?  @unique
+  debtPayment   Expense? @relation("DebtReceipt", fields: [debtPaymentId], references: [id], onDelete: Cascade)
   /// dedup key for imported rows — lets a re-imported, still-incomplete
   /// statement skip transactions an earlier file already brought in. Null for
   /// manual entries; Postgres allows any number of nulls in a unique index.
@@ -236,6 +255,12 @@ model Expense {
   importedFile   ImportedFile? @relation(fields: [importedFileId], references: [id], onDelete: SetNull)
   /// dedup key for imported rows — see Income.importKey
   importKey      String?
+
+  /// Set on a DEBT expense: the debt this payment counts towards. SetNull, not
+  /// Cascade — deleting a debt keeps the payment, because someone did pay.
+  debtId String?
+  debt   Debt?   @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  debtReceipt Income? @relation("DebtReceipt")
 
   shares ExpenseShare[]
 
@@ -339,4 +364,74 @@ model ImportedFile {
 
   @@unique([familyId, fingerprint])
   @@index([familyId, createdAt])
+}
+
+/// A member saying "I'm done logging this month". While it exists, that
+/// member's expenses and incomes for the month are frozen; the family can only
+/// close the month's settlement once every member has one.
+model MonthFinalization {
+  id          String   @id @default(cuid())
+  /// YYYY-MM
+  month       String   @db.VarChar(7)
+  finalizedAt DateTime @default(now())
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId, month])
+  @@index([familyId, month])
+}
+
+/// The family's settlement for a month turned into debts. Deleting it (reopening
+/// the month) is done by the service, which removes the debts it generated first.
+model MonthClosing {
+  id       String   @id @default(cuid())
+  /// YYYY-MM
+  month    String   @db.VarChar(7)
+  closedAt DateTime @default(now())
+  /// how many debts it created — the debts themselves can be deleted one by one later
+  generatedCount Int
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  closedById String
+  closedBy   User   @relation(fields: [closedById], references: [id], onDelete: Cascade)
+
+  debts Debt[]
+
+  @@unique([familyId, month])
+}
+
+/// One member owes another. Paid down by DEBT expenses pointing at it.
+model Debt {
+  id          String     @id @default(cuid())
+  amount      Decimal    @db.Decimal(12, 2)
+  description String
+  date        DateTime   @db.Date
+  origin      DebtOrigin @default(MANUAL)
+  createdAt   DateTime   @default(now())
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  /// who owes — the only one who can pay
+  fromUserId String
+  fromUser   User   @relation("DebtPayer", fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  /// who is owed
+  toUserId String
+  toUser   User   @relation("DebtReceiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  /// set when origin = MONTH_CLOSING; reopening that month deletes these
+  closingId String?
+  closing   MonthClosing? @relation(fields: [closingId], references: [id], onDelete: SetNull)
+
+  payments Expense[]
+
+  @@index([familyId])
+  @@index([closingId])
 }

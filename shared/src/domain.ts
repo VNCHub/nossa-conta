@@ -22,8 +22,14 @@ export const categoryOf = (id: string) =>
 export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+/** The types a person picks for an expense. */
 export const EXPENSE_TYPES = ['fixed', 'optional', 'oneOff'] as const;
-export type ExpenseType = (typeof EXPENSE_TYPES)[number];
+/**
+ * Never picked: only a debt payment creates it. Money moving between members,
+ * so it stays out of the split and of the family's totals.
+ */
+export const DEBT_EXPENSE_TYPE = 'debt' as const;
+export type ExpenseType = (typeof EXPENSE_TYPES)[number] | typeof DEBT_EXPENSE_TYPE;
 
 export const INCOME_TYPES = ['recurring', 'oneOff'] as const;
 export type IncomeType = (typeof INCOME_TYPES)[number];

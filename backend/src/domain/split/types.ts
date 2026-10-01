@@ -16,6 +16,8 @@ export interface IncomeCalc {
   since?: string | null;
   /** YYYY-MM a recurring income stops counting after — absent means still ongoing. */
   until?: string | null;
+  /** The receiving end of a debt payment: never weighs in the split nor in the family's income. */
+  debtReceipt?: boolean;
 }
 
 export interface ExpenseCalc {
@@ -55,6 +57,9 @@ export interface UserSummaryCalc {
   oneOffCents: number;
   incomeCents: number;
   categoryCents: Record<string, number>;
+  /** Debt payments this member made / received in the month — outside every other figure here. */
+  debtPaidCents: number;
+  debtReceivedCents: number;
 }
 
 export interface TransferCalc {

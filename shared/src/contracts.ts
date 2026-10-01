@@ -48,6 +48,8 @@ export interface IncomeDTO {
   date?: string | null;
   source: RecordSource;
   importedFileId: string | null;
+  /** Set when this income is a debt payment received — removed only by undoing that payment. */
+  debtPaymentId: string | null;
 }
 
 export interface ExpenseDTO {
@@ -66,6 +68,8 @@ export interface ExpenseDTO {
   complete: boolean;
   source: RecordSource;
   importedFileId: string | null;
+  /** Set on a debt payment (expenseType = debt) while its debt still exists. */
+  debtId: string | null;
 }
 
 export interface RuleDTO {
@@ -95,6 +99,13 @@ export interface UserSummary {
   oneOff: number;
   income: number;
   categories: Record<string, number>;
+  /**
+   * Debt payments made / received this month. Kept apart from `paid` and
+   * `income` on purpose: the family's numbers leave them out, a member's own
+   * view adds them back.
+   */
+  debtPaid: number;
+  debtReceived: number;
 }
 
 export interface Transfer {
@@ -111,6 +122,50 @@ export interface StatementDTO {
   balance: Record<string, number>;
   transfers: Transfer[];
   monthTotal: number;
+}
+
+/** Output of GET /meses/:mes — where the month stands on its way to being closed. */
+export interface MonthStatusDTO {
+  month: string;
+  /** userId → ISO timestamp the member finalized their entries; members absent here have not. */
+  finalized: Record<string, string>;
+  closed: MonthClosingDTO | null;
+}
+
+export interface MonthClosingDTO {
+  closedAt: string;
+  closedById: string;
+  /** How many debts the closing created, including any deleted since. */
+  generatedCount: number;
+  /** The ones still around — reopening the month deletes exactly these. */
+  debtIds: string[];
+}
+
+export type DebtOrigin = 'manual' | 'monthClosing';
+
+export interface DebtPaymentDTO {
+  /** the DEBT expense that is the payment — deleting it undoes the payment */
+  expenseId: string;
+  date: string;
+  amount: number;
+  description: string;
+}
+
+export interface DebtDTO {
+  id: string;
+  /** who owes and pays */
+  fromUserId: string;
+  /** who is owed */
+  toUserId: string;
+  amount: number;
+  paid: number;
+  remaining: number;
+  description: string;
+  date: string;
+  origin: DebtOrigin;
+  /** YYYY-MM of the closing that created it, when origin = monthClosing */
+  closingMonth: string | null;
+  payments: DebtPaymentDTO[];
 }
 
 export interface SessionDTO {

@@ -18,6 +18,8 @@ import type {
   ErrorIssueDTO,
   ErrorIssueDetailDTO,
   SessionDTO,
+  MonthStatusDTO,
+  DebtDTO,
 } from '@shared/contracts';
 import { api } from './client';
 
@@ -29,6 +31,8 @@ export const keys = {
   expenses: (month: string) => ['expenses', month] as const,
   statement: (month: string) => ['statement', month] as const,
   imports: ['imports'] as const,
+  month: (month: string) => ['month', month] as const,
+  debts: ['debts'] as const,
   adminOverview: ['admin', 'overview'] as const,
   adminUsers: (page: number) => ['admin', 'users', page] as const,
   errorIssues: (page: number) => ['errors', 'issues', page] as const,
@@ -61,6 +65,58 @@ export const useStatement = (month: string) =>
     queryKey: keys.statement(month),
     queryFn: () => api.get<StatementDTO>(`/relatorios/consolidado?mes=${month}`),
   });
+
+// Both change through other members' actions (finalizing, paying), not just
+// this person's — so they're refetched whenever a screen showing them mounts
+// or the tab regains focus, unlike the app-wide default.
+export const useMonthStatus = (month: string) =>
+  useQuery({
+    queryKey: keys.month(month),
+    queryFn: () => api.get<MonthStatusDTO>(`/meses/${month}`),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+export const useFinalizeMonth = (month: string) =>
+  useAppMutation(() => api.post<MonthStatusDTO>(`/meses/${month}/finalizacao`), [keys.month(month)]);
+
+export const useReopenMyMonth = (month: string) =>
+  useAppMutation(() => api.delete<MonthStatusDTO>(`/meses/${month}/finalizacao`), [keys.month(month)]);
+
+export const useCloseMonth = (month: string) =>
+  useAppMutation(() => api.post<MonthStatusDTO>(`/meses/${month}/fechamento`), [keys.month(month), keys.debts]);
+
+export const useReopenMonthClosing = (month: string) =>
+  useAppMutation(() => api.delete<MonthStatusDTO>(`/meses/${month}/fechamento`), [keys.month(month), keys.debts]);
+
+export const useDebts = () =>
+  useQuery({
+    queryKey: keys.debts,
+    queryFn: () => api.get<DebtDTO[]>('/dividas'),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+export const useCreateDebt = () =>
+  useAppMutation(
+    (data: { fromUserId: string; toUserId: string; amount: number; description: string; date: string }) =>
+      api.post<DebtDTO>('/dividas', data),
+    [keys.debts],
+  );
+
+export const useDeleteDebt = () =>
+  useAppMutation((id: string) => api.delete<void>(`/dividas/${id}`), [keys.debts, ['month']]);
+
+/**
+ * A payment writes an expense and an income in the month of its date, which
+ * may not be the month on screen — so every month's lists are refreshed.
+ */
+export const usePayDebt = () =>
+  useAppMutation(
+    ({ id, ...data }: { id: string; amount: number; date: string; description?: string; paymentMethod?: string }) =>
+      api.post<DebtDTO>(`/dividas/${id}/pagamentos`, data),
+    [keys.debts, ['expenses'], ['statement'], keys.incomes],
+  );
 
 export const useImports = () =>
   useQuery({

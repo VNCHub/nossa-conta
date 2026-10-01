@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach, vi } from 'vitest';
-import { brl, pct, monthLabel, monthLabelCompact, shiftMonth, currentMonth, recurringAppliesToMonth } from '@shared/format';
+import { brl, pct, monthLabel, monthLabelCompact, monthLabelShort, shiftMonth, currentMonth, recurringAppliesToMonth } from '@shared/format';
 
 // toLocaleString separates thousands with a non-breaking space; normalize it.
 const norm = (s: string) => s.replace(/ | /g, ' ');
@@ -42,6 +42,13 @@ describe('monthLabel', () => {
     expect(monthLabel('2026-09')).toBe('setembro de 2026');
     expect(monthLabel('2026-01')).toBe('janeiro de 2026');
     expect(monthLabel('2025-12')).toBe('dezembro de 2025');
+  });
+});
+
+describe('monthLabelShort', () => {
+  it('abbreviates the month to three capitalized letters', () => {
+    expect(monthLabelShort('2026-08')).toBe('Ago/2026');
+    expect(monthLabelShort('2026-03')).toBe('Mar/2026');
   });
 });
 

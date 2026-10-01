@@ -19,6 +19,7 @@ const FamilyDashboard = lazy(() => import('./pages/FamilyDashboard'));
 const MyDashboard = lazy(() => import('./pages/MyDashboard'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Income = lazy(() => import('./pages/Income'));
+const Debts = lazy(() => import('./pages/Debts'));
 const Family = lazy(() => import('./pages/Family'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="meu-painel" element={<Suspense fallback={<Spinner />}><MyDashboard /></Suspense>} />
         <Route path="gastos" element={<Suspense fallback={<Spinner />}><Expenses /></Suspense>} />
         <Route path="entradas" element={<Suspense fallback={<Spinner />}><Income /></Suspense>} />
+        <Route path="dividas" element={<Suspense fallback={<Spinner />}><Debts /></Suspense>} />
         <Route path="familia" element={<Suspense fallback={<Spinner />}><Family /></Suspense>} />
         <Route path="perfil" element={<Suspense fallback={<Spinner />}><Profile /></Suspense>} />
         <Route path="administracao" element={<Suspense fallback={<Spinner />}><AdminPanel /></Suspense>} />

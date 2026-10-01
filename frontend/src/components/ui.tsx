@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   ActionIcon,
   type ActionIconProps,
@@ -12,9 +12,21 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { CATEGORIES, categoryOf, type CategoryId } from '@shared/domain';
+import { CATEGORIES, categoryOf, type CategoryId, type ExpenseType } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
 import { useValuesHidden } from '../hideValues';
+
+/**
+ * A dark card's surface and ink. Hidden values need a bar lighter than the card,
+ * not darker — so the card redefines what `.money-mask` tints itself from.
+ */
+export const DARK_CARD = {
+  borderColor: 'var(--gf-ink)',
+  color: '#fff',
+  '--gf-surface': 'var(--gf-ink)',
+  '--gf-on': '#fff',
+  '--gf-mask-mix': '26%',
+} as CSSProperties;
 
 export interface Member {
   id: string;
@@ -206,10 +218,10 @@ export function CategoryChip({ id, clickable }: { id: string; clickable?: boolea
   );
 }
 
-const EXPENSE_TYPE_LABEL = { fixed: 'Fixo', optional: 'Opcional', oneOff: 'Pontual' } as const;
-const EXPENSE_TYPE_COLOR = { fixed: 'petrol', optional: 'mustard', oneOff: 'grape' } as const;
+const EXPENSE_TYPE_LABEL = { fixed: 'Fixo', optional: 'Opcional', oneOff: 'Pontual', debt: 'Dívida' } as const;
+const EXPENSE_TYPE_COLOR = { fixed: 'petrol', optional: 'mustard', oneOff: 'grape', debt: 'indigo' } as const;
 
-export function ExpenseTypeChip({ type, clickable }: { type: 'fixed' | 'optional' | 'oneOff'; clickable?: boolean }) {
+export function ExpenseTypeChip({ type, clickable }: { type: ExpenseType; clickable?: boolean }) {
   return (
     <Badge
       color={EXPENSE_TYPE_COLOR[type]} variant="filled" radius="sm" tt="none" fw={600} fz="sm"

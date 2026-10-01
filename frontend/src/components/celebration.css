@@ -1,0 +1,22 @@
+/* Confetti for "nobody owes anything": party emoji rise from the bottom of the
+   window, then fade at the middle of the screen. Pure CSS; the component only
+   mounts the particles. */
+@keyframes party-rise {
+  0% { transform: translate(0, 0) rotate(0deg) scale(0.6); opacity: 0; }
+  10% { opacity: 1; }
+  60% { transform: translate(var(--sway), -50vh) rotate(var(--spin)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(var(--sway) * 0.6), -60vh) rotate(calc(var(--spin) * 1.4)) scale(0.9); opacity: 0; }
+}
+
+.party {
+  position: fixed;
+  bottom: -40px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  animation: party-rise var(--dur) ease-out var(--delay) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .party { display: none; }
+}

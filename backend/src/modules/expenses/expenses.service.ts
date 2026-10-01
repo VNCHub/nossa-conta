@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ExpenseType as ExpenseTypeDb, RecordSource as RecordSourceDb } from '@prisma/client';
 import type { ExpenseDTO, ExpensesExportDTO } from '@shared/contracts';
-import type { CategoryId, PaymentMethod, RecordSource } from '@shared/domain';
+import type { CategoryId, ExpenseType, PaymentMethod, RecordSource } from '@shared/domain';
 import type { ExpenseCalc } from '../../domain/split';
 import { toCents, toReais } from '../../domain/split';
 import { ExpensesRepository, type ExpenseWithShares } from './expenses.repository';
 import { UpdateExpenseDto, CreateExpenseDto } from './dto/expenses.dto';
 import { UsersRepository } from '../users/users.repository';
 import { RulesRepository } from '../rules/rules.repository';
+import { MonthLocksService } from '../months/month-locks.service';
 
 @Injectable()
 export class ExpensesService {
@@ -15,6 +16,7 @@ export class ExpensesService {
     private readonly repo: ExpensesRepository,
     private readonly users: UsersRepository,
     private readonly rules: RulesRepository,
+    private readonly locks: MonthLocksService,
   ) {}
 
   async list(
@@ -67,6 +69,7 @@ export class ExpensesService {
   ): Promise<ExpenseDTO> {
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
     const date = dto.date ?? isoToday();
+    await this.locks.assertOpen(familyId, userId, [date.slice(0, 7)]);
     const row = await this.repo.create(
       {
         userId,
@@ -93,8 +96,18 @@ export class ExpensesService {
     dto: UpdateExpenseDto,
   ): Promise<ExpenseDTO> {
     const existing = await this.requireOwn(familyId, userId, id);
+    // Its amount is what the debt and the other member's income were built
+    // from; editing one side would leave the three disagreeing.
+    if (existing.expenseType === ExpenseTypeDb.DEBT) {
+      throw new BadRequestException(
+        'Um pagamento de dívida não pode ser editado. Exclua o pagamento e pague de novo.',
+      );
+    }
     const { participants, ruleId } = await this.validateSplit(familyId, dto);
     const date = dto.date ?? existing.date.toISOString().slice(0, 10);
+    // Both ends: moving an expense out of a finalized month changes it as much
+    // as moving one in.
+    await this.locks.assertOpen(familyId, userId, [existing.month, date.slice(0, 7)]);
 
     const row = await this.repo.update(
       id,
@@ -115,7 +128,8 @@ export class ExpensesService {
   }
 
   async remove(familyId: string, userId: string, id: string): Promise<void> {
-    await this.requireOwn(familyId, userId, id);
+    const existing = await this.requireOwn(familyId, userId, id);
+    await this.locks.assertOpen(familyId, userId, [existing.month]);
     await this.repo.remove(id);
   }
 
@@ -186,14 +200,16 @@ export class ExpensesService {
 
 const isoToday = () => new Date().toISOString().slice(0, 10);
 
-const expenseTypeOf = (t: ExpenseTypeDb | null) =>
+const expenseTypeOf = (t: ExpenseTypeDb | null): ExpenseType | null =>
   t === null
     ? null
     : t === ExpenseTypeDb.FIXED
       ? 'fixed'
       : t === ExpenseTypeDb.OPTIONAL
         ? 'optional'
-        : 'oneOff';
+        : t === ExpenseTypeDb.DEBT
+          ? 'debt'
+          : 'oneOff';
 
 export const toDbExpenseType = (t: string | null | undefined) =>
   t === 'fixed'
@@ -209,6 +225,8 @@ export const toDbExpenseType = (t: string | null | undefined) =>
  * in — surfaced to the UI so an incomplete entry can be flagged and finished.
  */
 export function isComplete(e: ExpenseWithShares): boolean {
+  // Created whole by the payment flow: no category, never shared.
+  if (e.expenseType === ExpenseTypeDb.DEBT) return e.amount !== null && Number(e.amount) > 0;
   if (
     !e.paymentMethod ||
     !e.category ||
@@ -238,6 +256,7 @@ export function toDTO(e: ExpenseWithShares): ExpenseDTO {
     complete: isComplete(e),
     source: recordSourceOf(e.source),
     importedFileId: e.importedFileId,
+    debtId: e.debtId,
   };
 }
 
@@ -250,7 +269,8 @@ export function toCalc(e: ExpenseWithShares): ExpenseCalc {
     id: e.id,
     userId: e.userId,
     month: e.month,
-    category: e.category!,
+    // A debt payment has no category; the split engine sets it aside anyway.
+    category: e.category ?? 'other',
     expenseType: expenseTypeOf(e.expenseType)!,
     amountCents: toCents(String(e.amount)),
     shared: e.shared,

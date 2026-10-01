@@ -5,7 +5,7 @@ const MONTH = '2026-09';
 const members = [{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }];
 
 const e = (
-  userId: string, expenseType: 'fixed' | 'optional' | 'oneOff', category: string,
+  userId: string, expenseType: ExpenseCalc['expenseType'], category: string,
   amountCents: number, shared: boolean, participants: string[], ruleId: string | null,
   month = MONTH,
 ): ExpenseCalc => ({
@@ -178,5 +178,52 @@ describe('settle', () => {
       { from: 'u1', to: 'u2', amountCents: 6000 },
       { from: 'u1', to: 'u3', amountCents: 4000 },
     ]);
+  });
+});
+
+describe('buildStatement — debt payments stay between the two members', () => {
+  // u2 pays R$ 300 of a debt to u1: an expense for u2, an income for u1.
+  const payment = e('u2', 'debt', 'other', 30000, false, [], null);
+  const receipt: IncomeCalc = { userId: 'u1', type: 'oneOff', amountCents: 30000, date: '2026-09-12', debtReceipt: true };
+  const rent = e('u1', 'fixed', 'home', 100000, true, ['u1', 'u2'], 'r2');
+
+  const withDebt = buildStatement({
+    members: members.slice(0, 2), rules, month: MONTH,
+    incomes: [...incomes, receipt], expenses: [rent, payment],
+  });
+  const without = buildStatement({
+    members: members.slice(0, 2), rules, month: MONTH,
+    incomes, expenses: [rent],
+  });
+
+  it('changes nothing in the split, the settlement or the family totals', () => {
+    expect(withDebt.lines.map((l) => l.shareCents)).toEqual(without.lines.map((l) => l.shareCents));
+    expect(withDebt.transfers).toEqual(without.transfers);
+    expect(withDebt.monthTotalCents).toBe(without.monthTotalCents);
+    for (const id of ['u1', 'u2']) {
+      expect(withDebt.byUser[id].incomeCents).toBe(without.byUser[id].incomeCents);
+      expect(withDebt.byUser[id].paidCents).toBe(without.byUser[id].paidCents);
+      expect(withDebt.byUser[id].shareCents).toBe(without.byUser[id].shareCents);
+    }
+  });
+
+  it('is not a statement line, so it shows in no category or type chart', () => {
+    expect(withDebt.lines).toHaveLength(1);
+    expect(withDebt.byUser.u2.categoryCents.other).toBeUndefined();
+  });
+
+  it('is reported per member for their own view', () => {
+    expect(withDebt.byUser.u2.debtPaidCents).toBe(30000);
+    expect(withDebt.byUser.u1.debtReceivedCents).toBe(30000);
+    expect(withDebt.byUser.u1.debtPaidCents).toBe(0);
+  });
+
+  it('only counts in the month it happened', () => {
+    const next = buildStatement({
+      members: members.slice(0, 2), rules, month: '2026-10',
+      incomes: [...incomes, receipt], expenses: [rent, payment],
+    });
+    expect(next.byUser.u2.debtPaidCents).toBe(0);
+    expect(next.byUser.u1.debtReceivedCents).toBe(0);
   });
 });

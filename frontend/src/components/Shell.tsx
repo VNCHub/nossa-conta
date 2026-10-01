@@ -12,6 +12,7 @@ const SCREENS = [
   { to: '/meu-painel', label: 'Meu painel' },
   { to: '/gastos', label: 'Gastos' },
   { to: '/entradas', label: 'Entradas' },
+  { to: '/dividas', label: 'Dívidas' },
   { to: '/familia', label: 'Família e rateios' },
 ];
 

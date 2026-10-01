@@ -39,6 +39,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty, Money, TrashIcon } from '../../components/ui';
 import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
+import { MonthLockedBanner, useMyMonthLocked } from '../../components/MonthClosing';
 import { iso } from './date';
 import { ExportExpensesModal } from './ExportExpensesModal';
 
@@ -117,6 +118,8 @@ const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
 
 export default function ExpensesLedger() {
   const [month] = useMonth();
+  // The server enforces the freeze; this only keeps the UI from offering what would be refused.
+  const locked = useMyMonthLocked(month);
   const { user } = useAuth();
   const { data: members } = useMembers();
   const { data: rules } = useRules();
@@ -130,7 +133,8 @@ export default function ExpensesLedger() {
 
   const remove = useAppMutation(
     (id: string) => api.delete(`/gastos/${id}`),
-    [keys.expenses(month), keys.statement(month)],
+    // A debt payment takes the receiver's income and the debt's balance with it.
+    [keys.expenses(month), keys.statement(month), keys.debts, keys.incomes],
     {
       onSuccess: () => notifySuccess('Gasto removido.'),
       onError: (e) => notifyError(e.message),
@@ -247,13 +251,17 @@ export default function ExpensesLedger() {
 
   const askDelete = (e: ExpenseDTO) =>
     confirmDelete({
-      title: 'Excluir gasto',
-      description: `"${e.description || 'Gasto sem descrição'}" de ${brl(e.amount)}${e.shared ? ', dividido com outras pessoas,' : ''} será apagado e o acerto do mês vai mudar.`,
+      title: e.expenseType === 'debt' ? 'Excluir pagamento de dívida' : 'Excluir gasto',
+      description:
+        e.expenseType === 'debt'
+          ? `"${e.description}" de ${brl(e.amount)} será apagado. ${e.debtId ? 'O valor volta a contar no que falta pagar da dívida, e' : 'A'} entrada correspondente de quem recebeu também será apagada.`
+          : `"${e.description || 'Gasto sem descrição'}" de ${brl(e.amount)}${e.shared ? ', dividido com outras pessoas,' : ''} será apagado e o acerto do mês vai mudar.`,
       onConfirm: () => remove.mutate(e.id),
     });
 
   return (
     <Card>
+      {locked && <MonthLockedBanner month={month} kind="expenses" />}
       <Stack hiddenFrom="sm" gap="sm" mb="md">
         <Title order={3} fz={20}>Lançamentos</Title>
         <SegmentedControl
@@ -269,7 +277,7 @@ export default function ExpensesLedger() {
         />
         <Group grow gap="sm">
           <Button size="md" variant="default" onClick={exportModal.open}>Exportar</Button>
-          <Button size="md" onClick={createModal.open}>Lançar gasto</Button>
+          <Button size="md" onClick={createModal.open} disabled={locked}>Lançar gasto</Button>
         </Group>
       </Stack>
 
@@ -286,7 +294,7 @@ export default function ExpensesLedger() {
             ]}
           />
           <Button variant="default" onClick={exportModal.open}>Exportar dados</Button>
-          <Button onClick={createModal.open}>Lançar gasto</Button>
+          <Button onClick={createModal.open} disabled={locked}>Lançar gasto</Button>
         </Group>
       </Group>
 
@@ -360,7 +368,10 @@ export default function ExpensesLedger() {
                   ...(isLast ? { borderBottomRightRadius: 8 } : {}),
                 };
                 const midCell = { backgroundColor: rowBg, ...rowSurface(e.complete) };
-                const canEdit = e.userId === user?.id;
+                // A debt payment can only be undone (deleted), never edited: its
+                // amount is mirrored in the debt and in the receiver's income.
+                const canDelete = e.userId === user?.id && !locked;
+                const canEdit = canDelete && e.expenseType !== 'debt';
                 return (
                   <Table.Tr key={e.id}>
                     <Table.Td className="num" style={firstCell}>
@@ -399,7 +410,7 @@ export default function ExpensesLedger() {
                         ]}
                         canEdit={canEdit}
                         onSave={(v) => patchField(e, { expenseType: v as ExpenseType | null })}
-                        render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional' | 'oneOff'} clickable={clickable} />}
+                        render={(v, clickable) => <ExpenseTypeChip type={v as ExpenseType} clickable={clickable} />}
                       />
                     </Table.Td>
                     <Table.Td style={midCell}>
@@ -424,7 +435,7 @@ export default function ExpensesLedger() {
                       <EditableAmount value={e.amount} canEdit={canEdit} onSave={(v) => patchField(e, { amount: v })} />
                     </Table.Td>
                     <Table.Td style={lastCell}>
-                      {canEdit && (
+                      {canDelete && (
                         <ActionIcon
                           variant="subtle" color="brick" size="md"
                           aria-label={`Excluir ${e.description || 'gasto'}`}
@@ -449,7 +460,8 @@ export default function ExpensesLedger() {
               owner={memberOf(e.userId)}
               members={members}
               rules={rules}
-              canEdit={e.userId === user?.id}
+              canEdit={e.userId === user?.id && !locked && e.expenseType !== 'debt'}
+              canDelete={e.userId === user?.id && !locked}
               onPatch={(overrides) => patchField(e, overrides)}
               onDelete={() => askDelete(e)}
             />
@@ -550,6 +562,7 @@ function MobileExpenseCard({
   members,
   rules,
   canEdit,
+  canDelete,
   onPatch,
   onDelete,
 }: {
@@ -558,6 +571,7 @@ function MobileExpenseCard({
   members: MemberDTO[];
   rules: RuleDTO[];
   canEdit: boolean;
+  canDelete: boolean;
   onPatch: (overrides: PatchOverrides) => void;
   onDelete: () => void;
 }) {
@@ -572,7 +586,7 @@ function MobileExpenseCard({
         </Group>
         <Group gap={4} wrap="nowrap">
           <EditableDate value={e.date} canEdit={canEdit} onSave={(v) => onPatch({ date: v })} />
-          {canEdit && (
+          {canDelete && (
             <ActionIcon
               variant="subtle" color="brick" size={44}
               aria-label={`Excluir ${e.description || 'gasto'}`}
@@ -610,7 +624,7 @@ function MobileExpenseCard({
           ]}
           canEdit={canEdit}
           onSave={(v) => onPatch({ expenseType: v as ExpenseType | null })}
-          render={(v, clickable) => <ExpenseTypeChip type={v as 'fixed' | 'optional' | 'oneOff'} clickable={clickable} />}
+          render={(v, clickable) => <ExpenseTypeChip type={v as ExpenseType} clickable={clickable} />}
         />
         <EditableBadge
           value={e.paymentMethod}

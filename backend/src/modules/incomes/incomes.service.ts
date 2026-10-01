@@ -4,7 +4,8 @@ import type { IncomeDTO } from '@shared/contracts';
 import type { RecordSource } from '@shared/domain';
 import { currentMonth } from '@shared/format';
 import type { IncomeCalc } from '../../domain/split';
-import { toCents, toReais } from '../../domain/split';
+import { incomeForMonth, toCents, toReais } from '../../domain/split';
+import { MonthLocksService, lockedError } from '../months/month-locks.service';
 import { IncomesRepository } from './incomes.repository';
 import { UpdateIncomeDto, CreateIncomeDto } from './dto/incomes.dto';
 
@@ -20,11 +21,15 @@ type IncomeRow = {
   date: Date | null;
   source: RecordSourceDb;
   importedFileId: string | null;
+  debtPaymentId: string | null;
 };
 
 @Injectable()
 export class IncomesService {
-  constructor(private readonly repo: IncomesRepository) {}
+  constructor(
+    private readonly repo: IncomesRepository,
+    private readonly locks: MonthLocksService,
+  ) {}
 
   async listMine(familyId: string, userId: string): Promise<IncomeDTO[]> {
     const rows = await this.repo.listForUser(familyId, userId);
@@ -42,6 +47,14 @@ export class IncomesService {
     if (since && until && until < since) {
       throw new BadRequestException('O mês final não pode ser antes do mês inicial.');
     }
+
+    await this.assertLockedMonthsUntouched(familyId, userId, null, {
+      type: recurring ? 'recurring' : 'oneOff',
+      amount: dto.amount,
+      since,
+      until,
+      date: recurring ? null : (dto.date ?? null),
+    });
 
     const row = await this.repo.create({
       userId,
@@ -63,6 +76,7 @@ export class IncomesService {
     dto: UpdateIncomeDto,
   ): Promise<IncomeDTO> {
     const current = await this.requireOwn(familyId, userId, id);
+    assertNotDebtReceipt(current);
     const recurring = current.type === IncomeTypeDb.RECURRING;
 
     // Two ways to drop just one month without a gap in the middle: end the
@@ -84,6 +98,14 @@ export class IncomesService {
       );
     }
 
+    await this.assertLockedMonthsUntouched(familyId, userId, shapeOf(current), {
+      type: recurring ? 'recurring' : 'oneOff',
+      amount: dto.amount ?? Number(current.amount),
+      since: nextSince,
+      until: nextUntil,
+      date: recurring ? null : (dto.date ?? shapeOf(current).date),
+    });
+
     const row = await this.repo.update(id, {
       description: dto.description?.trim(),
       amount: dto.amount,
@@ -98,8 +120,39 @@ export class IncomesService {
   }
 
   async remove(familyId: string, userId: string, id: string): Promise<void> {
-    await this.requireOwn(familyId, userId, id);
+    const current = await this.requireOwn(familyId, userId, id);
+    assertNotDebtReceipt(current);
+    await this.assertLockedMonthsUntouched(familyId, userId, shapeOf(current), null);
     await this.repo.remove(id);
+  }
+
+  /**
+   * An income can span many months, so "is it in a finalized month" is the
+   * wrong question for a recurring one: a salary running since January must
+   * still be endable in October with September finalized. What matters is
+   * whether any finalized month would count a different amount afterwards.
+   * A one-off is simpler and stricter — any edit to it, description included,
+   * waits until its month is reopened, same as an expense.
+   */
+  private async assertLockedMonthsUntouched(
+    familyId: string,
+    userId: string,
+    before: IncomeShape | null,
+    after: IncomeShape | null,
+  ): Promise<void> {
+    const finalized = await this.locks.monthsFinalizedBy(familyId, userId);
+    if (!finalized.length) return;
+
+    const oneOffMonths = [before, after]
+      .filter((i): i is IncomeShape => i?.type === 'oneOff')
+      .map((i) => (i.date ?? '').slice(0, 7));
+    const amountIn = (i: IncomeShape | null, month: string) =>
+      i ? incomeForMonth([calcOf(userId, i)], userId, month) : 0;
+
+    const locked = finalized.filter(
+      (m) => oneOffMonths.includes(m) || amountIn(before, m) !== amountIn(after, m),
+    );
+    if (locked.length) throw lockedError(locked.sort());
   }
 
   /** The whole family's incomes, in the split engine's format. */
@@ -112,6 +165,7 @@ export class IncomesService {
       date: i.date ? i.date.toISOString().slice(0, 10) : null,
       since: i.since,
       until: i.until,
+      debtReceipt: i.debtPaymentId !== null,
     }));
   }
 
@@ -128,6 +182,33 @@ export class IncomesService {
   }
 }
 
+/** The fields that decide how much an income counts in each month. */
+type IncomeShape = {
+  type: 'recurring' | 'oneOff';
+  amount: number;
+  since: string | null;
+  until: string | null;
+  /** YYYY-MM-DD */
+  date: string | null;
+};
+
+const shapeOf = (i: IncomeRow): IncomeShape => ({
+  type: i.type === IncomeTypeDb.RECURRING ? 'recurring' : 'oneOff',
+  amount: Number(i.amount),
+  since: i.since,
+  until: i.until,
+  date: i.date ? i.date.toISOString().slice(0, 10) : null,
+});
+
+const calcOf = (userId: string, i: IncomeShape): IncomeCalc => ({
+  userId,
+  type: i.type,
+  amountCents: toCents(String(i.amount)),
+  date: i.date,
+  since: i.since,
+  until: i.until,
+});
+
 function toDTO(i: IncomeRow): IncomeDTO {
   return {
     id: i.id,
@@ -141,5 +222,15 @@ function toDTO(i: IncomeRow): IncomeDTO {
     date: i.date ? i.date.toISOString().slice(0, 10) : null,
     source: i.source === RecordSourceDb.IMPORT ? 'import' : 'manual',
     importedFileId: i.importedFileId,
+    debtPaymentId: i.debtPaymentId,
   };
+}
+
+/** Its counterpart is the payer's expense — only undoing that payment removes it. */
+function assertNotDebtReceipt(i: { debtPaymentId: string | null }) {
+  if (i.debtPaymentId) {
+    throw new BadRequestException(
+      'Esta entrada é o recebimento de uma dívida. Ela só muda se quem pagou excluir o pagamento.',
+    );
+  }
 }
