@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom';
 import type { DebtDTO, MemberDTO } from '@shared/contracts';
 import { PAYMENT_METHODS } from '@shared/domain';
 import { brl, monthLabel, monthLabelCompact } from '@shared/format';
-import { useCreateDebt, useDebts, useDeleteDebt, useMembers, usePayDebt } from '../api/hooks';
+import { useCreateDebt, useDebts, useDeleteDebt, useMembers, useMonthStatus, usePayDebt } from '../api/hooks';
 import { confirmDelete, notifyError, notifySuccess } from '../feedback';
 import { iso } from '../pages/expenses/date';
 import { Avatar, Money } from './ui';
@@ -477,3 +477,21 @@ export function MyDebtsCard({ userId }: { userId: string }) {
     </Card>
   );
 }
+
+/**
+ * Once a month is closed its settlement lives on as debts, so "what's left of
+ * the acerto" is their remaining balances. Only the debts *this month's*
+ * closing generated count — never hand-entered debts or another month's
+ * closing, or one month's acerto would show another's balance. Payments count
+ * whenever they were made. Null while loading or while the month is still open
+ * (the statement's transfers are the acerto then).
+ */
+export function useClosedSettlement(month: string): { debts: DebtDTO[] } | null {
+  const status = useMonthStatus(month);
+  const debts = useDebts();
+  const closed = status.data?.closed;
+  if (!closed || !debts.data) return null;
+  return { debts: debts.data.filter((d) => closed.debtIds.includes(d.id)) };
+}
+
+export const allPaid = (debts: DebtDTO[]) => debts.length > 0 && debts.every((d) => !isOpen(d));

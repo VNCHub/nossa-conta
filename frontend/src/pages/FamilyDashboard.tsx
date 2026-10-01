@@ -4,7 +4,7 @@ import { monthLabel, pct } from '@shared/format';
 import { useStatement, useFamily, useMembers } from '../api/hooks';
 import { Donut } from '../components/Donut';
 import { FamilyClosingCard } from '../components/MonthClosing';
-import { FamilyDebtsCard } from '../components/debts';
+import { FamilyDebtsCard, allPaid, useClosedSettlement } from '../components/debts';
 import { Avatar, PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
 import { useMonth } from '../useMonth';
 
@@ -13,6 +13,7 @@ export default function FamilyDashboard() {
   const { data: family } = useFamily();
   const { data: members } = useMembers();
   const statement = useStatement(month);
+  const closedSettlement = useClosedSettlement(month);
 
   if (!statement.data || !members || !family) {
     return statement.error ? <Empty>{statement.error.message}</Empty> : <Loading />;
@@ -53,8 +54,35 @@ export default function FamilyDashboard() {
         // Dark surface: hidden values need a bar lighter than the card, not darker.
         style={{ borderColor: 'var(--gf-ink)', '--gf-surface': 'var(--gf-ink)', '--gf-on': '#fff', '--gf-mask-mix': '26%' } as CSSProperties}
       >
-        <Text size="sm" c="#8FAFA4" mb="sm">Acerto do mês</Text>
-        {calc.transfers.length === 0 ? (
+        <Text size="sm" c="#8FAFA4" mb="sm">
+          Acerto do mês{closedSettlement ? ' · fechado, acompanhando os pagamentos' : ''}
+        </Text>
+        {closedSettlement ? (
+          allPaid(closedSettlement.debts) ? (
+            <p className="settlement" style={{ color: '#fff' }}>Acerto quitado 🎉</p>
+          ) : closedSettlement.debts.length === 0 ? (
+            <p className="settlement" style={{ color: '#fff' }}>Nada mais a acertar neste mês.</p>
+          ) : (
+            <Flex direction="column" gap={{ base: 'sm', xs: 'xs' }}>
+              {closedSettlement.debts.map((d) =>
+                d.remaining > 0 ? (
+                  <div key={d.id}>
+                    <p className="settlement" style={{ color: '#fff' }}>
+                      {nameOf(d.fromUserId)} paga <span style={{ color: '#F0C355' }}><Money value={d.remaining} /></span> para {nameOf(d.toUserId)}
+                    </p>
+                    {d.paid > 0 && (
+                      <Text size="sm" c="#8FAFA4">já pagou <Money value={d.paid} /> de <Money value={d.amount} /></Text>
+                    )}
+                  </div>
+                ) : (
+                  <p key={d.id} className="settlement" style={{ color: '#8FAFA4' }}>
+                    {nameOf(d.fromUserId)} pagou <Money value={d.amount} /> para {nameOf(d.toUserId)} ✓
+                  </p>
+                ),
+              )}
+            </Flex>
+          )
+        ) : calc.transfers.length === 0 ? (
           <p className="settlement" style={{ color: '#fff' }}>Ninguém deve nada a ninguém.</p>
         ) : (
           // No mobile a fonte editorial (30px/23px) quebra linha com mais
