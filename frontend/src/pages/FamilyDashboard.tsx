@@ -93,7 +93,11 @@ export default function FamilyDashboard() {
                       <Text fw={600}>{u.name}</Text>
                       <Badge color={tier.color} variant="light" tt="none">{tier.label}</Badge>
                     </Group>
-                    <Text size="sm" c="dimmed">saiu do bolso <Money value={d.paid} /> de <Money value={d.income} /> que entrou</Text>
+                    <Text size="sm" c="dimmed">
+                      {/* Cada rótulo quebra junto com o seu valor no celular. */}
+                      <span style={{ whiteSpace: 'nowrap' }}>gastou: <Money value={d.share} /></span>{' | '}
+                      <span style={{ whiteSpace: 'nowrap' }}>recebeu: <Money value={d.income} /></span>
+                    </Text>
                   </div>
                 </Group>
                 {/* Empilhado no mobile, o bloco fica alinhado à esquerda, abaixo do
