@@ -8,7 +8,6 @@ import {
 import type { DebtDTO } from '@shared/contracts';
 import { toCents, toReais } from '../../domain/split';
 import { UsersRepository } from '../users/users.repository';
-import { MonthLocksService } from '../months/month-locks.service';
 import { DebtsRepository, type DebtWithPayments } from './debts.repository';
 import { CreateDebtDto, PayDebtDto } from './dto/debts.dto';
 
@@ -17,7 +16,6 @@ export class DebtsService {
   constructor(
     private readonly repo: DebtsRepository,
     private readonly users: UsersRepository,
-    private readonly locks: MonthLocksService,
   ) {}
 
   async list(familyId: string): Promise<DebtDTO[]> {
@@ -63,10 +61,8 @@ export class DebtsService {
       throw new ForbiddenException('Só quem deve pode registrar o pagamento.');
     }
     const month = dto.date.slice(0, 7);
-    // The payer's own month must be open: the payment is an expense of theirs.
-    // The receiver's is not checked on purpose — their income lands even in a
-    // finalized month, since it changes neither the split nor the totals.
-    await this.locks.assertOpen(familyId, userId, [month]);
+    // No finalized-month check, for payer or receiver: a DEBT expense is kept
+    // out of the split, so paying in a frozen month changes no one's quota.
 
     const members = await this.users.listMembers(familyId);
     const nameOf = (uid: string) => members.find((m) => m.id === uid)?.name ?? 'alguém';

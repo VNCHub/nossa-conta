@@ -148,20 +148,18 @@ describe('Debts and month closing (e2e)', () => {
     expect(debts[0]).toMatchObject({ paid: 0, remaining: 500, payments: [] });
   });
 
-  it('respects the payer\'s finalized month, not the receiver\'s', async () => {
+  it('lets a debt be paid in a finalized month, but not undone there', async () => {
     const { owner, payer } = await makeFamily('Casa Trava');
     const { body: debt } = await newDebt(owner, payer, owner, 300).expect(201);
 
-    // Receiver finalized: the payment still lands, income included.
+    // A debt payment is outside the split, so finalizing never blocks it.
     await auth(owner)(http().post(`/meses/${MONTH}/finalizacao`)).expect(201);
-    await pay(payer, debt.id, 100).expect(201);
-
-    // Payer finalized: no new payment in that month, and the one there can't be undone.
     await auth(payer)(http().post(`/meses/${MONTH}/finalizacao`)).expect(201);
-    await pay(payer, debt.id, 50).expect(409);
+    await pay(payer, debt.id, 100).expect(201);
+    await pay(payer, debt.id, 50).expect(201);
+
     const { body: expenses } = await auth(payer)(http().get(`/gastos?mes=${MONTH}`)).expect(200);
     await auth(payer)(http().delete(`/gastos/${expenses[0].id}`)).expect(409);
-    await pay(payer, debt.id, 50, '2026-04-01').expect(201);
   });
 
   it('only the two people in a debt delete it, and its payments stay', async () => {
