@@ -22,7 +22,7 @@ import type { IncomeType } from '@shared/domain';
 import { brl, monthLabel, monthLabelCompact, recurringAppliesToMonth, shiftMonth } from '@shared/format';
 import { api } from '../api/client';
 import { keys, useIncomes, useAppMutation } from '../api/hooks';
-import { PageHeader, Loading, Metric, Empty, TrashIcon } from '../components/ui';
+import { PageHeader, Loading, Metric, Empty, Money, TrashIcon } from '../components/ui';
 import { notifyError, notifySuccess, confirmDelete, confirmChoice } from '../feedback';
 import { useMonth } from '../useMonth';
 
@@ -117,7 +117,7 @@ export default function Income() {
         action={
           <Group wrap="wrap" gap="sm" style={{ flex: '1 1 auto' }}>
             <Card style={{ flex: '1 1 200px' }}>
-              <Metric label={`Total em ${monthLabel(month)}`} value={brl(total)} />
+              <Metric label={`Total em ${monthLabel(month)}`} value={<Money value={total} />} />
             </Card>
             <Button onClick={createModal.open} size="md" w={{ base: '100%', sm: 'auto' }} style={{ flexShrink: 0 }}>Lançar entrada</Button>
           </Group>
@@ -203,7 +203,7 @@ function RecurringRow({
           )}
         </Group>
       </div>
-      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}>{brl(item.amount)}</Text>
+      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
       <ActionIcon
         variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onDelete}
@@ -224,7 +224,7 @@ function OneOffRow({ item, isLast, onRemove }: { item: IncomeDTO; isLast: boolea
         <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
         <Text size="sm" c="dimmed">{(item.date ?? '').split('-').reverse().join('/')}</Text>
       </div>
-      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}>{brl(item.amount)}</Text>
+      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
       <ActionIcon
         variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
         onClick={onRemove}

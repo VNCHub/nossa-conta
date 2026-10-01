@@ -36,7 +36,7 @@ import { brl } from '@shared/format';
 import { api } from '../../api/client';
 import { keys, useExpenses, useMembers, useAppMutation, useRules } from '../../api/hooks';
 import { useAuth } from '../../auth/AuthContext';
-import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty, TrashIcon } from '../../components/ui';
+import { Avatar, Loading, CategoryChip, ExpenseTypeChip, Empty, Money, TrashIcon } from '../../components/ui';
 import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
 import { iso } from './date';
@@ -91,6 +91,13 @@ const firstName = (name: string) => name.split(' ')[0];
  * so "100" also finds 100,15 or 1.100,00 — whichever notation (comma or dot)
  * the person happens to type.
  */
+/** Tinted rows are their own surface: a hidden amount takes the row's tint, not the card's white. */
+const rowSurface = (complete: boolean) =>
+  ({
+    '--gf-surface': complete ? 'var(--mantine-color-petrol-1)' : 'var(--mantine-color-brick-1)',
+    '--gf-on': complete ? 'var(--mantine-color-petrol-8)' : 'var(--mantine-color-brick-8)',
+  }) as CSSProperties;
+
 const matchesSearch = (e: ExpenseDTO, query: string, ownerName?: string) => {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
@@ -352,7 +359,7 @@ export default function ExpensesLedger() {
                   ...(isFirst ? { borderTopRightRadius: 8 } : {}),
                   ...(isLast ? { borderBottomRightRadius: 8 } : {}),
                 };
-                const midCell = { backgroundColor: rowBg };
+                const midCell = { backgroundColor: rowBg, ...rowSurface(e.complete) };
                 const canEdit = e.userId === user?.id;
                 return (
                   <Table.Tr key={e.id}>
@@ -557,7 +564,7 @@ function MobileExpenseCard({
   const rowBg = e.complete ? 'var(--mantine-color-petrol-1)' : 'var(--mantine-color-brick-1)';
 
   return (
-    <Card p="sm" radius="md" style={{ backgroundColor: rowBg }}>
+    <Card p="sm" radius="md" style={{ backgroundColor: rowBg, ...rowSurface(e.complete) }}>
       <Group justify="space-between" align="center" wrap="nowrap" mb={6}>
         <Group gap={7} wrap="nowrap">
           {owner && <Avatar user={owner} />}
@@ -801,7 +808,7 @@ function EditableAmount({
 
   if (!canEdit) {
     return value > 0 ? (
-      <Text size="md" fw={600} span>{brl(value)}</Text>
+      <Text size="md" fw={600} span><Money value={value} /></Text>
     ) : (
       <Text size="md" c="dimmed" span>—</Text>
     );
@@ -841,7 +848,7 @@ function EditableAmount({
       style={{ ...touchTarget.style, width: '100%', textAlign: 'right', justifyContent: 'flex-end' }}
     >
       {value > 0 ? (
-        <Text size="md" fw={600} span>{brl(value)}</Text>
+        <Text size="md" fw={600} span><Money value={value} /></Text>
       ) : (
         <Text size="md" c="dimmed" span>—</Text>
       )}

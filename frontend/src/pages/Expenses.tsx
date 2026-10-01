@@ -1,8 +1,8 @@
 import { Card, Tabs } from '@mantine/core';
-import { brl, monthLabel } from '@shared/format';
+import { monthLabel } from '@shared/format';
 import { useExpenses } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
-import { Metric, PageHeader } from '../components/ui';
+import { Metric, Money, PageHeader } from '../components/ui';
 import ExpensesImports from './expenses/ExpensesImports';
 import ExpensesLedger from './expenses/ExpensesLedger';
 import { useMonth } from '../useMonth';
@@ -26,7 +26,7 @@ export default function Expenses() {
           <Card>
             <Metric
               label="Meus gastos no mês"
-              value={myTotal === null ? '—' : brl(myTotal)}
+              value={myTotal === null ? '—' : <Money value={myTotal} />}
             />
           </Card>
         }

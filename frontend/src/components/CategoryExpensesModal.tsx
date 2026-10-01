@@ -3,8 +3,7 @@ import { Divider, Group, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { CATEGORIES, type CategoryId } from '@shared/domain';
 import type { MemberDTO, RuleDTO, StatementLine } from '@shared/contracts';
-import { brl } from '@shared/format';
-import { Avatar, Empty } from './ui';
+import { Avatar, Empty, Money } from './ui';
 
 // Same convention as EditableDate in ExpensesLedger: expense dates are
 // YYYY-MM-DD, parsed with `new Date` they can shift a day under a
@@ -49,7 +48,7 @@ export function CategoryExpensesModal({
         category ? (
           <div>
             <Text fw={700}>{category.name}</Text>
-            <Text size="sm" c="dimmed">sua cota: {brl(myTotal)}</Text>
+            <Text size="sm" c="dimmed">sua cota: <Money value={myTotal} /></Text>
           </div>
         ) : (
           'Gastos da categoria'
@@ -88,7 +87,7 @@ export function CategoryExpensesModal({
                           {dateLabel(l.date)} · pago por {owner ? owner.name : '—'}
                         </Text>
                       </div>
-                      <Text className="num" fw={600} style={{ flexShrink: 0 }}>{brl(l.amount)}</Text>
+                      <Text className="num" fw={600} style={{ flexShrink: 0 }}><Money value={l.amount} /></Text>
                     </Group>
 
                     <Stack gap={4} mt="xs">
@@ -107,7 +106,7 @@ export function CategoryExpensesModal({
                               </Text>
                             </Group>
                             <Text className="num" size="sm" c={isMe ? undefined : 'dimmed'} style={{ flexShrink: 0 }}>
-                              {brl(l.amount * frac)}
+                              <Money value={l.amount * frac} />
                             </Text>
                           </Group>
                         );

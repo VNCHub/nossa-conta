@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   ActionIcon,
+  type ActionIconProps,
   Avatar as MAvatar,
   Badge,
   Center,
@@ -13,6 +14,7 @@ import {
 } from '@mantine/core';
 import { CATEGORIES, categoryOf, type CategoryId } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
+import { useValuesHidden } from '../hideValues';
 
 export interface Member {
   id: string;
@@ -25,6 +27,56 @@ export function Avatar({ user, lg }: { user: Member; lg?: boolean }) {
     <MAvatar size={lg ? 40 : 30} radius="xl" styles={{ placeholder: { background: user.color, color: '#fff' } }}>
       {user.name[0]}
     </MAvatar>
+  );
+}
+
+/**
+ * A money amount on screen. With "hide values" on, the amount never reaches
+ * the DOM (no selecting or reading it back) and a bar takes its place, tinted
+ * from the surface it sits on — see `.money-mask` in base.css.
+ */
+export function Money({ value }: { value: number }) {
+  const [hidden] = useValuesHidden();
+  if (hidden) return <span className="money-mask" role="img" aria-label="valor oculto" />;
+  return <>{brl(value)}</>;
+}
+
+const EyeIcon = ({ off }: { off: boolean }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {off ? (
+      <>
+        <path d="M10.7 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-2.2 3.2" />
+        <path d="M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6" />
+        <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+        <path d="M2 2l20 20" />
+      </>
+    ) : (
+      <>
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    )}
+  </svg>
+);
+
+/** The switch for `Money`; `onDark` for the navigation rail. */
+export function HideValuesToggle({ onDark, ...rest }: { onDark?: boolean } & Omit<ActionIconProps, 'children'>) {
+  const [hidden, toggle] = useValuesHidden();
+  const label = hidden ? 'Mostrar valores' : 'Ocultar valores';
+  return (
+    <ActionIcon
+      variant={onDark ? (hidden ? 'filled' : 'subtle') : 'default'}
+      color={onDark ? '#2A5B4F' : undefined}
+      c={onDark ? (hidden ? '#fff' : '#B9CCC5') : undefined}
+      size="lg"
+      aria-label={label}
+      aria-pressed={hidden}
+      title={label}
+      onClick={toggle}
+      {...rest}
+    >
+      <EyeIcon off={hidden} />
+    </ActionIcon>
   );
 }
 
@@ -110,7 +162,7 @@ export function Categories({
           </Group>
           <Progress value={(c.v / total) * 100} color={c.color} size="sm" radius="sm" style={{ flex: 1 }} />
           <Text className="num" size="sm" ta="right" w={110} style={{ flexShrink: 0 }}>
-            {pct(c.v / total)} <Text span c="dimmed" size="sm">· {brl(c.v)}</Text>
+            {pct(c.v / total)} <Text span c="dimmed" size="sm">· <Money value={c.v} /></Text>
           </Text>
         </Group>
       ))}
@@ -195,7 +247,7 @@ export function Metric({
   color,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   detail?: ReactNode;
   color?: string;
 }) {
