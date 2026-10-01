@@ -83,6 +83,7 @@ export default function FamilyDashboard() {
           if (!d) return null;
           const ratio = d.income > 0 ? d.share / d.income : null;
           const tier = incomeTier(ratio);
+          const memberLeftOver = d.income - d.share;
           return (
             <Box key={u.id} py="sm" style={i > 0 ? { borderTop: '1px solid #EEF1EC' } : undefined}>
               <Flex direction={{ base: 'column', xs: 'row' }} gap={{ base: 4, xs: 'md' }} wrap="nowrap">
@@ -104,8 +105,8 @@ export default function FamilyDashboard() {
                     nome — alinhar à direita aqui deixaria os números "soltos"
                     na ponta oposta da tela, quebrando a leitura de cima para baixo. */}
                 <Box ta={{ base: 'left', xs: 'right' }} pl={{ base: 52, xs: 0 }}>
-                  <Text className="num" fw={600}>
-                    <Text span size="sm" c="dimmed" fw={400}>cota </Text><Money value={d.share} />
+                  <Text className="num" fw={600} c={memberLeftOver >= 0 ? 'var(--gf-credit)' : 'var(--gf-debit)'}>
+                    <Text span size="sm" c="dimmed" fw={400}>sobrou </Text><Money value={memberLeftOver} />
                   </Text>
                 </Box>
               </Flex>
