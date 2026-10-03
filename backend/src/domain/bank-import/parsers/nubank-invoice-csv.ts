@@ -28,7 +28,16 @@ export function parseNubankInvoiceCsv(buffer: Buffer): RawTransaction[] {
   });
 }
 
-/** "- 244,65" / "39,92" — Brazilian comma decimal, refund amounts carry a spaced minus sign. */
+/**
+ * "- 244,65" / "39,92" / "1.146,46" — Brazilian format: comma decimal, dot as
+ * thousands separator, refunds carrying a spaced minus sign. Throws on
+ * anything else: toCents turns an unreadable value into 0, which would import
+ * a purchase as a R$ 0,00 expense without anyone noticing.
+ */
 function normalizeAmount(raw: string): string {
-  return raw.trim().replace(/\s+/g, '').replace(',', '.');
+  const normalized = raw.trim().replace(/\s+/g, '').replace(/\./g, '').replace(',', '.');
+  if (!/^-?\d+(\.\d+)?$/.test(normalized)) {
+    throw new Error(`Valor inválido na fatura: "${raw}"`);
+  }
+  return normalized;
 }
