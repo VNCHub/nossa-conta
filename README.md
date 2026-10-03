@@ -4,6 +4,37 @@ Controle financeiro para quem divide as contas. Cada pessoa lança o que ganhou 
 gastou; no fim do mês o sistema calcula a cota de cada um conforme a regra de rateio
 escolhida e diz **quem paga quanto para quem**.
 
+**[Ver o projeto no ar → nossa-conta-phi.vercel.app](https://nossa-conta-phi.vercel.app)**
+
+> **Aviso sobre o servidor gratuito:** a API roda no plano gratuito do Render, que
+> hiberna após ~15 min sem uso. A **primeira requisição** depois de um tempo parado (o
+> login, por exemplo) pode levar de **30 a 60 segundos**; depois disso responde normal. O
+> banco (Neon) também suspende quando ocioso e religa em ~1 s.
+
+![Painel da família: entradas, gastos e a sobra do mês](docs/images/painel-familia.jpg)
+
+## O que o app faz
+
+| | |
+| --- | --- |
+| ![Meu painel](docs/images/meu-painel.jpg) | ![Lançamentos](docs/images/gastos.jpg) |
+| **Meu painel** — sua cota real do mês: gastos individuais mais a sua parte do que foi dividido, por tipo e por categoria. | **Gastos** — lançamentos da família com busca, filtro (todos, meus, divididos) e a regra de rateio de cada um. |
+| ![Regras de rateio](docs/images/rateios.jpg) | |
+| **Rateios** — as regras da família, cada gasto dividido aponta para uma delas. | |
+
+### Importação de extrato e fatura
+
+Em **Gastos → Importações**, o wizard lê o extrato da conta e a fatura do cartão (CSV ou
+OFX do Nubank) e **não grava nada até você confirmar**. O passo de decisões mostra o que
+é ambíguo — lançamentos repetidos que podem ser unificados, parcelas da mesma compra e
+quais Pix recebidos viram entrada. O resumo final explica o que ficou de fora e por quê;
+por exemplo, pagar a fatura não é gasto, porque a compra já está na fatura.
+
+![Wizard de importação: arquivos, decisões e resumo](docs/images/importacao-wizard.gif)
+
+> Os arquivos usados nas imagens são fictícios: nomes, contas e estabelecimentos foram
+> trocados, mas a estrutura e os casos ambíguos são os de um extrato real.
+
 ## Subir o projeto
 
 Pré-requisitos: Docker com Compose v2+.
@@ -28,7 +59,7 @@ docker compose exec backend npm run seed
 ```
 
 O seed recria a família do protótipo (`Família Teste`, convite `TESTE-0001`) com três
-membros e 16 gastos em setembro/2026. Entre com **teste1@email.com / 123456**.
+membros e 17 gastos em setembro/2026. Entre com **teste1@email.com / 123456**.
 
 > A porta do Postgres no host é 5433 e não 5432 para não conflitar com outros projetos.
 > Mude `POSTGRES_PORT` no `.env` se preferir outra.
@@ -81,7 +112,7 @@ propósito: é o único ponto que importa `@mantine/charts`, que arrasta ~105 kB
 comprimidos. Junto do resto da UI, esse peso cairia no carregamento inicial e quem abre a
 tela de gastos pagaria por um gráfico que não vai ver.
 
-Carregamento inicial: **207 kB comprimidos** (166 kB de JS + 41 kB de CSS).
+Carregamento inicial: **221 kB comprimidos** (180 kB de JS + 41 kB de CSS).
 
 ## Rateio
 
@@ -119,8 +150,8 @@ fronteira por todos os caminhos.
 
 ```bash
 cd backend
-npm test          # 37 testes do motor de rateio
-npm run test:e2e  # 10 testes de isolamento entre famílias (precisa do Postgres no ar)
+npm test          # 100 testes unitários: motor de rateio e importação de extratos
+npm run test:e2e  # 56 testes de integração: isolamento entre famílias e fluxos da API (precisa do Postgres no ar)
 ```
 
 ## Deploy gratuito
