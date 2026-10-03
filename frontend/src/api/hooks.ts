@@ -12,6 +12,9 @@ import type {
   MemberDTO,
   RuleDTO,
   ImportedFileDTO,
+  ImportAnalysisDTO,
+  ImportDecisionsDTO,
+  ImportReportDTO,
   AdminOverviewDTO,
   AdminUserDTO,
   PaginatedDTO,
@@ -123,6 +126,32 @@ export const useImports = () =>
     queryKey: keys.imports,
     queryFn: () => api.get<ImportedFileDTO[]>('/gastos/importacoes'),
   });
+
+/** Reads the files and proposes decisions; saves nothing, so there is nothing to invalidate. */
+export const useAnalyzeImport = () =>
+  useAppMutation(
+    ({ bank, files }: { bank: string; files: File[] }) => api.upload<ImportAnalysisDTO>('/gastos/importacoes/analise', importForm(bank, files)),
+    [],
+  );
+
+/**
+ * An import can create records in months other than the one currently open,
+ * so every cached `expenses`/`statement` query is invalidated (prefix keys).
+ */
+export const useRunImport = () =>
+  useAppMutation(
+    ({ bank, files, decisions }: { bank: string; files: File[]; decisions: ImportDecisionsDTO }) =>
+      api.upload<ImportReportDTO>('/gastos/importacoes', importForm(bank, files, decisions)),
+    [keys.imports, keys.incomes, ['expenses'], ['statement']],
+  );
+
+function importForm(bank: string, files: File[], decisions?: ImportDecisionsDTO) {
+  const form = new FormData();
+  form.append('bank', bank);
+  if (decisions) form.append('decisions', JSON.stringify(decisions));
+  files.forEach((f) => form.append('files', f));
+  return form;
+}
 
 export const useAdminOverview = () =>
   useQuery({

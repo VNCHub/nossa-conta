@@ -162,7 +162,7 @@ describe('Internal export/import (e2e)', () => {
     const { body: exported } = await auth(source)(http().get('/gastos/exportar')).expect(200);
 
     const target = await registerAdmin('target-a', { familyName: 'Casa Destino A' });
-    const { body: results } = await importInternal(target, exported).expect(201);
+    const { body: { files: results } } = await importInternal(target, exported).expect(201);
 
     expect(results[0].status).toBe('success');
     expect(results[0].file.bank).toBe('internal');
@@ -194,7 +194,7 @@ describe('Internal export/import (e2e)', () => {
 
     const target = await registerAdmin('target-b', { familyName: 'Casa Destino B' });
     await importInternal(target, exported).expect(201);
-    const { body: resultsAgain } = await importInternal(target, exported).expect(201);
+    const { body: { files: resultsAgain } } = await importInternal(target, exported).expect(201);
 
     expect(resultsAgain[0].status).toBe('error');
     expect(resultsAgain[0].message).toMatch(/já foi importado/i);
@@ -222,7 +222,7 @@ describe('Internal export/import (e2e)', () => {
     // A different file (different exportedAt, so a different file-level fingerprint) —
     // the file itself imports "successfully", but the one gasto inside it is recognized
     // as a duplicate of what A's direct export already created and is skipped.
-    const { body: secondResult } = await importInternal(houseC, exportFromB).expect(201);
+    const { body: { files: secondResult } } = await importInternal(houseC, exportFromB).expect(201);
 
     expect(secondResult[0].status).toBe('success');
     expect(secondResult[0].file.expensesCount).toBe(0);
@@ -234,7 +234,7 @@ describe('Internal export/import (e2e)', () => {
 
   it('rejects a file that is not a recognized internal export', async () => {
     const target = await registerAdmin('target-c', { familyName: 'Casa Destino C' });
-    const { body: results } = await importInternal(target, { foo: 'bar' }).expect(201);
+    const { body: { files: results } } = await importInternal(target, { foo: 'bar' }).expect(201);
     expect(results[0].status).toBe('error');
   });
 

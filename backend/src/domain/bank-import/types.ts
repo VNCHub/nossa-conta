@@ -30,9 +30,20 @@ export interface IncomeSeed {
   importKey: string;
 }
 
+/** A line the mapper dropped on purpose — kept so the import report can say why instead of losing it silently. */
+export interface ExcludedSeed {
+  date: string;
+  description: string;
+  amount: number;
+  kind: 'expense' | 'income';
+  reason: 'invoicePayment';
+}
+
 export interface MappedImport {
   expenses: ExpenseSeed[];
+  /** invoice refunds — always imported, no decision to make */
   incomes: IncomeSeed[];
-  /** account-statement credits (money coming in) — out of scope, just counted for the summary */
-  skippedCredits: number;
+  /** account-statement credits (Pix and transfers received) — only imported when the user accepts them */
+  credits: IncomeSeed[];
+  excluded: ExcludedSeed[];
 }

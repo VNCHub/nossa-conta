@@ -102,6 +102,12 @@ Projeto inteiro: `docker compose up --build` (Postgres na porta **5433** do host
 4. O CI (`.github/workflows/ci.yml`) roda tudo isso em Node 24 — não deixe passar o que
    ele pegaria.
 
+## Fluxo de trabalho
+
+Feature nova e bugfix seguem a skill `workflow` (`.claude/skills/workflow/SKILL.md`):
+reconhecimento → protótipo → implementação → testes → deploy, com aprovação explícita do
+usuário entre as etapas. Documentos para o usuário ler ficam em `specs/<feature>/`.
+
 ## Fora do escopo (MVP)
 
 Gasto parcelado ou recorrente, múltiplas famílias por usuário, upload de comprovante,

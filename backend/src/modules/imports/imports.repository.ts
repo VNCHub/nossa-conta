@@ -39,6 +39,28 @@ export class ImportsRepository {
   }
 
   /**
+   * Which of these importKeys were already saved. Expenses are unique per
+   * family and incomes per user, so each list is checked against its own scope.
+   */
+  async findExistingImportKeys(
+    familyId: string,
+    userId: string,
+    keys: { expenseKeys: string[]; incomeKeys: string[] },
+  ): Promise<Set<string>> {
+    const [expenses, incomes] = await Promise.all([
+      this.prisma.expense.findMany({
+        where: { familyId, importKey: { in: keys.expenseKeys } },
+        select: { importKey: true },
+      }),
+      this.prisma.income.findMany({
+        where: { userId, importKey: { in: keys.incomeKeys } },
+        select: { importKey: true },
+      }),
+    ]);
+    return new Set([...expenses, ...incomes].map((r) => r.importKey as string));
+  }
+
+  /**
    * One transaction for the whole file: the ImportedFile row and every
    * Expense/Income it produced are created together, or none of them are —
    * a mid-way failure must not leave a half-imported file in the ledger.
@@ -52,7 +74,9 @@ export class ImportsRepository {
     return this.prisma.$transaction(async (tx) => {
       const file = await tx.importedFile.create({ data: input.file });
 
-      let duplicateTransactionsSkipped = 0;
+      // The service already counted what it filtered out up front; this adds
+      // whatever the database still turned away (a concurrent import).
+      let duplicateTransactionsSkipped = input.file.duplicateTransactionsSkipped ?? 0;
 
       if (input.expenses.length) {
         const { count } = await tx.expense.createMany({

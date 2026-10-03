@@ -3,6 +3,7 @@ import { toReais } from '../split';
 import { transactionKeyOf } from './fingerprint';
 import type {
   BankId,
+  ExcludedSeed,
   ExpenseSeed,
   ImportDocumentType,
   IncomeSeed,
@@ -12,25 +13,44 @@ import type {
 
 const MAX_DESCRIPTION_LENGTH = 120;
 
-// Both patterns describe facts the bank already states in the memo, not a
-// guess — only these two are confident enough to prefill paymentMethod.
+// These patterns describe facts the bank already states in the memo, not a
+// guess — only these are confident enough to prefill paymentMethod.
 const DEBIT_CARD_RE = /compra no d[ée]bito/i;
 const PIX_SENT_RE = /transfer[êe]ncia enviada.*pix/i;
+const BOLETO_RE = /pagamento de boleto/i;
 // The transfer that settles the credit card bill: if the same period's
 // invoice is also imported, keeping this line would double-count the spend.
 const INVOICE_PAYMENT_RE = /pagamento de fatura/i;
 
-/** Only debits become a Gasto; credits (money coming in) are out of scope for this import. */
+/**
+ * Debits become a Gasto. Credits (money coming in) are returned apart, as
+ * candidates: whether each one is really income is the user's call.
+ */
 export function mapAccountStatement(transactions: RawTransaction[], bank: BankId): MappedImport {
   const expenses: ExpenseSeed[] = [];
-  let skippedCredits = 0;
+  const credits: IncomeSeed[] = [];
+  const excluded: ExcludedSeed[] = [];
 
   for (const t of transactions) {
     if (t.kind === 'credit') {
-      skippedCredits++;
+      credits.push({
+        date: t.date,
+        description: truncate(t.description),
+        amount: toReais(t.amountCents),
+        importKey: transactionKeyOf(bank, 'accountStatement', t),
+      });
       continue;
     }
-    if (INVOICE_PAYMENT_RE.test(t.description)) continue;
+    if (INVOICE_PAYMENT_RE.test(t.description)) {
+      excluded.push({
+        date: t.date,
+        description: truncate(t.description),
+        amount: toReais(t.amountCents),
+        kind: 'expense',
+        reason: 'invoicePayment',
+      });
+      continue;
+    }
 
     expenses.push({
       date: t.date,
@@ -41,7 +61,7 @@ export function mapAccountStatement(transactions: RawTransaction[], bank: BankId
     });
   }
 
-  return { expenses, incomes: [], skippedCredits };
+  return { expenses, incomes: [], credits, excluded };
 }
 
 /**
@@ -76,7 +96,7 @@ export function mapInvoice(transactions: RawTransaction[], bank: BankId): Mapped
     }
   }
 
-  return { expenses, incomes, skippedCredits: 0 };
+  return { expenses, incomes, credits: [], excluded: [] };
 }
 
 export function mapToRecords(
@@ -99,6 +119,7 @@ export function periodOf(transactions: RawTransaction[]): { start: string; end: 
 function inferAccountPaymentMethod(description: string): PaymentMethod | null {
   if (DEBIT_CARD_RE.test(description)) return 'Débito';
   if (PIX_SENT_RE.test(description)) return 'Pix';
+  if (BOLETO_RE.test(description)) return 'Boleto';
   return null;
 }
 

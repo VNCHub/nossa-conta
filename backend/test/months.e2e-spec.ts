@@ -179,8 +179,8 @@ describe('Month finalization (e2e)', () => {
       .field('bank', 'internal')
       .attach('files', Buffer.from(JSON.stringify(file)), 'export.json')
       .expect(201);
-    expect(body[0].status).toBe('error');
-    expect(body[0].message).toMatch(/março de 2026/);
+    expect(body.files[0].status).toBe('error');
+    expect(body.files[0].message).toMatch(/março de 2026/);
 
     const { body: expenses } = await auth(owner)(http().get('/gastos')).expect(200);
     expect(expenses).toHaveLength(0);

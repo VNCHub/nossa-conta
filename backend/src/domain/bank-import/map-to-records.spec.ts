@@ -14,13 +14,16 @@ const invoiceTransactions = parseNubankInvoiceCsv(
 );
 
 describe('mapAccountStatement', () => {
-  it('drops credits and the invoice-payment line, keeping only real expenses', () => {
+  it('keeps credits apart as candidates and reports the invoice-payment line as excluded', () => {
     const result = mapAccountStatement(accountTransactions, 'nubank');
     // 12 rows - 4 credits - 1 "Pagamento de fatura" debit = 7
     expect(result.expenses).toHaveLength(7);
-    expect(result.skippedCredits).toBe(4);
+    expect(result.credits).toHaveLength(4);
     expect(result.incomes).toEqual([]);
     expect(result.expenses.some((e) => e.description.includes('Pagamento de fatura'))).toBe(false);
+    expect(result.excluded).toEqual([
+      expect.objectContaining({ description: 'Pagamento de fatura', reason: 'invoicePayment' }),
+    ]);
   });
 
   it('infers paymentMethod only from unambiguous wording', () => {
@@ -28,7 +31,8 @@ describe('mapAccountStatement', () => {
     const byMethod = (m: string | null) => result.expenses.filter((e) => e.paymentMethod === m);
     expect(byMethod('Débito')).toHaveLength(3);
     expect(byMethod('Pix')).toHaveLength(3);
-    expect(byMethod(null)).toHaveLength(1); // the boleto payment — no matching PAYMENT_METHOD
+    expect(byMethod('Boleto')).toHaveLength(1); // "Pagamento de boleto efetuado"
+    expect(byMethod(null)).toHaveLength(0);
   });
 });
 
@@ -37,7 +41,7 @@ describe('mapInvoice', () => {
     const result = mapInvoice(invoiceTransactions, 'nubank');
     expect(result.expenses).toHaveLength(21);
     expect(result.incomes).toHaveLength(3);
-    expect(result.skippedCredits).toBe(0);
+    expect(result.credits).toEqual([]);
   });
 
   it('always attributes Crédito as paymentMethod — the source is a credit card invoice', () => {
