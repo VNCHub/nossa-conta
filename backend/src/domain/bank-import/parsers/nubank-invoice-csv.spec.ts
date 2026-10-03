@@ -33,4 +33,25 @@ describe('parseNubankInvoiceCsv', () => {
     expect(rows.filter((r) => r.kind === 'debit')).toHaveLength(21);
     expect(rows.filter((r) => r.kind === 'credit')).toHaveLength(3);
   });
+
+  describe('amounts with a thousands separator', () => {
+    const csv = (amount: string) => Buffer.from(`date,title,amount\n2026-08-20,Algum lugar,"${amount}"\n`);
+
+    it('reads "1.146,46" as a purchase of 114646 cents, not zero', () => {
+      expect(parseNubankInvoiceCsv(csv('1.146,46'))[0]).toMatchObject({ amountCents: 114646, kind: 'debit' });
+    });
+
+    it('reads a spaced refund "- 1.146,46" as a credit of 114646 cents', () => {
+      expect(parseNubankInvoiceCsv(csv('- 1.146,46'))[0]).toMatchObject({ amountCents: 114646, kind: 'credit' });
+    });
+
+    it('handles more than one thousands group', () => {
+      expect(parseNubankInvoiceCsv(csv('12.345.678,90'))[0].amountCents).toBe(1234567890);
+    });
+  });
+
+  it('refuses an amount it cannot read instead of importing it as zero', () => {
+    const bad = Buffer.from('date,title,amount\n2026-08-20,Algum lugar,"abc"\n');
+    expect(() => parseNubankInvoiceCsv(bad)).toThrow(/valor/i);
+  });
 });
