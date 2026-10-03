@@ -19,7 +19,7 @@ export const CATEGORY_IDS = CATEGORIES.map((c) => c.id) as CategoryId[];
 export const categoryOf = (id: string) =>
   CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[CATEGORIES.length - 1];
 
-export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix'] as const;
+export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix', 'Boleto'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** The types a person picks for an expense. */

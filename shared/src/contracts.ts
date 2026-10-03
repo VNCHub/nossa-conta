@@ -242,13 +242,87 @@ export interface ImportedFileDTO {
   expiresAt: string;
 }
 
-/** One entry per uploaded file — response of POST /gastos/importacoes. */
+/** One entry per uploaded file — `files` of the ImportReportDTO. */
 export interface ImportResultDTO {
   fileName: string;
   status: 'success' | 'error';
   /** user-facing reason, present when status = 'error' */
   message?: string;
   file?: ImportedFileDTO;
+}
+
+/** One transaction of an import, as shown in the wizard — `id` is its importKey, stable between analysis and import. */
+export interface ImportRecordDTO {
+  id: string;
+  kind: 'expense' | 'income';
+  /** YYYY-MM-DD */
+  date: string;
+  description: string;
+  amount: number;
+  fileName: string;
+  /** set on a unified expense: how many transactions it stands for */
+  mergedFrom?: number;
+}
+
+/** A set of expenses that probably are the same spending listed more than once in a month — the user decides whether to unify them. */
+export interface ImportMergeGroupDTO {
+  id: string;
+  /** sameDescription: identical description; installments: same purchase, different "Parcela N/M" suffix */
+  kind: 'sameDescription' | 'installments';
+  /** merchant name, without the installment suffix */
+  title: string;
+  /** YYYY-MM */
+  month: string;
+  items: ImportRecordDTO[];
+  /** what the unified expense would look like */
+  merged: { description: string; amount: number; date: string };
+}
+
+export interface ImportAnalysisFileDTO {
+  fileName: string;
+  status: 'ok' | 'error';
+  /** user-facing reason, present when status = 'error' */
+  message?: string;
+  documentType?: ImportDocumentType;
+  expensesCount: number;
+  /** account-statement credits offered as candidate entradas */
+  creditsCount: number;
+}
+
+/** Response of POST /gastos/importacoes/analise — nothing was saved. */
+export interface ImportAnalysisDTO {
+  files: ImportAnalysisFileDTO[];
+  mergeGroups: ImportMergeGroupDTO[];
+  /** Pix and transfers received, which the user may accept as entradas */
+  credits: ImportRecordDTO[];
+  /** transactions already in the system, left out of everything above */
+  duplicatesCount: number;
+}
+
+/** The user's answers from the decision step, sent along with the files to POST /gastos/importacoes. */
+export interface ImportDecisionsDTO {
+  mergeGroupIds: string[];
+  acceptedCreditIds: string[];
+}
+
+export type NotImportedReason =
+  | 'duplicate'
+  | 'merged'
+  | 'invoicePayment'
+  | 'creditRejected'
+  | 'monthLocked';
+
+export interface NotImportedRecordDTO extends ImportRecordDTO {
+  reason: NotImportedReason;
+  /** user-facing detail of the reason, e.g. which expense a merged line went into */
+  detail?: string;
+}
+
+/** Response of POST /gastos/importacoes. */
+export interface ImportReportDTO {
+  files: ImportResultDTO[];
+  imported: ImportRecordDTO[];
+  notImported: NotImportedRecordDTO[];
 }
 
 /**

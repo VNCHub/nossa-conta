@@ -1,4 +1,4 @@
-import { IsIn } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 import { BANK_PROVIDERS, INTERNAL_SOURCE_ID, type ImportSourceId } from '@shared/domain';
 
 const SOURCE_IDS = [...BANK_PROVIDERS.map((b) => b.id), INTERNAL_SOURCE_ID] as ImportSourceId[];
@@ -7,4 +7,9 @@ const SOURCE_IDS = [...BANK_PROVIDERS.map((b) => b.id), INTERNAL_SOURCE_ID] as I
 export class ImportFilesDto {
   @IsIn(SOURCE_IDS, { message: 'Origem não suportada.' })
   bank!: ImportSourceId;
+
+  /** JSON of ImportDecisionsDTO — multipart carries text fields only. Absent means "no decisions": nothing unified, no credit accepted. */
+  @IsOptional()
+  @IsString()
+  decisions?: string;
 }
