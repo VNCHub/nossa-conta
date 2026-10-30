@@ -218,8 +218,8 @@ export function CategoryChip({ id, clickable }: { id: string; clickable?: boolea
   );
 }
 
-const EXPENSE_TYPE_LABEL = { fixed: 'Fixo', optional: 'Opcional', oneOff: 'Pontual', debt: 'Dívida' } as const;
-const EXPENSE_TYPE_COLOR = { fixed: 'petrol', optional: 'mustard', oneOff: 'grape', debt: 'indigo' } as const;
+const EXPENSE_TYPE_LABEL = { fixed: 'Fixo', oneOff: 'Pontual', debt: 'Dívida' } as const;
+const EXPENSE_TYPE_COLOR = { fixed: 'petrol', oneOff: 'grape', debt: 'indigo' } as const;
 
 export function ExpenseTypeChip({ type, clickable }: { type: ExpenseType; clickable?: boolean }) {
   return (

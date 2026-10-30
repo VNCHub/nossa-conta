@@ -52,7 +52,6 @@ export class ReportsService {
             paid: toReais(u.paidCents),
             share: toReais(u.shareCents),
             fixed: toReais(u.fixedCents),
-            optional: toReais(u.optionalCents),
             oneOff: toReais(u.oneOffCents),
             income: toReais(u.incomeCents),
             debtPaid: toReais(u.debtPaidCents),

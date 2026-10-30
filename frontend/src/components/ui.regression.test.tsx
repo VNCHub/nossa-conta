@@ -76,11 +76,6 @@ describe('ExpenseTypeChip', () => {
     expect(screen.getByText('Fixo')).toBeInTheDocument();
   });
 
-  it('labels an optional expense', () => {
-    renderWithProviders(<ExpenseTypeChip type="optional" />);
-    expect(screen.getByText('Opcional')).toBeInTheDocument();
-  });
-
   it('labels a one-off expense', () => {
     renderWithProviders(<ExpenseTypeChip type="oneOff" />);
     expect(screen.getByText('Pontual')).toBeInTheDocument();

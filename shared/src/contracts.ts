@@ -95,7 +95,6 @@ export interface UserSummary {
   paid: number;
   share: number;
   fixed: number;
-  optional: number;
   oneOff: number;
   income: number;
   categories: Record<string, number>;

@@ -6,7 +6,7 @@ const entry: InternalExpenseEntry = {
   description: 'Mercado',
   amount: 154.9,
   category: 'food',
-  expenseType: 'optional',
+  expenseType: 'oneOff',
   paymentMethod: 'Pix',
 };
 
