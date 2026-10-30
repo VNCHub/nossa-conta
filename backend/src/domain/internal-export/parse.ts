@@ -2,6 +2,7 @@ import { CATEGORY_IDS, EXPENSE_TYPES, PAYMENT_METHODS } from '@shared/domain';
 import { SUPPORTED_EXPORT_VERSION, type InternalExpenseEntry } from './types';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const LEGACY_OPTIONAL = 'optional';
 
 /**
  * Validates and extracts the gastos from a file produced by this app's own
@@ -27,7 +28,9 @@ export function parseInternalExport(buffer: Buffer): InternalExpenseEntry[] {
     if (!isValidEntry(raw)) {
       throw new Error(`Gasto inválido na posição ${i + 1} do arquivo.`);
     }
-    return raw;
+    // Before the types were unified, files carried "optional"; it is a one-off
+    // now, and normalising here keeps the dedup key equal to the migrated rows'.
+    return (raw.expenseType as string | null) === LEGACY_OPTIONAL ? { ...raw, expenseType: 'oneOff' } : raw;
   });
 }
 
@@ -45,7 +48,7 @@ function isValidEntry(v: unknown): v is InternalExpenseEntry {
     Number.isFinite(v.amount) &&
     v.amount > 0 &&
     (v.category === null || (CATEGORY_IDS as readonly string[]).includes(v.category as string)) &&
-    (v.expenseType === null || (EXPENSE_TYPES as readonly string[]).includes(v.expenseType as string)) &&
+    (v.expenseType === null || [...EXPENSE_TYPES, LEGACY_OPTIONAL].includes(v.expenseType as string)) &&
     (v.paymentMethod === null || (PAYMENT_METHODS as readonly string[]).includes(v.paymentMethod as string))
   );
 }

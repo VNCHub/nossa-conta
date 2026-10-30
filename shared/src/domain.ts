@@ -23,7 +23,7 @@ export const PAYMENT_METHODS = ['Crédito', 'Débito', 'Dinheiro', 'Pix', 'Bolet
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** The types a person picks for an expense. */
-export const EXPENSE_TYPES = ['fixed', 'optional', 'oneOff'] as const;
+export const EXPENSE_TYPES = ['fixed', 'oneOff'] as const;
 /**
  * Never picked: only a debt payment creates it. Money moving between members,
  * so it stays out of the split and of the family's totals.

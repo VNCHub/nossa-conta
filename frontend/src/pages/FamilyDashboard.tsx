@@ -37,13 +37,11 @@ export default function FamilyDashboard() {
 
   const familyCategories: Record<string, number> = {};
   let familyFixed = 0;
-  let familyOptional = 0;
   let familyOneOff = 0;
   for (const u of members) {
     const d = calc.byUser[u.id];
     if (!d) continue;
     familyFixed += d.fixed;
-    familyOptional += d.optional;
     familyOneOff += d.oneOff;
     for (const [k, v] of Object.entries(d.categories)) familyCategories[k] = (familyCategories[k] ?? 0) + v;
   }
@@ -132,7 +130,7 @@ export default function FamilyDashboard() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
             <Title order={3} mb="lg">Tipo de gasto na casa</Title>
-            <Donut fixed={familyFixed} optional={familyOptional} oneOff={familyOneOff} />
+            <Donut fixed={familyFixed} oneOff={familyOneOff} />
           </Card>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 6 }}>

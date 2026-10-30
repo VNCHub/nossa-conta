@@ -12,14 +12,12 @@ import { Money } from './ui';
  */
 export function Donut({
   fixed,
-  optional,
   oneOff,
 }: {
   fixed: number;
-  optional: number;
   oneOff: number;
 }) {
-  const total = fixed + optional + oneOff;
+  const total = fixed + oneOff;
   const [hidden] = useValuesHidden();
 
   return (
@@ -31,7 +29,6 @@ export function Donut({
           <DonutChart
             data={[
               { name: 'Fixo', value: fixed, color: 'petrol.6' },
-              { name: 'Opcional', value: optional, color: 'mustard.6' },
               { name: 'Pontual', value: oneOff, color: 'grape.6' },
             ]}
             size={132}
@@ -55,10 +52,6 @@ export function Donut({
         <div>
           <Badge color="petrol" variant="light" radius="sm">Fixo</Badge>
           <Text className="num" fz="lg" fw={600} mt={5}><Money value={fixed} /></Text>
-        </div>
-        <div>
-          <Badge color="mustard" variant="light" radius="sm">Opcional</Badge>
-          <Text className="num" fz="lg" fw={600} mt={5}><Money value={optional} /></Text>
         </div>
         <div>
           <Badge color="grape" variant="light" radius="sm">Pontual</Badge>

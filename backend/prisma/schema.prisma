@@ -19,7 +19,6 @@ enum IncomeType {
 
 enum ExpenseType {
   FIXED
-  OPTIONAL
   ONE_OFF
   /// Paying a debt to another member — money moving inside the family, kept
   /// out of the split and of the family's totals.
