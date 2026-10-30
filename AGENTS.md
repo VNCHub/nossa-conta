@@ -108,6 +108,11 @@ Feature nova e bugfix seguem a skill `workflow` (`.claude/skills/workflow/SKILL.
 reconhecimento → protótipo → implementação → testes → deploy, com aprovação explícita do
 usuário entre as etapas. Documentos para o usuário ler ficam em `specs/<feature>/`.
 
+Tarefas viram **GitHub Issues** (labels `feature`, `bug`, `chore`; templates em
+`.github/ISSUE_TEMPLATE/`), acompanhadas no Project privado "Nossa Conta" (colunas
+Backlog → Em andamento → Aguardando aprovação → Feito). O PR leva `Closes #N`. O repo é
+público: nada sensível em issue ou PR.
+
 ## Fora do escopo (MVP)
 
 Gasto parcelado ou recorrente, múltiplas famílias por usuário, upload de comprovante,
