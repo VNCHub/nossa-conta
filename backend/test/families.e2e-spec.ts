@@ -141,7 +141,7 @@ describe('Family critical actions (e2e)', () => {
       description: 'Aluguel', amount: 300, shared: true, participants: everyone, ruleId: equalRule,
     }).expect(201);
     await auth(m1)(http().post('/gastos')).send({
-      date: `${FUTURE}-12`, paymentMethod: 'Pix', category: 'food', expenseType: 'optional',
+      date: `${FUTURE}-12`, paymentMethod: 'Pix', category: 'food', expenseType: 'oneOff',
       description: 'Mercado', amount: 90, shared: true, participants: everyone, ruleId: equalRule,
     }).expect(201);
 

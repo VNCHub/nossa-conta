@@ -81,7 +81,7 @@ describe('individualFixedExpenses', () => {
   it('counts only fixed, individual expenses from the month', () => {
     const expenses = [
       expense({ userId: 'u1', shared: false, expenseType: 'fixed', amountCents: 12900 }),
-      expense({ userId: 'u1', shared: false, expenseType: 'optional', amountCents: 24900 }),
+      expense({ userId: 'u1', shared: false, expenseType: 'oneOff', amountCents: 24900 }),
       expense({ userId: 'u1', shared: true, expenseType: 'fixed', amountCents: 240000 }),
       expense({ userId: 'u1', shared: false, expenseType: 'fixed', amountCents: 5000, month: '2026-08' }),
     ];

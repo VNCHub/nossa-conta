@@ -31,9 +31,7 @@ export default function MyDashboard() {
   // came in or went out — even though the family's numbers leave them out.
   const income = d.income + d.debtReceived;
   const leftOver = income - d.share - d.debtPaid;
-  const nonFixedTotal = d.optional + d.oneOff;
-  const nonFixedShare =
-    nonFixedTotal + d.fixed > 0 ? nonFixedTotal / (nonFixedTotal + d.fixed) : 0;
+  const oneOffShare = d.oneOff + d.fixed > 0 ? d.oneOff / (d.oneOff + d.fixed) : 0;
 
   return (
     <>
@@ -79,10 +77,10 @@ export default function MyDashboard() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
             <Title order={3} mb="lg">Tipo de gasto</Title>
-            <Donut fixed={d.fixed} optional={d.optional} oneOff={d.oneOff} />
+            <Donut fixed={d.fixed} oneOff={d.oneOff} />
             <Text size="sm" c="dimmed" mt="lg">
-              {nonFixedShare > 0.35
-                ? 'Mais de um terço da sua cota é gasto opcional ou pontual — é aí que dá pra mexer sem mudar de vida.'
+              {oneOffShare > 0.35
+                ? 'Mais de um terço da sua cota é gasto pontual — é aí que dá pra mexer sem mudar de vida.'
                 : 'Sua base fixa domina o mês. Cortar aqui exige renegociar contrato, não só hábito.'}
             </Text>
           </Card>

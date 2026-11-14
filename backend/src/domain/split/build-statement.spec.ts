@@ -57,22 +57,21 @@ describe('buildStatement — worked examples', () => {
   it('an individual expense generates no settlement and goes only to the share of whoever paid', () => {
     const r = buildStatement({
       members, incomes: [], rules, month: MONTH,
-      expenses: [e('u3', 'optional', 'games', 24900, false, [], null)],
+      expenses: [e('u3', 'oneOff', 'games', 24900, false, [], null)],
     });
     expect(r.byUser.u3.shareCents).toBe(24900);
-    expect(r.byUser.u3.optionalCents).toBe(24900);
+    expect(r.byUser.u3.oneOffCents).toBe(24900);
     expect(r.byUser.u1.shareCents).toBe(0);
     expect(r.transfers).toEqual([]);
   });
 
-  it('a one-off expense goes to its own bucket, not fixed or optional', () => {
+  it('a one-off expense goes to its own bucket, not fixed', () => {
     const r = buildStatement({
       members, incomes: [], rules, month: MONTH,
       expenses: [e('u2', 'oneOff', 'outing', 15000, false, [], null)],
     });
     expect(r.byUser.u2.oneOffCents).toBe(15000);
     expect(r.byUser.u2.fixedCents).toBe(0);
-    expect(r.byUser.u2.optionalCents).toBe(0);
   });
 
   it('only the expenses of the queried month enter the statement', () => {
@@ -108,11 +107,11 @@ describe('buildStatement — invariants over a full month', () => {
     e('u2', 'fixed', 'food', 94000, true, ['u1', 'u2', 'u3'], 'r1'),
     e('u1', 'fixed', 'car', 89000, true, ['u1', 'u2'], 'r4'),
     e('u2', 'fixed', 'car', 32000, true, ['u1', 'u2'], 'r5'),
-    e('u1', 'optional', 'subscriptions', 5590, true, ['u1', 'u2', 'u3'], 'r1'),
+    e('u1', 'oneOff', 'subscriptions', 5590, true, ['u1', 'u2', 'u3'], 'r1'),
     e('u3', 'fixed', 'pets', 21000, true, ['u1', 'u2', 'u3'], 'r1'),
-    e('u1', 'optional', 'games', 24900, false, [], null),
-    e('u2', 'optional', 'outing', 31000, true, ['u1', 'u2'], 'r1'),
-    e('u3', 'optional', 'food', 8750, false, [], null),
+    e('u1', 'oneOff', 'games', 24900, false, [], null),
+    e('u2', 'oneOff', 'outing', 31000, true, ['u1', 'u2'], 'r1'),
+    e('u3', 'oneOff', 'food', 8750, false, [], null),
     e('u1', 'fixed', 'subscriptions', 12900, false, [], null),
   ];
   const r = buildStatement({ members, incomes, expenses, rules, month: MONTH });
@@ -141,10 +140,10 @@ describe('buildStatement — invariants over a full month', () => {
     expect(Object.values(r.balanceCents).reduce((s, v) => s + v, 0)).toBe(0);
   });
 
-  it('fixed + optional + one-off reconstructs the share, and the categories too', () => {
+  it('fixed + one-off reconstructs the share, and the categories too', () => {
     for (const u of members) {
       const d = r.byUser[u.id];
-      expect(d.fixedCents + d.optionalCents + d.oneOffCents).toBe(d.shareCents);
+      expect(d.fixedCents + d.oneOffCents).toBe(d.shareCents);
       const perCategory = Object.values(d.categoryCents).reduce((s, v) => s + v, 0);
       expect(perCategory).toBe(d.shareCents);
     }

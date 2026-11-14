@@ -9,7 +9,7 @@ const validFile = {
       description: 'Mercado',
       amount: 154.9,
       category: 'food',
-      expenseType: 'optional',
+      expenseType: 'oneOff',
       paymentMethod: 'Pix',
     },
   ],
@@ -20,6 +20,11 @@ const buf = (v: unknown) => Buffer.from(JSON.stringify(v));
 describe('parseInternalExport', () => {
   it('extracts every valid gasto', () => {
     expect(parseInternalExport(buf(validFile))).toEqual(validFile.expenses);
+  });
+
+  it('reads the legacy "optional" type as oneOff', () => {
+    const legacy = { ...validFile.expenses[0], expenseType: 'optional' };
+    expect(parseInternalExport(buf({ ...validFile, expenses: [legacy] }))).toEqual(validFile.expenses);
   });
 
   it('accepts null category/expenseType/paymentMethod — an incomplete gasto in the source too', () => {

@@ -171,7 +171,7 @@ describe('Month finalization (e2e)', () => {
       version: 1,
       exportedAt: new Date().toISOString(),
       expenses: [
-        { date: '2026-02-20', description: 'Mercado', amount: 210, category: 'food', expenseType: 'optional', paymentMethod: 'Pix' },
+        { date: '2026-02-20', description: 'Mercado', amount: 210, category: 'food', expenseType: 'oneOff', paymentMethod: 'Pix' },
         { date: IN_MONTH, description: 'Farmácia', amount: 45, category: 'other', expenseType: 'oneOff', paymentMethod: 'Pix' },
       ],
     };

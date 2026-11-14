@@ -205,20 +205,16 @@ const expenseTypeOf = (t: ExpenseTypeDb | null): ExpenseType | null =>
     ? null
     : t === ExpenseTypeDb.FIXED
       ? 'fixed'
-      : t === ExpenseTypeDb.OPTIONAL
-        ? 'optional'
-        : t === ExpenseTypeDb.DEBT
-          ? 'debt'
-          : 'oneOff';
+      : t === ExpenseTypeDb.DEBT
+        ? 'debt'
+        : 'oneOff';
 
 export const toDbExpenseType = (t: string | null | undefined) =>
   t === 'fixed'
     ? ExpenseTypeDb.FIXED
-    : t === 'optional'
-      ? ExpenseTypeDb.OPTIONAL
-      : t === 'oneOff'
-        ? ExpenseTypeDb.ONE_OFF
-        : null;
+    : t === 'oneOff'
+      ? ExpenseTypeDb.ONE_OFF
+      : null;
 
 /**
  * Whether every field needed to count this expense in a statement is filled

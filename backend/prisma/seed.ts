@@ -158,7 +158,7 @@ async function main() {
     });
 
   const F = ExpenseType.FIXED;
-  const O = ExpenseType.OPTIONAL;
+  const O = ExpenseType.ONE_OFF;
   await expense(vinicius.id, '2026-09-02', 'Pix', 'home', F, 'Aluguel', 2400, everyone, byIncome.id);
   await expense(vinicius.id, '2026-09-03', 'Débito', 'home', F, 'Energia elétrica', 285, everyone, halfAndHalf.id);
   await expense(camila.id, '2026-09-04', 'Pix', 'home', F, 'Internet', 129.9, everyone, halfAndHalf.id);

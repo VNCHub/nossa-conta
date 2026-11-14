@@ -102,7 +102,7 @@ describe('Internal export/import (e2e)', () => {
       description: 'Mercado',
       amount: 154.9,
       category: 'food',
-      expenseType: 'optional',
+      expenseType: 'oneOff',
       paymentMethod: 'Pix',
       shared: false,
     });
@@ -115,7 +115,7 @@ describe('Internal export/import (e2e)', () => {
       description: 'Mercado',
       amount: 154.9,
       category: 'food',
-      expenseType: 'optional',
+      expenseType: 'oneOff',
       paymentMethod: 'Pix',
     });
     expect(body.expenses[0]).not.toHaveProperty('id');
@@ -129,7 +129,7 @@ describe('Internal export/import (e2e)', () => {
     const partner = await register('partner-b', { inviteCode: code });
 
     await createExpense(owner, { date: '2026-06-10', description: 'Aluguel', amount: 1000, category: 'home', expenseType: 'fixed', paymentMethod: 'Pix' });
-    await createExpense(owner, { date: '2026-08-10', description: 'Cinema', amount: 40, category: 'outing', expenseType: 'optional', paymentMethod: 'Crédito' });
+    await createExpense(owner, { date: '2026-08-10', description: 'Cinema', amount: 40, category: 'outing', expenseType: 'oneOff', paymentMethod: 'Crédito' });
     await createExpense(partner, { date: '2026-08-15', description: 'Ração', amount: 90, category: 'pets', expenseType: 'fixed', paymentMethod: 'Débito' });
 
     const { body: mine } = await auth(owner)(http().get('/gastos/exportar?escopo=meus')).expect(200);
@@ -156,7 +156,7 @@ describe('Internal export/import (e2e)', () => {
       description: 'Mercado',
       amount: 154.9,
       category: 'food',
-      expenseType: 'optional',
+      expenseType: 'oneOff',
       paymentMethod: 'Pix',
     });
     const { body: exported } = await auth(source)(http().get('/gastos/exportar')).expect(200);
@@ -177,7 +177,7 @@ describe('Internal export/import (e2e)', () => {
       description: 'Mercado',
       amount: 154.9,
       category: 'food',
-      expenseType: 'optional',
+      expenseType: 'oneOff',
       paymentMethod: 'Pix',
       shared: false,
       participants: [],
@@ -189,7 +189,7 @@ describe('Internal export/import (e2e)', () => {
 
   it('re-importing the same export file again is a no-op, not a duplicate', async () => {
     const source = await register('source-b', { familyName: 'Casa Origem B' });
-    await createExpense(source, { date: '2026-08-03', description: 'Mercado', amount: 50, category: 'food', expenseType: 'optional', paymentMethod: 'Pix' });
+    await createExpense(source, { date: '2026-08-03', description: 'Mercado', amount: 50, category: 'food', expenseType: 'oneOff', paymentMethod: 'Pix' });
     const { body: exported } = await auth(source)(http().get('/gastos/exportar')).expect(200);
 
     const target = await registerAdmin('target-b', { familyName: 'Casa Destino B' });
@@ -205,7 +205,7 @@ describe('Internal export/import (e2e)', () => {
 
   it('dedup survives a re-export from an intermediate environment (A -> B -> C and A -> C direct land as one gasto in C)', async () => {
     const houseA = await register('house-a-chain', { familyName: 'Casa A da Cadeia' });
-    await createExpense(houseA, { date: '2026-08-03', description: 'Mercado', amount: 154.9, category: 'food', expenseType: 'optional', paymentMethod: 'Pix' });
+    await createExpense(houseA, { date: '2026-08-03', description: 'Mercado', amount: 154.9, category: 'food', expenseType: 'oneOff', paymentMethod: 'Pix' });
     const { body: exportFromA } = await auth(houseA)(http().get('/gastos/exportar')).expect(200);
 
     // A -> B: the gasto lands in B with a brand-new id, unrelated to the one it had in A.
