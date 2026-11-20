@@ -35,7 +35,7 @@ export const EXPENSE_TYPES = ['fixed', 'oneOff'] as const;
 export const DEBT_EXPENSE_TYPE = 'debt' as const;
 export type ExpenseType = (typeof EXPENSE_TYPES)[number] | typeof DEBT_EXPENSE_TYPE;
 
-export const INCOME_TYPES = ['recurring', 'oneOff'] as const;
+export const INCOME_TYPES = ['fixed', 'oneOff'] as const;
 export type IncomeType = (typeof INCOME_TYPES)[number];
 
 /** Split calculation bases. See docs/prototipo.jsx:297-319. */
@@ -44,8 +44,8 @@ export type RuleType = (typeof RULE_TYPES)[number];
 
 export const DEFAULT_RULE_DESCRIPTION: Record<RuleType, string> = {
   equal: 'Divide igualmente entre quem participa.',
-  income: 'Cada um paga na proporção da sua entrada recorrente.',
-  surplus: 'Proporção da renda recorrente menos a parte de cada um nos gastos fixos.',
+  income: 'Cada um paga na proporção da sua entrada fixa.',
+  surplus: 'Proporção da renda fixa menos a parte de cada um nos gastos fixos.',
   fixed: 'Percentuais combinados uma vez.',
   meter: 'Todo mês cada um lança sua medição; o sistema converte em percentual.',
 };

@@ -38,11 +38,11 @@ export interface IncomeDTO {
   type: IncomeType;
   description: string;
   amount: number;
-  /** present when type = recurring */
+  /** present when type = fixed */
   dayOfMonth?: number | null;
-  /** present when type = recurring (YYYY-MM) — counts from this month onward */
+  /** present when type = fixed (YYYY-MM) — counts from this month onward */
   since?: string | null;
-  /** present when type = recurring and it has an end (YYYY-MM) — null means still ongoing */
+  /** present when type = fixed and it has an end (YYYY-MM) — null means still ongoing */
   until?: string | null;
   /** present when type = oneOff (YYYY-MM-DD) */
   date?: string | null;

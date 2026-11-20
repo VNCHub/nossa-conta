@@ -92,7 +92,7 @@ export default function Income() {
   /** Two irreversible, genuinely different actions — always both, never a single default. */
   const askRemoveRecurring = (i: IncomeDTO) =>
     confirmChoice({
-      title: 'Remover entrada recorrente',
+      title: 'Remover entrada fixa',
       description: `"${i.description}" de ${brl(i.amount)} — o que você quer fazer?`,
       delaySeconds: 3,
       choices: [
@@ -108,7 +108,7 @@ export default function Income() {
       onConfirm: () => doRemove(i),
     });
 
-  const askRemove = (i: IncomeDTO) => (i.type === 'recurring' ? askRemoveRecurring(i) : askRemoveOneOff(i));
+  const askRemove = (i: IncomeDTO) => (i.type === 'fixed' ? askRemoveRecurring(i) : askRemoveOneOff(i));
   // A debt receipt only goes away with the payer's payment.
   const canRemove = (i: IncomeDTO) => !locked && !i.debtPaymentId;
 
@@ -116,7 +116,7 @@ export default function Income() {
     <>
       <PageHeader
         title="Minhas entradas"
-        description="Recorrentes valem todo mês, dentro do período declarado. Pontuais entram só no mês da data."
+        description="Fixas valem todo mês, dentro do período declarado. Pontuais entram só no mês da data."
         action={
           <Group wrap="wrap" gap="sm" style={{ flex: '1 1 auto' }}>
             <Card style={{ flex: '1 1 200px' }}>
@@ -189,7 +189,7 @@ function Description({ item }: { item: IncomeDTO }) {
           <Badge color="indigo" variant="light" size="sm" tt="none">Recebimento de dívida</Badge>
         )}
       </Group>
-      {item.type === 'recurring' && item.since && (
+      {item.type === 'fixed' && item.since && (
         <Text size="sm" c="dimmed">desde {monthLabelShort(item.since)}</Text>
       )}
     </div>
@@ -298,7 +298,7 @@ function MobileIncomeCard({
       <Group justify="space-between" align="center" wrap="nowrap" mt={8}>
         <Group gap={8} wrap="wrap">
           <IncomeTypeChip type={item.type} />
-          {item.type === 'recurring' && <RepeatsText item={item} month={month} spelledOut />}
+          {item.type === 'fixed' && <RepeatsText item={item} month={month} spelledOut />}
         </Group>
         <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
       </Group>
@@ -325,7 +325,7 @@ function IncomeForm({
   const form = useForm({
     mode: 'uncontrolled',
     initialValues: {
-      type: 'recurring' as IncomeType,
+      type: 'fixed' as IncomeType,
       description: '',
       amount: '' as string | number,
       dayOfMonth: 5 as string | number,
@@ -345,7 +345,7 @@ function IncomeForm({
       type: v.type,
       description: v.description.trim(),
       amount: Number(v.amount),
-      ...(v.type === 'recurring'
+      ...(v.type === 'fixed'
         ? { dayOfMonth: Number(v.dayOfMonth) || 1, since, ...(v.repeats ? {} : { until: since }) }
         : { date: iso(v.date) }),
     });
@@ -366,7 +366,7 @@ function IncomeForm({
           <Select
             label="Tipo" allowDeselect={false}
             data={[
-              { value: 'recurring', label: 'Recorrente' },
+              { value: 'fixed', label: 'Fixo' },
               { value: 'oneOff', label: 'Pontual' },
             ]}
             styles={noZoomStyles}
@@ -388,7 +388,7 @@ function IncomeForm({
           />
         </Grid.Col>
 
-        {type === 'recurring' ? (
+        {type === 'fixed' ? (
           <>
             <Grid.Col span={{ base: 12, sm: 4 }}>
               <NumberInput

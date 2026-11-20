@@ -132,7 +132,7 @@ describe('Month finalization (e2e)', () => {
   it('freezes incomes by what each finalized month would count', async () => {
     const { owner } = await makeFamily('Casa Entradas');
     const { body: salary } = await auth(owner)(http().post('/entradas'))
-      .send({ type: 'recurring', description: 'Salário', amount: 5000, dayOfMonth: 5, since: '2026-01' })
+      .send({ type: 'fixed', description: 'Salário', amount: 5000, dayOfMonth: 5, since: '2026-01' })
       .expect(201);
     const { body: bonus } = await auth(owner)(http().post('/entradas'))
       .send({ type: 'oneOff', description: 'Bônus', amount: 300, date: IN_MONTH })
@@ -150,13 +150,13 @@ describe('Month finalization (e2e)', () => {
     await auth(owner)(http().patch(`/entradas/${salary.id}`)).send({ until: '2026-02' }).expect(409);
     await auth(owner)(http().delete(`/entradas/${salary.id}`)).expect(409);
     await auth(owner)(http().post('/entradas'))
-      .send({ type: 'recurring', description: 'Aluguel recebido', amount: 800, dayOfMonth: 1, since: '2026-02' })
+      .send({ type: 'fixed', description: 'Aluguel recebido', amount: 800, dayOfMonth: 1, since: '2026-02' })
       .expect(409);
     // ...but ending it later, renaming it, or starting a new one after March is fine.
     await auth(owner)(http().patch(`/entradas/${salary.id}`)).send({ until: '2026-06' }).expect(200);
     await auth(owner)(http().patch(`/entradas/${salary.id}`)).send({ description: 'Salário CLT' }).expect(200);
     await auth(owner)(http().post('/entradas'))
-      .send({ type: 'recurring', description: 'Aluguel recebido', amount: 800, dayOfMonth: 1, since: '2026-04' })
+      .send({ type: 'fixed', description: 'Aluguel recebido', amount: 800, dayOfMonth: 1, since: '2026-04' })
       .expect(201);
   });
 

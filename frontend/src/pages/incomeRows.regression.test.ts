@@ -5,7 +5,7 @@ import { incomeDateInMonth, incomesOfMonth, repeatsAfter } from './incomeRows';
 const base: IncomeDTO = {
   id: 'x',
   userId: 'u',
-  type: 'recurring',
+  type: 'fixed',
   description: 'Salário',
   amount: 1000,
   dayOfMonth: 5,

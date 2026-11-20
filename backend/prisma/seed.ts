@@ -104,8 +104,8 @@ async function main() {
     });
 
   const halfAndHalf = await rule('Meio a meio', RuleType.EQUAL, 'Divide igualmente entre quem participa.');
-  const byIncome = await rule('Proporcional à renda', RuleType.INCOME, 'Cada um paga na proporção da sua entrada recorrente.');
-  await rule('Proporcional Livre', RuleType.SURPLUS, 'Proporção da renda recorrente menos a parte de cada um nos gastos fixos.');
+  const byIncome = await rule('Proporcional à renda', RuleType.INCOME, 'Cada um paga na proporção da sua entrada fixa.');
+  await rule('Proporcional Livre', RuleType.SURPLUS, 'Proporção da renda fixa menos a parte de cada um nos gastos fixos.');
   const housing = await rule('Moradia 60/40', RuleType.FIXED, 'Percentuais combinados uma vez.', {
     weights: [
       { userId: vinicius.id, percent: 60 },
@@ -130,11 +130,11 @@ async function main() {
 
   await prisma.income.createMany({
     data: [
-      { userId: vinicius.id, type: IncomeType.RECURRING, description: 'Salário', amount: 6200, dayOfMonth: 5 },
+      { userId: vinicius.id, type: IncomeType.FIXED, description: 'Salário', amount: 6200, dayOfMonth: 5 },
       { userId: vinicius.id, type: IncomeType.ONE_OFF, description: 'Freela de projeto', amount: 1400, date: new Date('2026-09-18T00:00:00Z') },
-      { userId: camila.id, type: IncomeType.RECURRING, description: 'Salário', amount: 4100, dayOfMonth: 5 },
-      { userId: camila.id, type: IncomeType.RECURRING, description: 'Aulas particulares', amount: 700, dayOfMonth: 20 },
-      { userId: rafael.id, type: IncomeType.RECURRING, description: 'Salário', amount: 3300, dayOfMonth: 1 },
+      { userId: camila.id, type: IncomeType.FIXED, description: 'Salário', amount: 4100, dayOfMonth: 5 },
+      { userId: camila.id, type: IncomeType.FIXED, description: 'Aulas particulares', amount: 700, dayOfMonth: 20 },
+      { userId: rafael.id, type: IncomeType.FIXED, description: 'Salário', amount: 3300, dayOfMonth: 1 },
       { userId: rafael.id, type: IncomeType.ONE_OFF, description: 'Venda de bicicleta', amount: 850, date: new Date('2026-09-09T00:00:00Z') },
     ],
   });

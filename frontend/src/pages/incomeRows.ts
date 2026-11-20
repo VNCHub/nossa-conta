@@ -32,7 +32,7 @@ export function repeatsAfter(item: IncomeDTO, month: string): Repeats {
 export function incomesOfMonth(incomes: IncomeDTO[], month: string) {
   return incomes
     .filter((i) =>
-      i.type === 'recurring'
+      i.type === 'fixed'
         ? recurringAppliesToMonth(i.since, i.until, month)
         : (i.date ?? '').slice(0, 7) === month,
     )

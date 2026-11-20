@@ -54,7 +54,7 @@ export class IncomesRepository {
       _min: { since: true, date: true },
     });
     const months = groups
-      .map((g) => (g.type === 'RECURRING' ? g._min.since : g._min.date?.toISOString().slice(0, 7)))
+      .map((g) => (g.type === 'FIXED' ? g._min.since : g._min.date?.toISOString().slice(0, 7)))
       .filter((m): m is string => m != null);
     return months.length ? months.sort()[0] : null;
   }

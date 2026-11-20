@@ -232,9 +232,9 @@ export function ExpenseTypeChip({ type, clickable }: { type: ExpenseType; clicka
   );
 }
 
-// Same hues as the expense chips: "recurring" is the income's "fixed", "oneOff" stays grape.
-const INCOME_TYPE_LABEL = { recurring: 'Recorrente', oneOff: 'Pontual' } as const;
-const INCOME_TYPE_COLOR = { recurring: 'petrol', oneOff: 'grape' } as const;
+// Same hues as the expense chips: "fixed" matches the expense "fixed", "oneOff" stays grape.
+const INCOME_TYPE_LABEL = { fixed: 'Fixo', oneOff: 'Pontual' } as const;
+const INCOME_TYPE_COLOR = { fixed: 'petrol', oneOff: 'grape' } as const;
 
 export function IncomeTypeChip({ type }: { type: IncomeType }) {
   return (

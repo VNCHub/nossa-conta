@@ -9,10 +9,10 @@ import type { SplitContext, IncomeCalc, ExpenseCalc, RuleCalc } from './types';
 const MONTH = '2026-09';
 
 const incomes: IncomeCalc[] = [
-  { userId: 'u1', type: 'recurring', amountCents: 620000 },
+  { userId: 'u1', type: 'fixed', amountCents: 620000 },
   { userId: 'u1', type: 'oneOff', amountCents: 140000, date: '2026-09-18' },
-  { userId: 'u2', type: 'recurring', amountCents: 410000 },
-  { userId: 'u3', type: 'recurring', amountCents: 330000 },
+  { userId: 'u2', type: 'fixed', amountCents: 410000 },
+  { userId: 'u3', type: 'fixed', amountCents: 330000 },
   { userId: 'u3', type: 'oneOff', amountCents: 85000, date: '2026-08-09' },
 ];
 
@@ -47,7 +47,7 @@ describe('incomes', () => {
 
   it('a recurring income does not count before its own "since" month', () => {
     const sinceOctober: IncomeCalc[] = [
-      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-10' },
+      { userId: 'u1', type: 'fixed', amountCents: 500000, since: '2026-10' },
     ];
     expect(incomeForMonth(sinceOctober, 'u1', '2026-09')).toBe(0);
     expect(incomeForMonth(sinceOctober, 'u1', '2026-10')).toBe(500000);
@@ -58,7 +58,7 @@ describe('incomes', () => {
 
   it('a recurring income with an "until" stops counting after that month', () => {
     const endedInAugust: IncomeCalc[] = [
-      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-06', until: '2026-08' },
+      { userId: 'u1', type: 'fixed', amountCents: 500000, since: '2026-06', until: '2026-08' },
     ];
     expect(incomeForMonth(endedInAugust, 'u1', '2026-07')).toBe(500000);
     expect(incomeForMonth(endedInAugust, 'u1', '2026-08')).toBe(500000);
@@ -69,7 +69,7 @@ describe('incomes', () => {
 
   it('a single-month recurring (since === until) only counts that one month', () => {
     const augustOnly: IncomeCalc[] = [
-      { userId: 'u1', type: 'recurring', amountCents: 500000, since: '2026-08', until: '2026-08' },
+      { userId: 'u1', type: 'fixed', amountCents: 500000, since: '2026-08', until: '2026-08' },
     ];
     expect(incomeForMonth(augustOnly, 'u1', '2026-07')).toBe(0);
     expect(incomeForMonth(augustOnly, 'u1', '2026-08')).toBe(500000);

@@ -28,12 +28,12 @@ const DEFAULT_RULES = [
   {
     name: 'Proporcional à renda',
     type: RuleType.INCOME,
-    description: 'Cada um paga na proporção da sua entrada recorrente.',
+    description: 'Cada um paga na proporção da sua entrada fixa.',
   },
   {
     name: 'Proporcional Livre',
     type: RuleType.SURPLUS,
-    description: 'Proporção da renda recorrente menos a parte de cada um nos gastos fixos.',
+    description: 'Proporção da renda fixa menos a parte de cada um nos gastos fixos.',
   },
 ];
 
