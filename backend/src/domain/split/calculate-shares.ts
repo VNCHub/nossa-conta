@@ -5,6 +5,7 @@
  * part of the system that decides how much each person pays.
  */
 import { recurringAppliesToMonth } from '@shared/format';
+import { distributeCents } from './money';
 import type { SplitContext, IncomeCalc, ExpenseCalc, RuleCalc } from './types';
 
 /**
@@ -41,24 +42,39 @@ export function recurringIncome(
 }
 
 /**
- * Individual fixed expenses (not shared) of the month — the base of the
- * "free surplus" rule.
+ * The part of the month's fixed expenses that `userId` actually bears after the
+ * split — the base of the "free surplus" rule. Follows who pays in the end, not
+ * who entered the expense: rent entered by one member but split entirely onto
+ * another weighs on the other's surplus.
  *
- * Shared expenses are left out on purpose: including them would create a
- * circular dependency, because the share would enter the calculation that
- * defines the share.
+ * The one exclusion is a fixed expense split among several people by the
+ * surplus rule itself: its share would enter the calculation that defines the
+ * share (circular). Every other split is known without the surplus, so it counts.
  */
-export function individualFixedExpenses(
-  expenses: ExpenseCalc[],
+export function fixedExpenseShare(
+  ctx: SplitContext,
   userId: string,
-  month: string,
 ): number {
-  return expenses
-    .filter(
-      (e) =>
-        e.userId === userId && !e.shared && e.expenseType === 'fixed' && e.month === month,
-    )
-    .reduce((s, e) => s + e.amountCents, 0);
+  const { expenses, month } = ctx;
+  let cents = 0;
+  for (const e of expenses) {
+    if (e.expenseType !== 'fixed' || e.month !== month) continue;
+
+    const parts = e.shared && e.participants.length ? e.participants : [e.userId];
+    if (!parts.includes(userId)) continue;
+    if (parts.length === 1) {
+      cents += e.amountCents;
+      continue;
+    }
+
+    const rule = ctx.rules.find((r) => r.id === e.ruleId);
+    if (rule?.type === 'surplus') continue;
+    // Safe from recursion: with a non-surplus rule calculateShares never looks
+    // at expenses. Cents (not the raw fraction) so the deduction matches the
+    // exact share the statement charges this member.
+    cents += distributeCents(e.amountCents, calculateShares(e, ctx))[userId] ?? 0;
+  }
+  return cents;
 }
 
 /**
@@ -70,7 +86,7 @@ export function calculateShares(
   expense: Pick<ExpenseCalc, 'participants' | 'userId' | 'ruleId'>,
   ctx: SplitContext,
 ): Record<string, number> {
-  const { rules, incomes, expenses, month } = ctx;
+  const { rules, incomes, month } = ctx;
   const parts = expense.participants.length ? expense.participants : [expense.userId];
   const equal = (): Record<string, number> =>
     Object.fromEntries(parts.map((p) => [p, 1 / parts.length]));
@@ -92,7 +108,7 @@ export function calculateShares(
       weights = Object.fromEntries(
         parts.map((p) => [
           p,
-          Math.max(0, recurringIncome(incomes, p, month) - individualFixedExpenses(expenses, p, month)),
+          Math.max(0, recurringIncome(incomes, p, month) - fixedExpenseShare(ctx, p)),
         ]),
       );
       break;

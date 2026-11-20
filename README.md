@@ -122,7 +122,7 @@ Cinco bases de cálculo, todas configuráveis por família:
 | --- | --- |
 | Partes iguais | igualmente entre os participantes |
 | Renda recorrente | proporcional à entrada recorrente de cada um |
-| Sobra livre | proporcional a (renda recorrente − gastos fixos individuais) |
+| Sobra livre | proporcional a (renda recorrente − parte de cada um nos gastos fixos do mês) |
 | Percentual fixo | percentuais combinados uma vez |
 | Medidor mensal | cada um lança sua medição do mês (km, dias, litros) e vira percentual |
 
@@ -134,8 +134,11 @@ Duas decisões que valem saber:
 
 - **Dinheiro é inteiro de centavos dentro do motor.** A soma das cotas fecha exatamente o
   valor do gasto — o centavo que sobra vai para quem tem o maior resto.
-- **"Sobra livre" ignora os gastos compartilhados** ao calcular a sobra, de propósito:
-  incluí-los criaria dependência circular, com a cota entrando no cálculo que a define.
+- **"Sobra livre" desconta de cada pessoa a parte que ela paga nos gastos fixos**, depois
+  do rateio, e não importa quem lançou: aluguel lançado por um e rateado só para outro pesa
+  na sobra do outro. A única exceção é o gasto fixo rateado entre várias pessoas pela
+  própria Sobra livre, que fica de fora de propósito: incluí-lo criaria dependência
+  circular, com a cota entrando no cálculo que a define.
 
 ## Privacidade
 

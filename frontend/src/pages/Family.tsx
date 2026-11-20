@@ -49,7 +49,7 @@ const RULE_FORMULA: Partial<Record<RuleType, string>> = {
   income:
     'O peso de cada pessoa é sua entrada recorrente mensal. cota = (entrada recorrente da pessoa ÷ soma das entradas recorrentes de quem participa) × valor do gasto.',
   surplus:
-    'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos individuais: livre = entrada recorrente − gastos fixos individuais do mês (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto.',
+    'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos que ela paga: livre = entrada recorrente − parte da pessoa nos gastos fixos do mês, já rateados (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto. Gasto fixo rateado entre várias pessoas pela própria Sobra livre não entra no desconto.',
 };
 
 // iOS Safari zooms the whole page in on focus when an input's font is under
