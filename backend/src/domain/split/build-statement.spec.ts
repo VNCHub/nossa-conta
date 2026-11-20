@@ -149,6 +149,19 @@ describe('buildStatement — invariants over a full month', () => {
     }
   });
 
+  it('the per-line shares add up to the fixed and one-off totals, to the cent', () => {
+    // The dashboard modals list lines by type and show their sum next to the
+    // card total; if these drift the two screens disagree by a cent.
+    for (const u of members) {
+      const sumOf = (fixed: boolean) =>
+        r.lines
+          .filter((l) => (l.expenseType === 'fixed') === fixed)
+          .reduce((s, l) => s + (l.shareCents[u.id] ?? 0), 0);
+      expect(sumOf(true)).toBe(r.byUser[u.id].fixedCents);
+      expect(sumOf(false)).toBe(r.byUser[u.id].oneOffCents);
+    }
+  });
+
   it('the transfers settle everyone and do not exceed n-1', () => {
     const effect: Record<string, number> = { u1: 0, u2: 0, u3: 0 };
     for (const t of r.transfers) {
