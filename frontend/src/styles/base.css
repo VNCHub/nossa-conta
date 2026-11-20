@@ -22,6 +22,17 @@
   --gf-mask-mix: 16%;
 }
 
+/* A Select dropdown opened inside a full-screen modal is first placed past the
+   right edge. On a phone that overflow makes the browser widen the layout
+   viewport, the modal re-lays out, the overflow vanishes and the viewport
+   shrinks back — a loop of ~8 flips/s (the modal flickers and the console fills
+   with "ResizeObserver loop" errors). Clipping stops the viewport from ever
+   reacting to the transient overflow. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background: var(--gf-paper);
   color: var(--gf-ink);
