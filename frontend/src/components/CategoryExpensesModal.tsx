@@ -2,41 +2,54 @@ import { Fragment } from 'react';
 import { Divider, Group, Modal, ScrollArea, Stack, Text } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { CATEGORIES, type CategoryId } from '@shared/domain';
+import type { SpendingType } from './Donut';
 import type { MemberDTO, RuleDTO, StatementLine } from '@shared/contracts';
 import { Avatar, Empty, Money } from './ui';
 
 // Same convention as EditableDate in ExpensesLedger: expense dates are
 // YYYY-MM-DD, parsed with `new Date` they can shift a day under a
 // non-UTC timezone, so split-and-reverse avoids Date entirely.
+const TYPE_TITLES: Record<SpendingType, string> = { fixed: 'Gastos fixos', oneOff: 'Gastos pontuais' };
+
 const dateLabel = (iso: string) => iso.split('-').reverse().join('/');
 
 export function CategoryExpensesModal({
-  categoryId,
+  filter,
   lines,
   userId,
   members,
   rules,
   onClose,
 }: {
-  categoryId: CategoryId;
+  filter: { category: CategoryId } | { type: SpendingType };
   lines: StatementLine[];
   userId: string;
   members: MemberDTO[];
   rules: RuleDTO[];
   onClose: () => void;
 }) {
-  const category = CATEGORIES.find((c) => c.id === categoryId);
+  const category = 'category' in filter ? CATEGORIES.find((c) => c.id === filter.category) : undefined;
+  const heading = 'type' in filter ? TYPE_TITLES[filter.type] : category?.name;
   const memberOf = (id: string) => members.find((m) => m.id === id);
   const ruleOf = (id: string | null) => (id ? rules.find((r) => r.id === id) : undefined);
   // Same breakpoint used by the other list modals (ExpensesLedger, ExpensesImports):
   // a centered dialog wastes too much of a phone's width, a full-screen sheet doesn't.
   const isMobile = useMediaQuery('(max-width: 48em)');
 
+  // The statement counts everything that is not 'fixed' as one-off, so the
+  // modal does the same — otherwise its total would not match the card.
+  const matches = (l: StatementLine) =>
+    'category' in filter
+      ? l.category === filter.category
+      : (l.expenseType === 'fixed') === (filter.type === 'fixed');
+
   const items = lines
-    .filter((l) => l.category === categoryId && (l.shares[userId] ?? 0) > 0)
+    .filter((l) => matches(l) && (l.shares[userId] ?? 0) > 0)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const myTotal = items.reduce((sum, l) => sum + l.amount * (l.shares[userId] ?? 0), 0);
+  // Sum integer cents, not amount * fraction: the card next to this modal is built
+  // from the same cents, so any float rounding here would show up as a stray cent.
+  const myTotal = items.reduce((sum, l) => sum + (l.shareCents[userId] ?? 0), 0) / 100;
 
   return (
     <Modal
@@ -45,9 +58,9 @@ export function CategoryExpensesModal({
       // Two lines instead of "Categoria · sua cota: R$ x": one long string next to
       // the close button wraps unpredictably on a narrow header.
       title={
-        category ? (
+        heading ? (
           <div>
-            <Text fw={700}>{category.name}</Text>
+            <Text fw={700}>{heading}</Text>
             <Text size="sm" c="dimmed">sua cota: <Money value={myTotal} /></Text>
           </div>
         ) : (
@@ -61,7 +74,7 @@ export function CategoryExpensesModal({
       closeButtonProps={{ size: isMobile ? 44 : 'md', 'aria-label': 'Fechar' }}
     >
       {items.length === 0 ? (
-        <Empty>Nenhum gasto rateado para você nesta categoria.</Empty>
+        <Empty>Nenhum gasto rateado para você {'type' in filter ? 'neste tipo' : 'nesta categoria'}.</Empty>
       ) : (
         // Full height on mobile (fullScreen) instead of a fixed 480px box, so a long
         // list uses the screen it already has instead of scrolling in a small window.
@@ -94,7 +107,7 @@ export function CategoryExpensesModal({
                       <Text size="xs" c="dimmed">
                         Rateio: {rule ? rule.name : 'Divisão igual'}
                       </Text>
-                      {participants.map(([pid, frac]) => {
+                      {participants.map(([pid]) => {
                         const m = memberOf(pid);
                         const isMe = pid === userId;
                         return (
@@ -106,7 +119,7 @@ export function CategoryExpensesModal({
                               </Text>
                             </Group>
                             <Text className="num" size="sm" c={isMe ? undefined : 'dimmed'} style={{ flexShrink: 0 }}>
-                              <Money value={l.amount * frac} />
+                              <Money value={(l.shareCents[pid] ?? 0) / 100} />
                             </Text>
                           </Group>
                         );
