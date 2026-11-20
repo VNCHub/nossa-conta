@@ -48,7 +48,7 @@ describe('Family isolation (e2e)', () => {
     const { body: income } = await http()
       .post('/entradas')
       .set('Authorization', `Bearer ${token}`)
-      .send({ type: 'recurring', description: 'Salário', amount: 5000, dayOfMonth: 5 })
+      .send({ type: 'fixed', description: 'Salário', amount: 5000, dayOfMonth: 5 })
       .expect(201);
 
     const { body: expense } = await http()

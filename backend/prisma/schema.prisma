@@ -13,7 +13,7 @@ datasource db {
 }
 
 enum IncomeType {
-  RECURRING
+  FIXED
   ONE_OFF
 }
 
@@ -192,12 +192,12 @@ model Income {
   type        IncomeType
   description String
   amount      Decimal    @db.Decimal(12, 2)
-  /// filled when type = RECURRING
+  /// filled when type = FIXED
   dayOfMonth  Int?
-  /// filled when type = RECURRING — YYYY-MM it starts counting from; the
+  /// filled when type = FIXED — YYYY-MM it starts counting from; the
   /// month it was declared in, plus every month after
   since       String?      @db.VarChar(7)
-  /// filled when type = RECURRING and it has an end — YYYY-MM of the last
+  /// filled when type = FIXED and it has an end — YYYY-MM of the last
   /// month it counts for. Null means open-ended (still ongoing).
   until       String?      @db.VarChar(7)
   /// filled when type = ONE_OFF

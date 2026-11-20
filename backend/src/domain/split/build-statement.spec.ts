@@ -21,11 +21,11 @@ const rules: RuleCalc[] = [
 ];
 
 const incomes: IncomeCalc[] = [
-  { userId: 'u1', type: 'recurring', amountCents: 620000 },
+  { userId: 'u1', type: 'fixed', amountCents: 620000 },
   { userId: 'u1', type: 'oneOff', amountCents: 140000, date: '2026-09-18' },
-  { userId: 'u2', type: 'recurring', amountCents: 410000 },
-  { userId: 'u2', type: 'recurring', amountCents: 70000 },
-  { userId: 'u3', type: 'recurring', amountCents: 330000 },
+  { userId: 'u2', type: 'fixed', amountCents: 410000 },
+  { userId: 'u2', type: 'fixed', amountCents: 70000 },
+  { userId: 'u3', type: 'fixed', amountCents: 330000 },
 ];
 
 describe('buildStatement — worked examples', () => {

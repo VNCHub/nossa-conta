@@ -22,7 +22,7 @@ export function incomeForMonth(
     .filter((i) => i.userId === userId)
     .filter(
       (i) =>
-        (i.type === 'recurring' && recurringAppliesToMonth(i.since, i.until, month)) ||
+        (i.type === 'fixed' && recurringAppliesToMonth(i.since, i.until, month)) ||
         (i.date ?? '').slice(0, 7) === month,
     )
     .reduce((s, i) => s + i.amountCents, 0);
@@ -36,7 +36,7 @@ export function recurringIncome(
 ): number {
   return incomes
     .filter(
-      (i) => i.userId === userId && i.type === 'recurring' && recurringAppliesToMonth(i.since, i.until, month),
+      (i) => i.userId === userId && i.type === 'fixed' && recurringAppliesToMonth(i.since, i.until, month),
     )
     .reduce((s, i) => s + i.amountCents, 0);
 }

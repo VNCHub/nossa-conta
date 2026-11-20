@@ -30,7 +30,7 @@ export class CreateIncomeDto {
   @Max(99_999_999)
   amount!: number;
 
-  @ValidateIf((o: CreateIncomeDto) => o.type === 'recurring')
+  @ValidateIf((o: CreateIncomeDto) => o.type === 'fixed')
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -38,12 +38,12 @@ export class CreateIncomeDto {
   dayOfMonth?: number;
 
   /** The month it starts counting from — defaults to the current month if omitted. */
-  @ValidateIf((o: CreateIncomeDto) => o.type === 'recurring' && o.since !== undefined)
+  @ValidateIf((o: CreateIncomeDto) => o.type === 'fixed' && o.since !== undefined)
   @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
   since?: string;
 
   /** The last month it counts for — omitted means open-ended (keeps repeating). */
-  @ValidateIf((o: CreateIncomeDto) => o.type === 'recurring' && o.until !== undefined)
+  @ValidateIf((o: CreateIncomeDto) => o.type === 'fixed' && o.until !== undefined)
   @Matches(MONTH_REGEX, { message: 'Informe o mês no formato AAAA-MM.' })
   until?: string;
 

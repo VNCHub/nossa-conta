@@ -121,8 +121,8 @@ Cinco bases de cálculo, todas configuráveis por família:
 | Base | Como divide |
 | --- | --- |
 | Partes iguais | igualmente entre os participantes |
-| Renda recorrente | proporcional à entrada recorrente de cada um |
-| Sobra livre | proporcional a (renda recorrente − parte de cada um nos gastos fixos do mês) |
+| Renda fixa | proporcional à entrada fixa de cada um |
+| Sobra livre | proporcional a (renda fixa − parte de cada um nos gastos fixos do mês) |
 | Percentual fixo | percentuais combinados uma vez |
 | Medidor mensal | cada um lança sua medição do mês (km, dias, litros) e vira percentual |
 

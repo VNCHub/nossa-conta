@@ -36,7 +36,7 @@ import { useMonth } from '../useMonth';
 
 const TYPE_LABEL: Record<RuleType, string> = {
   equal: 'Partes iguais',
-  income: 'Renda recorrente',
+  income: 'Renda fixa',
   surplus: 'Sobra livre',
   fixed: 'Percentual fixo',
   meter: 'Medidor mensal',
@@ -47,9 +47,9 @@ const TYPE_LABEL: Record<RuleType, string> = {
 const RULE_FORMULA: Partial<Record<RuleType, string>> = {
   equal: 'Cada participante paga a mesma fração: cota = valor do gasto ÷ número de participantes.',
   income:
-    'O peso de cada pessoa é sua entrada recorrente mensal. cota = (entrada recorrente da pessoa ÷ soma das entradas recorrentes de quem participa) × valor do gasto.',
+    'O peso de cada pessoa é sua entrada fixa mensal. cota = (entrada fixa da pessoa ÷ soma das entradas fixas de quem participa) × valor do gasto.',
   surplus:
-    'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos que ela paga: livre = entrada recorrente − parte da pessoa nos gastos fixos do mês, já rateados (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto. Gasto fixo rateado entre várias pessoas pela própria Sobra livre não entra no desconto.',
+    'O peso de cada pessoa é o que sobra da renda depois dos gastos fixos que ela paga: livre = entrada fixa − parte da pessoa nos gastos fixos do mês, já rateados (nunca menos que zero). cota = (livre da pessoa ÷ soma do livre de quem participa) × valor do gasto. Gasto fixo rateado entre várias pessoas pela própria Sobra livre não entra no desconto.',
 };
 
 // iOS Safari zooms the whole page in on focus when an input's font is under

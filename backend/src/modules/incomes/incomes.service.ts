@@ -41,7 +41,7 @@ export class IncomesService {
     userId: string,
     dto: CreateIncomeDto,
   ): Promise<IncomeDTO> {
-    const recurring = dto.type === 'recurring';
+    const recurring = dto.type === 'fixed';
     const since = recurring ? (dto.since ?? currentMonth()) : null;
     const until = recurring ? (dto.until ?? null) : null;
     if (since && until && until < since) {
@@ -49,7 +49,7 @@ export class IncomesService {
     }
 
     await this.assertLockedMonthsUntouched(familyId, userId, null, {
-      type: recurring ? 'recurring' : 'oneOff',
+      type: recurring ? 'fixed' : 'oneOff',
       amount: dto.amount,
       since,
       until,
@@ -58,7 +58,7 @@ export class IncomesService {
 
     const row = await this.repo.create({
       userId,
-      type: recurring ? IncomeTypeDb.RECURRING : IncomeTypeDb.ONE_OFF,
+      type: recurring ? IncomeTypeDb.FIXED : IncomeTypeDb.ONE_OFF,
       description: dto.description.trim(),
       amount: dto.amount,
       dayOfMonth: recurring ? (dto.dayOfMonth ?? 1) : null,
@@ -77,7 +77,7 @@ export class IncomesService {
   ): Promise<IncomeDTO> {
     const current = await this.requireOwn(familyId, userId, id);
     assertNotDebtReceipt(current);
-    const recurring = current.type === IncomeTypeDb.RECURRING;
+    const recurring = current.type === IncomeTypeDb.FIXED;
 
     // Two ways to drop just one month without a gap in the middle: end the
     // recurrence here (`until` moves back, keeping everything before) when
@@ -99,7 +99,7 @@ export class IncomesService {
     }
 
     await this.assertLockedMonthsUntouched(familyId, userId, shapeOf(current), {
-      type: recurring ? 'recurring' : 'oneOff',
+      type: recurring ? 'fixed' : 'oneOff',
       amount: dto.amount ?? Number(current.amount),
       since: nextSince,
       until: nextUntil,
@@ -160,7 +160,7 @@ export class IncomesService {
     const rows = await this.repo.listForFamily(familyId);
     return rows.map((i) => ({
       userId: i.userId,
-      type: i.type === IncomeTypeDb.RECURRING ? 'recurring' : 'oneOff',
+      type: i.type === IncomeTypeDb.FIXED ? 'fixed' : 'oneOff',
       amountCents: toCents(String(i.amount)),
       date: i.date ? i.date.toISOString().slice(0, 10) : null,
       since: i.since,
@@ -184,7 +184,7 @@ export class IncomesService {
 
 /** The fields that decide how much an income counts in each month. */
 type IncomeShape = {
-  type: 'recurring' | 'oneOff';
+  type: 'fixed' | 'oneOff';
   amount: number;
   since: string | null;
   until: string | null;
@@ -193,7 +193,7 @@ type IncomeShape = {
 };
 
 const shapeOf = (i: IncomeRow): IncomeShape => ({
-  type: i.type === IncomeTypeDb.RECURRING ? 'recurring' : 'oneOff',
+  type: i.type === IncomeTypeDb.FIXED ? 'fixed' : 'oneOff',
   amount: Number(i.amount),
   since: i.since,
   until: i.until,
@@ -213,7 +213,7 @@ function toDTO(i: IncomeRow): IncomeDTO {
   return {
     id: i.id,
     userId: i.userId,
-    type: i.type === IncomeTypeDb.RECURRING ? 'recurring' : 'oneOff',
+    type: i.type === IncomeTypeDb.FIXED ? 'fixed' : 'oneOff',
     description: i.description,
     amount: toReais(toCents(String(i.amount))),
     dayOfMonth: i.dayOfMonth,
