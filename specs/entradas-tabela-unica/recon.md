@@ -28,7 +28,7 @@ pontas e cards empilhados no celular.
 | Data | dia `dayOfMonth` no mês visto (`05/11/2026`). Se o dia não existe no mês (31 em novembro), usa o último dia. | `date` |
 | Descrição | descrição, com "desde Jan/2026" em cinza embaixo | descrição + badge "Recebimento de dívida" quando houver |
 | Tipo | chip **Recorrente** | chip **Pontual** |
-| Repete nos próximos meses | **Sim** (sem `until`) · **Até Mar/2027** (`until` depois do mês) · **Não** (`until` igual ao mês) | **—** |
+| Recorrência | **Sim** (sem `until`) · **Até Mar/2027** (`until` depois do mês) · **Não** (`until` igual ao mês) | **—** |
 | Valor | valor | valor |
 | (ação) | lixeira, mesmo `confirmChoice` de hoje | lixeira, mesmo `confirmDelete`; desabilitada se for recebimento de dívida |
 
@@ -46,7 +46,7 @@ pontas e cards empilhados no celular.
   `incomeDateInMonth(item, month)` para a data da recorrente.
 - `frontend/src/components/ui.tsx`: `IncomeTypeChip` ao lado de `ExpenseTypeChip`
   (Recorrente em petrol, Pontual em grape, igual às cores de Fixo/Pontual dos gastos).
-- Teste de regressão (vitest) da data e do texto "Repete", no estilo de
+- Teste de regressão (vitest) da data e do texto da coluna Recorrência, no estilo de
   `ui.regression.test.tsx`.
 
 Sem mudança em backend, Prisma ou `@shared`.
@@ -54,11 +54,16 @@ Sem mudança em backend, Prisma ou `@shared`.
 ## Mudanças de comportamento existente
 
 1. Os badges "todo dia N" e "até <mês>" deixam de aparecer. O dia vira a data na coluna
-   Data e o "até" vira a coluna Repete.
+   Data e o "até" vira a coluna Recorrência.
 2. A recorrente que não repete passa a mostrar "Não" de forma explícita. Hoje ela só aparece
    com "até <mês atual>".
 
-## Perguntas em aberto
+## Decisões
+
+Aprovado seguir as sugestões abaixo. A coluna "Repete nos próximos meses" passou a se chamar **Recorrência**.
+No celular, sem cabeçalho de coluna, "Sim"/"Não" aparecem como "Repete todo mês"/"Não repete".
+
+## Perguntas (respondidas)
 
 1. **Colunas ordenáveis** como em Gastos? Sugestão: não por enquanto. São poucas linhas por
    mês e a ordem por data resolve.

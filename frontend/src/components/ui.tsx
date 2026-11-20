@@ -12,7 +12,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { CATEGORIES, categoryOf, type CategoryId, type ExpenseType } from '@shared/domain';
+import { CATEGORIES, categoryOf, type CategoryId, type ExpenseType, type IncomeType } from '@shared/domain';
 import { brl, monthLabel, pct, shiftMonth } from '@shared/format';
 import { useValuesHidden } from '../hideValues';
 
@@ -228,6 +228,18 @@ export function ExpenseTypeChip({ type, clickable }: { type: ExpenseType; clicka
       styles={clickable ? { root: { cursor: 'pointer' } } : undefined}
     >
       {EXPENSE_TYPE_LABEL[type]}
+    </Badge>
+  );
+}
+
+// Same hues as the expense chips: "recurring" is the income's "fixed", "oneOff" stays grape.
+const INCOME_TYPE_LABEL = { recurring: 'Recorrente', oneOff: 'Pontual' } as const;
+const INCOME_TYPE_COLOR = { recurring: 'petrol', oneOff: 'grape' } as const;
+
+export function IncomeTypeChip({ type }: { type: IncomeType }) {
+  return (
+    <Badge color={INCOME_TYPE_COLOR[type]} variant="filled" radius="sm" tt="none" fw={600} fz="sm">
+      {INCOME_TYPE_LABEL[type]}
     </Badge>
   );
 }
