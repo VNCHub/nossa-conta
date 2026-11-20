@@ -10,19 +10,20 @@ import {
   NumberInput,
   Select,
   Stack,
+  Table,
   Text,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { DatePickerInput, MonthPickerInput } from '@mantine/dates';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import type { IncomeDTO } from '@shared/contracts';
 import type { IncomeType } from '@shared/domain';
-import { brl, monthLabel, monthLabelCompact, recurringAppliesToMonth, shiftMonth } from '@shared/format';
+import { brl, monthLabel, monthLabelShort, shiftMonth } from '@shared/format';
 import { api } from '../api/client';
 import { keys, useIncomes, useAppMutation } from '../api/hooks';
-import { PageHeader, Loading, Metric, Empty, Money, TrashIcon } from '../components/ui';
+import { PageHeader, Loading, Metric, Empty, Money, TrashIcon, IncomeTypeChip } from '../components/ui';
+import { incomesOfMonth, repeatsAfter, type Repeats } from './incomeRows';
 import { notifyError, notifySuccess, confirmDelete, confirmChoice } from '../feedback';
 import { useMonth } from '../useMonth';
 import { MonthLockedBanner, useMyMonthLocked } from '../components/MonthClosing';
@@ -78,13 +79,8 @@ export default function Income() {
     return incomes.error ? <Empty>{incomes.error.message}</Empty> : <Loading />;
   }
 
-  const recurring = incomes.data.filter((i) => i.type === 'recurring');
-  const activeRecurring = recurring.filter((i) => recurringAppliesToMonth(i.since, i.until, month));
-  const oneOffs = incomes.data.filter(
-    (i) => i.type === 'oneOff' && (i.date ?? '').slice(0, 7) === month,
-  );
-  const total =
-    activeRecurring.reduce((s, i) => s + i.amount, 0) + oneOffs.reduce((s, i) => s + i.amount, 0);
+  const rows = incomesOfMonth(incomes.data, month);
+  const total = rows.reduce((s, r) => s + r.item.amount, 0);
 
   const doRemove = (i: IncomeDTO) => remove.mutate(i.id);
   const doEndOrRemove = (i: IncomeDTO) => {
@@ -112,6 +108,10 @@ export default function Income() {
       onConfirm: () => doRemove(i),
     });
 
+  const askRemove = (i: IncomeDTO) => (i.type === 'recurring' ? askRemoveRecurring(i) : askRemoveOneOff(i));
+  // A debt receipt only goes away with the payer's payment.
+  const canRemove = (i: IncomeDTO) => !locked && !i.debtPaymentId;
+
   return (
     <>
       <PageHeader
@@ -129,49 +129,27 @@ export default function Income() {
 
       {locked && <MonthLockedBanner month={month} kind="incomes" />}
 
-      <Grid gap="lg">
-        <Grid.Col span={{ base: 12, md: 6 }}>
-          <Card h="100%">
-            <Title order={3} mb="sm">Recorrentes em {monthLabel(month)}</Title>
-            {activeRecurring.length === 0 ? (
-              <Empty>Nenhuma entrada recorrente neste mês.</Empty>
-            ) : (
-              <Stack gap={0}>
-                {activeRecurring.map((item, i) => (
-                  <RecurringRow
-                    key={item.id}
-                    item={item}
-                    isLast={i === activeRecurring.length - 1}
-                    onDelete={() => askRemoveRecurring(item)}
-                    disabled={locked}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Card>
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 6 }}>
-          <Card h="100%">
-            <Title order={3} mb="sm">Pontuais de {monthLabel(month)}</Title>
-            {oneOffs.length === 0 ? (
-              <Empty>Nenhuma entrada pontual neste mês.</Empty>
-            ) : (
-              <Stack gap={0}>
-                {oneOffs.map((item, i) => (
-                  <OneOffRow
-                    key={item.id}
-                    item={item}
-                    isLast={i === oneOffs.length - 1}
-                    onRemove={() => askRemoveOneOff(item)}
-                    // A debt receipt only goes away with the payer's payment.
-                    disabled={locked || !!item.debtPaymentId}
-                  />
-                ))}
-              </Stack>
-            )}
-          </Card>
-        </Grid.Col>
-      </Grid>
+      <Card>
+        {rows.length === 0 ? (
+          <Empty>Nenhuma entrada em {monthLabel(month)}.</Empty>
+        ) : (
+          <>
+            <IncomeTable rows={rows} month={month} canRemove={canRemove} onRemove={askRemove} />
+            <Stack hiddenFrom="sm" gap="sm">
+              {rows.map(({ item, date }) => (
+                <MobileIncomeCard
+                  key={item.id}
+                  item={item}
+                  date={date}
+                  month={month}
+                  canRemove={canRemove(item)}
+                  onRemove={() => askRemove(item)}
+                />
+              ))}
+            </Stack>
+          </>
+        )}
+      </Card>
 
       <Modal opened={createOpen} onClose={createModal.close} title="Lançar entrada" size="lg" centered fullScreen={isMobile}>
         <IncomeForm month={month} onSubmit={(body) => create.mutate(body)} loading={create.isPending} onClose={createModal.close} />
@@ -180,85 +158,151 @@ export default function Income() {
   );
 }
 
-/** One row of "Recorrentes" — badges instead of a squashed text line. */
-function RecurringRow({
-  item,
-  isLast,
-  onDelete,
-  disabled,
-}: {
-  item: IncomeDTO;
-  isLast: boolean;
-  onDelete: () => void;
-  disabled: boolean;
-}) {
+const ROW_BG = 'var(--mantine-color-petrol-0)';
+const REPEATS_COLOR: Record<Repeats['kind'], string> = {
+  yes: 'petrol.7',
+  until: 'mustard.8',
+  no: 'dimmed',
+  na: 'dimmed',
+};
+
+const brDate = (iso: string) => iso.split('-').reverse().join('/');
+
+// Mobile cards have no column header, so a bare "Sim"/"Não" would not say what it answers.
+const SPELLED_OUT: Partial<Record<Repeats['kind'], string>> = { yes: 'Repete todo mês', no: 'Não repete' };
+
+function RepeatsText({ item, month, spelledOut }: { item: IncomeDTO; month: string; spelledOut?: boolean }) {
+  const r = repeatsAfter(item, month);
   return (
-    <Group
-      wrap="nowrap" py="sm" align="flex-start"
-      style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
-        <Group gap={6} mt={6}>
-          <Badge variant="light" size="sm" tt="none">todo dia {item.dayOfMonth}</Badge>
-          {item.since && (
-            <Badge variant="light" size="sm" tt="none">
-              desde {monthLabelCompact(item.since)}
-            </Badge>
-          )}
-          {item.until && (
-            <Badge variant="light" size="sm" tt="none">
-              até {monthLabelCompact(item.until)}
-            </Badge>
-          )}
-        </Group>
-      </div>
-      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
-      <ActionIcon
-        variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
-        onClick={onDelete}
-        disabled={disabled}
-      >
-        <TrashIcon />
-      </ActionIcon>
-    </Group>
+    <Text size="sm" fw={r.kind === 'na' ? 400 : 600} c={REPEATS_COLOR[r.kind]} style={{ whiteSpace: 'nowrap' }}>
+      {(spelledOut && SPELLED_OUT[r.kind]) || r.label}
+    </Text>
   );
 }
 
-function OneOffRow({
-  item,
-  isLast,
-  onRemove,
-  disabled,
-}: {
+function Description({ item }: { item: IncomeDTO }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <Group gap={6} wrap="wrap">
+        <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
+        {item.debtPaymentId && (
+          <Badge color="indigo" variant="light" size="sm" tt="none">Recebimento de dívida</Badge>
+        )}
+      </Group>
+      {item.type === 'recurring' && item.since && (
+        <Text size="sm" c="dimmed">desde {monthLabelShort(item.since)}</Text>
+      )}
+    </div>
+  );
+}
+
+function RemoveButton({ item, enabled, onRemove, size }: {
   item: IncomeDTO;
-  isLast: boolean;
+  enabled: boolean;
   onRemove: () => void;
-  disabled: boolean;
+  size: 'md' | number;
 }) {
   return (
-    <Group
-      wrap="nowrap" py="sm"
-      style={!isLast ? { borderBottom: '1px solid #EEF1EC' } : undefined}
+    <ActionIcon
+      variant="subtle" color="brick" size={size} aria-label={`Remover ${item.description}`}
+      onClick={onRemove}
+      disabled={!enabled}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ overflowWrap: 'anywhere' }}>{item.description}</Text>
-        <Group gap={6} mt={2}>
-          <Text size="sm" c="dimmed">{(item.date ?? '').split('-').reverse().join('/')}</Text>
-          {item.debtPaymentId && (
-            <Badge color="indigo" variant="light" size="sm" tt="none">Recebimento de dívida</Badge>
-          )}
+      <TrashIcon />
+    </ActionIcon>
+  );
+}
+
+/** Desktop: one table for both kinds, laid out like the expenses ledger. */
+function IncomeTable({
+  rows,
+  month,
+  canRemove,
+  onRemove,
+}: {
+  rows: { item: IncomeDTO; date: string }[];
+  month: string;
+  canRemove: (i: IncomeDTO) => boolean;
+  onRemove: (i: IncomeDTO) => void;
+}) {
+  return (
+    <Table.ScrollContainer minWidth={720} visibleFrom="sm">
+      <Table verticalSpacing="sm" withRowBorders={false} styles={{ td: { height: 60, verticalAlign: 'middle' } }}>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th><Text fz={16} fw={600}>Data</Text></Table.Th>
+            <Table.Th><Text fz={16} fw={600}>Descrição</Text></Table.Th>
+            <Table.Th><Text fz={16} fw={600}>Tipo</Text></Table.Th>
+            <Table.Th><Text fz={16} fw={600}>Recorrência</Text></Table.Th>
+            <Table.Th ta="right"><Text fz={16} fw={600}>Valor</Text></Table.Th>
+            <Table.Th />
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {rows.map(({ item, date }, i) => {
+            const isFirst = i === 0;
+            const isLast = i === rows.length - 1;
+            // Rounding only takes on the table's four outer corners, like the expenses ledger.
+            const firstCell = {
+              backgroundColor: ROW_BG,
+              ...(isFirst ? { borderTopLeftRadius: 8 } : {}),
+              ...(isLast ? { borderBottomLeftRadius: 8 } : {}),
+            };
+            const lastCell = {
+              backgroundColor: ROW_BG,
+              ...(isFirst ? { borderTopRightRadius: 8 } : {}),
+              ...(isLast ? { borderBottomRightRadius: 8 } : {}),
+            };
+            const midCell = { backgroundColor: ROW_BG };
+            return (
+              <Table.Tr key={item.id}>
+                <Table.Td className="num" style={firstCell}>{brDate(date)}</Table.Td>
+                <Table.Td style={midCell}><Description item={item} /></Table.Td>
+                <Table.Td style={midCell}><IncomeTypeChip type={item.type} /></Table.Td>
+                <Table.Td style={midCell}><RepeatsText item={item} month={month} /></Table.Td>
+                <Table.Td className="num" ta="right" fw={600} style={{ ...midCell, whiteSpace: 'nowrap' }}>
+                  <Money value={item.amount} />
+                </Table.Td>
+                <Table.Td style={lastCell} w={56}>
+                  <RemoveButton item={item} enabled={canRemove(item)} onRemove={() => onRemove(item)} size="md" />
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
+        </Table.Tbody>
+      </Table>
+    </Table.ScrollContainer>
+  );
+}
+
+function MobileIncomeCard({
+  item,
+  date,
+  month,
+  canRemove,
+  onRemove,
+}: {
+  item: IncomeDTO;
+  date: string;
+  month: string;
+  canRemove: boolean;
+  onRemove: () => void;
+}) {
+  return (
+    <Card p="sm" radius="md" style={{ backgroundColor: ROW_BG }}>
+      <Group justify="space-between" align="center" wrap="nowrap" mb={4}>
+        <Text size="sm" c="dimmed" className="num">{brDate(date)}</Text>
+        <RemoveButton item={item} enabled={canRemove} onRemove={onRemove} size={44} />
+      </Group>
+      <Description item={item} />
+      <Group justify="space-between" align="center" wrap="nowrap" mt={8}>
+        <Group gap={8} wrap="wrap">
+          <IncomeTypeChip type={item.type} />
+          {item.type === 'recurring' && <RepeatsText item={item} month={month} spelledOut />}
         </Group>
-      </div>
-      <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
-      <ActionIcon
-        variant="subtle" color="brick" size="xl" aria-label={`Remover ${item.description}`}
-        onClick={onRemove}
-        disabled={disabled}
-      >
-        <TrashIcon />
-      </ActionIcon>
-    </Group>
+        <Text className="num" fw={600} style={{ whiteSpace: 'nowrap' }}><Money value={item.amount} /></Text>
+      </Group>
+    </Card>
   );
 }
 
