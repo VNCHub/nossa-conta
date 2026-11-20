@@ -11,6 +11,10 @@ export const CATEGORIES = [
   { id: 'food', name: 'Comida', color: '#B8452F' },
   { id: 'pets', name: 'Pets', color: '#4E9A8A' },
   { id: 'games', name: 'Jogos', color: '#5A6EA8' },
+  { id: 'study', name: 'Estudo', color: '#A38A2E' },
+  { id: 'transport', name: 'Transporte', color: '#6B8E3A' },
+  { id: 'gifts', name: 'Presentes', color: '#C2547F' },
+  // Keep last: `categoryOf` falls back to the final entry for unknown ids.
   { id: 'other', name: 'Outros', color: '#8A8F87' },
 ] as const;
 

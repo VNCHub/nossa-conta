@@ -18,6 +18,18 @@ describe('categoryOf', () => {
     expect(categoryOf('does-not-exist').id).toBe('other');
   });
 
+  it('includes study, transport and gifts, with "other" still last', () => {
+    expect(categoryOf('study').name).toBe('Estudo');
+    expect(categoryOf('transport').name).toBe('Transporte');
+    expect(categoryOf('gifts').name).toBe('Presentes');
+    expect(CATEGORY_IDS[CATEGORY_IDS.length - 1]).toBe('other');
+  });
+
+  it('gives every category a distinct color', () => {
+    const colors = CATEGORIES.map((c) => c.color);
+    expect(new Set(colors).size).toBe(colors.length);
+  });
+
   it('resolves every declared id', () => {
     for (const id of CATEGORY_IDS) {
       expect(categoryOf(id).id).toBe(id);
