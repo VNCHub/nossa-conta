@@ -31,7 +31,7 @@ const DEFAULT_RULES = [
   {
     name: 'Proporcional Livre',
     type: RuleType.SURPLUS,
-    description: 'Proporção da renda recorrente menos os gastos fixos individuais.',
+    description: 'Proporção da renda recorrente menos a parte de cada um nos gastos fixos.',
   },
 ];
 

@@ -41,7 +41,7 @@ export type RuleType = (typeof RULE_TYPES)[number];
 export const DEFAULT_RULE_DESCRIPTION: Record<RuleType, string> = {
   equal: 'Divide igualmente entre quem participa.',
   income: 'Cada um paga na proporção da sua entrada recorrente.',
-  surplus: 'Proporção da renda recorrente menos os gastos fixos individuais.',
+  surplus: 'Proporção da renda recorrente menos a parte de cada um nos gastos fixos.',
   fixed: 'Percentuais combinados uma vez.',
   meter: 'Todo mês cada um lança sua medição; o sistema converte em percentual.',
 };
