@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   Group,
-  Modal,
   SegmentedControl,
   Stack,
   Table,
@@ -17,6 +16,7 @@ import { useImports, useMembers } from '../../api/hooks';
 import { useAuth } from '../../auth/AuthContext';
 import { Empty, Loading } from '../../components/ui';
 import { BankLogo, InternalLogo } from './ImportLogos';
+import { FormModal } from '../../components/FormModal';
 import { ImportWizard } from './ImportWizard';
 
 type Filter = 'all' | 'mine';
@@ -108,7 +108,7 @@ export default function ExpensesImports() {
         </>
       )}
 
-      <Modal
+      <FormModal
         opened={modalOpen}
         onClose={modal.close}
         title="Nova importação"
@@ -118,7 +118,7 @@ export default function ExpensesImports() {
         fullScreen={isMobile}
       >
         <ImportWizard onClose={modal.close} allowInternal={isAdmin} />
-      </Modal>
+      </FormModal>
     </Card>
   );
 }

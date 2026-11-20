@@ -6,7 +6,6 @@ import {
   Checkbox,
   Grid,
   Group,
-  Modal,
   NumberInput,
   Select,
   Stack,
@@ -26,6 +25,7 @@ import { PageHeader, Loading, Metric, Empty, Money, TrashIcon, IncomeTypeChip } 
 import { incomesOfMonth, repeatsAfter, type Repeats } from './incomeRows';
 import { notifyError, notifySuccess, confirmDelete, confirmChoice } from '../feedback';
 import { useMonth } from '../useMonth';
+import { FormModal, FormCancelButton, useDirtyGuard } from '../components/FormModal';
 import { MonthLockedBanner, useMyMonthLocked } from '../components/MonthClosing';
 
 // Mantine 9 date pickers hand back a Date on initial mount but a
@@ -151,9 +151,9 @@ export default function Income() {
         )}
       </Card>
 
-      <Modal opened={createOpen} onClose={createModal.close} title="Lançar entrada" size="lg" centered fullScreen={isMobile}>
-        <IncomeForm month={month} onSubmit={(body) => create.mutate(body)} loading={create.isPending} onClose={createModal.close} />
-      </Modal>
+      <FormModal opened={createOpen} onClose={createModal.close} title="Lançar entrada" size="lg" centered fullScreen={isMobile}>
+        <IncomeForm month={month} onSubmit={(body) => create.mutate(body)} loading={create.isPending} />
+      </FormModal>
     </>
   );
 }
@@ -315,12 +315,10 @@ function IncomeForm({
   month,
   onSubmit,
   loading,
-  onClose,
 }: {
   month: string;
   onSubmit: (body: Record<string, unknown>) => void;
   loading: boolean;
-  onClose: () => void;
 }) {
   const form = useForm({
     mode: 'uncontrolled',
@@ -338,6 +336,8 @@ function IncomeForm({
       amount: (v) => (Number(v) > 0 ? null : 'Informe um valor maior que zero.'),
     },
   });
+
+  useDirtyGuard(() => form.isDirty());
 
   const submit = form.onSubmit((v) => {
     const since = monthIso(v.since);
@@ -424,7 +424,7 @@ function IncomeForm({
       </Grid>
 
       <Group justify="flex-end" mt="lg" grow preventGrowOverflow={false}>
-        <Button variant="default" size="md" onClick={onClose}>Cancelar</Button>
+        <FormCancelButton size="md">Cancelar</FormCancelButton>
         <Button type="submit" size="md" loading={loading}>Adicionar</Button>
       </Group>
     </form>

@@ -8,7 +8,6 @@ import {
   Chip,
   Grid,
   Group,
-  Modal,
   NumberInput,
   Popover,
   SegmentedControl,
@@ -41,6 +40,7 @@ import { notifyError, notifySuccess, confirmDelete } from '../../feedback';
 import { useMonth } from '../../useMonth';
 import { MonthLockedBanner, useMyMonthLocked } from '../../components/MonthClosing';
 import { iso } from './date';
+import { FormModal, FormCancelButton, useDirtyGuard } from '../../components/FormModal';
 import { ExportExpensesModal } from './ExportExpensesModal';
 
 type Filter = 'all' | 'mine' | 'shared';
@@ -469,12 +469,12 @@ export default function ExpensesLedger() {
         </>
       )}
 
-      <Modal
+      <FormModal
         opened={createOpen} onClose={createModal.close} title="Lançar gasto"
         size="lg" centered fullScreen={isMobile}
       >
         <ExpenseForm month={month} members={members} rules={rules} onClose={createModal.close} />
-      </Modal>
+      </FormModal>
 
       <ExportExpensesModal opened={exportOpen} onClose={exportModal.close} />
     </Card>
@@ -1079,6 +1079,8 @@ function ExpenseForm({
     },
   });
 
+  useDirtyGuard(() => form.isDirty());
+
   const save = useAppMutation(
     (body: Record<string, unknown>) => api.post<ExpenseDTO>('/gastos', body),
     [keys.expenses(month), keys.statement(month)],
@@ -1194,7 +1196,7 @@ function ExpenseForm({
       </Grid>
 
       <Group justify="flex-end" grow={isMobile ?? false} mt="lg">
-        <Button h={isMobile ? 44 : undefined} variant="default" onClick={onClose}>Cancelar</Button>
+        <FormCancelButton h={isMobile ? 44 : undefined}>Cancelar</FormCancelButton>
         <Button h={isMobile ? 44 : undefined} type="submit" loading={save.isPending}>Adicionar gasto</Button>
       </Group>
     </form>

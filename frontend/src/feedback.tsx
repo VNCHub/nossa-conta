@@ -39,6 +39,21 @@ export function confirmDelete(options: {
   });
 }
 
+/**
+ * Asked when a form modal is closed with unsaved changes. "Continue editing"
+ * is the default so a stray click or Enter never throws typed data away.
+ */
+export function confirmDiscard(onConfirm: () => void) {
+  modals.openConfirmModal({
+    modalId: 'confirm-discard',
+    title: 'Descartar o que foi preenchido?',
+    children: 'Os dados digitados neste formulário serão perdidos.',
+    labels: { confirm: 'Descartar', cancel: 'Continuar editando' },
+    confirmProps: { color: 'brick' },
+    onConfirm,
+  });
+}
+
 const CHOICE_MODAL_ID = 'confirm-choice';
 
 /**
