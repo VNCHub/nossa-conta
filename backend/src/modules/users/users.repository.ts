@@ -31,8 +31,9 @@ export class UsersRepository {
     return this.prisma.user.count({ where: { familyId } });
   }
 
-  setFamily(userId: string, familyId: string) {
-    return this.prisma.user.update({ where: { id: userId }, data: { familyId } });
+  /** The color changes with the family: it is chosen to differ from the new family's members. */
+  setFamily(userId: string, familyId: string, color: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { familyId, color } });
   }
 
   touchLogin(userId: string) {

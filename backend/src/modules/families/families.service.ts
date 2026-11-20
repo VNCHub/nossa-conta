@@ -13,6 +13,8 @@ import { IncomesService } from '../incomes/incomes.service';
 import { ExpensesService } from '../expenses/expenses.service';
 import type { FamilyDTO, MemberDTO } from '@shared/contracts';
 import { currentMonth } from '@shared/format';
+import { MEMBER_COLORS } from '@shared/domain';
+import { pickMemberColor } from '../../domain/members/member-color';
 
 /** No I, O, 0 or 1: the code is read aloud and typed by another person. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -90,7 +92,12 @@ export class FamiliesService {
     const family = await this.families.findByCode(code.trim().toUpperCase());
     if (!family) throw new NotFoundException('Código de convite não encontrado.');
 
-    await this.users.setFamily(userId, family.id);
+    const members = await this.users.listMembers(family.id);
+    const color = pickMemberColor(
+      members.map((m) => m.color),
+      MEMBER_COLORS,
+    );
+    await this.users.setFamily(userId, family.id, color);
     return this.toDTO(family);
   }
 
