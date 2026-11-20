@@ -10,7 +10,6 @@ import {
   Grid,
   Group,
   List,
-  Modal,
   NumberInput,
   Paper,
   Select,
@@ -30,6 +29,7 @@ import { monthLabel, pct } from '@shared/format';
 import { api } from '../api/client';
 import { keys, useFamily, useMembers, useAppMutation, useRules } from '../api/hooks';
 import { useAuth } from '../auth/AuthContext';
+import { FormModal, FormCancelButton, useDirtyGuard } from '../components/FormModal';
 import { Avatar, PageHeader, Loading, Empty } from '../components/ui';
 import { notifyError, notifySuccess, confirmDelete, confirmCritical } from '../feedback';
 import { useMonth } from '../useMonth';
@@ -453,7 +453,7 @@ export default function Family() {
             </Stack>
           </Card>
 
-          <Modal
+          <FormModal
             opened={createOpen}
             onClose={createModal.close}
             title="Criar regra de rateio"
@@ -461,7 +461,7 @@ export default function Family() {
             fullScreen={!!isMobile}
           >
             <CreateRuleForm onClose={createModal.close} />
-          </Modal>
+          </FormModal>
         </Tabs.Panel>
       </Tabs>
     </>
@@ -481,6 +481,8 @@ function CreateRuleForm({ onClose }: { onClose: () => void }) {
         vals.type === 'meter' && !v.trim() ? 'Informe a unidade medida.' : null,
     },
   });
+
+  useDirtyGuard(() => form.isDirty());
 
   const create = useAppMutation(
     (body: Record<string, unknown>) => api.post<RuleDTO>('/regras', body),
@@ -524,7 +526,7 @@ function CreateRuleForm({ onClose }: { onClose: () => void }) {
           />
         )}
         <Group justify="flex-end" mt="xs" grow preventGrowOverflow={false}>
-          <Button variant="default" mih={44} onClick={onClose}>Cancelar</Button>
+          <FormCancelButton mih={44}>Cancelar</FormCancelButton>
           <Button type="submit" mih={44} loading={create.isPending}>Criar regra</Button>
         </Group>
       </Stack>

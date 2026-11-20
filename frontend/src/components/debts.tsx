@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   Group,
-  Modal,
   NumberInput,
   Paper,
   Progress,
@@ -18,6 +17,7 @@ import {
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
+import { FormModal, FormCancelButton, useDirtyGuard } from './FormModal';
 import { useMediaQuery } from '@mantine/hooks';
 import { Link } from 'react-router-dom';
 import type { DebtDTO, MemberDTO } from '@shared/contracts';
@@ -280,7 +280,10 @@ export function NewDebtModal({
   );
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Lançar dívida" centered fullScreen={isMobile}>
+    <FormModal
+      opened={opened} onClose={onClose} title="Lançar dívida" centered fullScreen={isMobile}
+      isDirty={() => form.isDirty()} onDiscard={() => form.reset()}
+    >
       <form onSubmit={submit}>
         <Stack gap="md">
           <SimpleGrid cols={{ base: 1, xs: 2 }}>
@@ -299,12 +302,12 @@ export function NewDebtModal({
           <DatePickerInput label="Data" valueFormat="DD/MM/YYYY" dropdownType={isMobile ? 'modal' : 'popover'}
             styles={noZoomStyles} key={form.key('date')} {...form.getInputProps('date')} />
           <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>Cancelar</Button>
+            <FormCancelButton>Cancelar</FormCancelButton>
             <Button type="submit" loading={create.isPending}>Lançar dívida</Button>
           </Group>
         </Stack>
       </form>
-    </Modal>
+    </FormModal>
   );
 }
 
@@ -323,10 +326,10 @@ export function PayDebtModal({
 }) {
   const isMobile = useMediaQuery('(max-width: 48em)');
   return (
-    <Modal opened={!!debt} onClose={onClose} title="Pagar dívida" centered fullScreen={isMobile}>
+    <FormModal opened={!!debt} onClose={onClose} title="Pagar dívida" centered fullScreen={isMobile}>
       {/* Keyed by debt so the form starts fresh, pre-filled for each one. */}
       {debt && <PayDebtForm key={debt.id} debt={debt} members={members} onClose={onClose} />}
-    </Modal>
+    </FormModal>
   );
 }
 
@@ -351,6 +354,8 @@ function PayDebtForm({ debt, members, onClose }: { debt: DebtDTO; members: Membe
             : null,
     },
   });
+
+  useDirtyGuard(() => form.isDirty());
 
   const submit = form.onSubmit((v) => {
     const date = iso(v.date);
@@ -413,7 +418,7 @@ function PayDebtForm({ debt, members, onClose }: { debt: DebtDTO; members: Membe
         <TextInput label="Descrição do gasto" styles={noZoomStyles}
           key={form.key('description')} {...form.getInputProps('description')} />
         <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>Cancelar</Button>
+          <FormCancelButton>Cancelar</FormCancelButton>
           <Button type="submit" loading={pay.isPending}>Lançar gasto e pagar</Button>
         </Group>
       </Stack>

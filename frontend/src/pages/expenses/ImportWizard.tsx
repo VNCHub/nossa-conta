@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { FormCancelButton, useDirtyGuard } from '../../components/FormModal';
 import {
   ActionIcon,
   Alert,
@@ -64,6 +65,9 @@ export function ImportWizard({ onClose, allowInternal }: { onClose: () => void; 
   // Defaults favour the common case: unify what looks duplicated, accept every entry.
   const [merge, setMerge] = useState<Set<string>>(new Set());
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
+
+  // After the summary the import is already done, so closing asks nothing.
+  useDirtyGuard(() => step < 2 && (files.length > 0 || step > 0));
 
   const analyze = useAnalyzeImport();
   const run = useRunImport();
@@ -181,7 +185,7 @@ export function ImportWizard({ onClose, allowInternal }: { onClose: () => void; 
           )}
 
           <Group justify="flex-end" grow={isMobile ?? false} mt="md">
-            <Button h={isMobile ? 44 : undefined} variant="default" onClick={onClose}>Cancelar</Button>
+            <FormCancelButton h={isMobile ? 44 : undefined}>Cancelar</FormCancelButton>
             <Button h={isMobile ? 44 : undefined} disabled={files.length === 0} loading={analyze.isPending} onClick={goToDecisions}>
               Continuar
             </Button>
