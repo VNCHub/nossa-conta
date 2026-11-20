@@ -96,6 +96,14 @@ describe('Family critical actions (e2e)', () => {
     expect(body.name).toBe('Casa Guard');
   });
 
+  it('members who join get distinct avatar colors', async () => {
+    const { owner } = await makeFamily('Casa Cores', 5);
+    const { body } = await auth(owner)(http().get('/familias/minha/membros')).expect(200);
+    const colors = body.map((m: { color: string }) => m.color);
+    expect(colors).toHaveLength(6);
+    expect(new Set(colors).size).toBe(6);
+  });
+
   it('the creator renames the family', async () => {
     const { owner } = await makeFamily('Casa Nome');
     await auth(owner)(http().patch('/familias/minha')).send({ name: '  Casa Nova  ' }).expect(200);
