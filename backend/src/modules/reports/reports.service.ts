@@ -44,6 +44,7 @@ export class ReportsService {
       lines: calc.lines.map((l) => ({
         ...expenses.dto.get(l.id)!,
         shares: l.shares,
+        shareCents: l.shareCents,
       })),
       byUser: Object.fromEntries(
         Object.entries(calc.byUser).map(([id, u]): [string, UserSummary] => [

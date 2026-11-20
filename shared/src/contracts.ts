@@ -89,6 +89,13 @@ export interface RuleDTO {
 /** Expense plus each participant's percentage in the queried month. */
 export interface StatementLine extends ExpenseDTO {
   shares: Record<string, number>;
+  /**
+   * Each participant's share in integer cents, as the split engine settled it
+   * (the leftover cent already placed). Lists that add up shares must sum
+   * these, not `amount * shares[id]`: rounding floats line by line drifts a
+   * cent away from the totals in `byUser`.
+   */
+  shareCents: Record<string, number>;
 }
 
 export interface UserSummary {

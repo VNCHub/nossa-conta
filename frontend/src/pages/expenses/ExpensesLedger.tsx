@@ -41,6 +41,7 @@ import { useMonth } from '../../useMonth';
 import { MonthLockedBanner, useMyMonthLocked } from '../../components/MonthClosing';
 import { iso } from './date';
 import { FormModal, FormCancelButton, useDirtyGuard } from '../../components/FormModal';
+import { compareDefault, rememberCompleteness } from './frozenOrder';
 import { ExportExpensesModal } from './ExportExpensesModal';
 
 type Filter = 'all' | 'mine' | 'shared';
@@ -127,6 +128,9 @@ export default function ExpensesLedger() {
   const [filter, setFilter] = useState<Filter>('mine');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<Sort | null>(null);
+  // Per-month snapshot of each row's completeness, used only by the default order.
+  const frozen = useRef<{ month: string; map: Map<string, boolean> }>({ month, map: new Map() });
+  if (frozen.current.month !== month) frozen.current = { month, map: new Map() };
   const [createOpen, createModal] = useDisclosure(false);
   const [exportOpen, exportModal] = useDisclosure(false);
   const isMobile = useMediaQuery('(max-width: 48em)');
@@ -214,6 +218,8 @@ export default function ExpensesLedger() {
   };
 
   // Default sort: whoever still needs action (incomplete) comes first, then by date.
+  // Completeness is frozen at first sight so rows don't jump while being filled in.
+  rememberCompleteness(frozen.current.map, expenses.data);
   const sorted = [...list].sort((a, b) => {
     if (sort) {
       const va = sortValue(a, sort.key);
@@ -224,8 +230,7 @@ export default function ExpensesLedger() {
           : String(va).localeCompare(String(vb), 'pt-BR');
       return sort.dir === 'asc' ? cmp : -cmp;
     }
-    if (a.complete !== b.complete) return a.complete ? 1 : -1;
-    return a.date.localeCompare(b.date);
+    return compareDefault(frozen.current.map, a, b);
   });
 
   // Each click cycles the column through ascending → descending → default.

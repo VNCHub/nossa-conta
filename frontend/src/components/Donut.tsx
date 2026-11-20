@@ -1,8 +1,11 @@
-import { Badge, Box, Center, Group, Stack, Text } from '@mantine/core';
+import type { ReactNode } from 'react';
+import { Badge, Box, Center, Group, Stack, Text, UnstyledButton } from '@mantine/core';
 import { DonutChart } from '@mantine/charts';
 import { brl } from '@shared/format';
 import { useValuesHidden } from '../hideValues';
 import { Money } from './ui';
+
+export type SpendingType = 'fixed' | 'oneOff';
 
 /**
  * Its own file, not inside ui.tsx, on purpose: this is the only place that
@@ -13,9 +16,12 @@ import { Money } from './ui';
 export function Donut({
   fixed,
   oneOff,
+  onSelect,
 }: {
   fixed: number;
   oneOff: number;
+  /** Present only where a type can drill down into its expenses. */
+  onSelect?: (type: SpendingType) => void;
 }) {
   const total = fixed + oneOff;
   const [hidden] = useValuesHidden();
@@ -36,6 +42,8 @@ export function Donut({
             withTooltip={!hidden}
             chartLabel={hidden ? undefined : brl(total)}
             valueFormatter={brl}
+            // Same order as `data` above; Recharts reports the clicked slice by index.
+            pieProps={onSelect ? { onClick: (_, i) => onSelect(i === 0 ? 'fixed' : 'oneOff'), style: { cursor: 'pointer' } } : undefined}
           />
           {hidden && (
             <Center pos="absolute" inset={0} fz="sm" style={{ pointerEvents: 'none' }}>
@@ -49,15 +57,32 @@ export function Donut({
         </Center>
       )}
       <Stack gap="sm">
-        <div>
+        <TypeBlock type="fixed" onSelect={onSelect}>
           <Badge color="petrol" variant="light" radius="sm">Fixo</Badge>
           <Text className="num" fz="lg" fw={600} mt={5}><Money value={fixed} /></Text>
-        </div>
-        <div>
+        </TypeBlock>
+        <TypeBlock type="oneOff" onSelect={onSelect}>
           <Badge color="grape" variant="light" radius="sm">Pontual</Badge>
           <Text className="num" fz="lg" fw={600} mt={5}><Money value={oneOff} /></Text>
-        </div>
+        </TypeBlock>
       </Stack>
     </Group>
+  );
+}
+
+function TypeBlock({
+  type,
+  onSelect,
+  children,
+}: {
+  type: SpendingType;
+  onSelect?: (type: SpendingType) => void;
+  children: ReactNode;
+}) {
+  if (!onSelect) return <div>{children}</div>;
+  return (
+    <UnstyledButton onClick={() => onSelect(type)} aria-label={type === 'fixed' ? 'Ver gastos fixos' : 'Ver gastos pontuais'} mih={44}>
+      {children}
+    </UnstyledButton>
   );
 }

@@ -5,7 +5,7 @@ import { pct } from '@shared/format';
 import { useAuth } from '../auth/AuthContext';
 import { useMembers, useRules, useStatement } from '../api/hooks';
 import { CategoryExpensesModal } from '../components/CategoryExpensesModal';
-import { Donut } from '../components/Donut';
+import { Donut, type SpendingType } from '../components/Donut';
 import { MyMonthCard } from '../components/MonthClosing';
 import { MyDebtsCard } from '../components/debts';
 import { PageHeader, Loading, Categories, Metric, Empty, Money } from '../components/ui';
@@ -18,6 +18,7 @@ export default function MyDashboard() {
   const members = useMembers();
   const rules = useRules();
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
+  const [selectedType, setSelectedType] = useState<SpendingType | null>(null);
 
   if (!statement.data || !user) {
     return statement.error ? <Empty>{statement.error.message}</Empty> : <Loading />;
@@ -77,7 +78,7 @@ export default function MyDashboard() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card h="100%">
             <Title order={3} mb="lg">Tipo de gasto</Title>
-            <Donut fixed={d.fixed} oneOff={d.oneOff} />
+            <Donut fixed={d.fixed} oneOff={d.oneOff} onSelect={setSelectedType} />
             <Text size="sm" c="dimmed" mt="lg">
               {oneOffShare > 0.35
                 ? 'Mais de um terço da sua cota é gasto pontual — é aí que dá pra mexer sem mudar de vida.'
@@ -93,14 +94,17 @@ export default function MyDashboard() {
         </Grid.Col>
       </Grid>
 
-      {selectedCategory && (
+      {(selectedCategory || selectedType) && (
         <CategoryExpensesModal
-          categoryId={selectedCategory}
+          filter={selectedCategory ? { category: selectedCategory } : { type: selectedType! }}
           lines={calc.lines}
           userId={user.id}
           members={members.data ?? []}
           rules={rules.data ?? []}
-          onClose={() => setSelectedCategory(null)}
+          onClose={() => {
+            setSelectedCategory(null);
+            setSelectedType(null);
+          }}
         />
       )}
     </>
